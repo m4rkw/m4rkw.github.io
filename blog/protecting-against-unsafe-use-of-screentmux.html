@@ -1,0 +1,282 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+        <link rel="stylesheet" type="text/css" href="/css/style.css" />
+        <link rel="alternate" type="application/rss+xml" title="m4.rkw.io blog" href="http://m4.rkw.io/blog/rss" />
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+        <script src='https://www.google.com/recaptcha/api.js'></script>
+        <script src="/js/site.js"></script>
+        <title>Mark Wadham</title>
+    </head>
+    <body>
+        <div id="menu">
+                        <h3>Mark Wadham</h3>
+            <ul>
+                <li><a href="/index.html">profile</a></li>
+                <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
+                <li><a href="/cves.html">CVEs</a></li>
+                <li><a href="/jsdemos.html">js demos</a></li>
+                <li><a href="/contact.html">contact</a></li>
+                <li class="space small">twitter: <a href="https://twitter.com/m4rkw">m4rkw</a></li>
+                <li class="small">github: <a href="https://github.com/m4rkw">m4rkw</a></li>
+                <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
+                <li class="red space small"></li>
+            </ul>
+
+        </div>
+        <div id="content">
+            <div id="main-content">
+                                            <div class="post">
+                <h2><a href="/blog/protecting-against-unsafe-use-of-screentmux.html">protecting against unsafe use of screen/tmux</a></h2>
+                <h3>15 Dec 2017 09:35  | <a class="tag" href="/blog/tag/linux.html">linux</a> | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/bash.html">bash</a></h3>
+                  <pre>It occurred to me recently that a lot of people probably use screen or tmux in
+ways that leave an easy path to privilege escalation open. For example if you
+start a screen session as your local user and then escalate to root inside the
+screen session. As soon as you do that, anyone with access to the non-root
+account can simply resume the screen session and immediately be root.
+
+It is therefore sensible to never do this and always escalate *before* starting
+a screen or tmux session. I&#39;m pretty sure I&#39;ve done this loads of times without
+really thinking about it. I decided to look into simple ways to mitigate this.
+
+On linux it&#39;s pretty easy, we can add this code to /root/.bashrc:
+
+-------------------------------------------------------------------------------
+pid=$$
+
+screen=`which screen`
+tmux=`which tmux`
+
+while :
+do
+  parent=`ps -o ppid= $pid 2&gt;/dev/null | xargs`
+
+  if [ &quot;$parent&quot; == &quot;1&quot; ] ; then
+    break
+  fi
+
+  exe=`readlink -f /proc/$parent/exe`
+  owner=`ps h -o ruser -p $parent`
+
+  if [ &quot;$owner&quot; != &quot;root&quot; ] ; then
+    if [ &quot;$exe&quot; == &quot;$screen&quot; -o &quot;$exe&quot; == &quot;$tmux&quot; ] ; then
+      echo &quot;unsafe escalation - escalate to root *before* running screen/tmux!&quot;
+      kill -9 `ps -o ppid= $$ 2&gt;/dev/null | xargs`
+      exit 0
+    fi
+  fi
+
+  pid=$parent
+done
+-------------------------------------------------------------------------------
+
+Now if we spawn a root-owned shell from inside a screen this code will execute
+when it starts up. It walks up the parent process hierarchy and if it finds
+screen or tmux running as a non-root user it will terminate its parent and thus
+kill the escalation. This is what we see when this happens:
+
+$ screen
+$ sudo bash
+[sudo] password for user:
+unsafe escalation - escalate to root *before* running screen/tmux!
+Killed
+a ~ $
+
+Of course we can still escalate to root *outside* the screen session and we
+can still use sudo for other things inside screen that won&#39;t leave a root-owned
+shell running.
+
+Doing this on macOS is a bit more complicated for a couple of reasons - firstly
+there&#39;s the issue I blogged about here:
+
+<a href="https://m4.rkw.io/blog/macos-sudo-wtf.html">https://m4.rkw.io/blog/macos-sudo-wtf.html</a>
+
+In that the default sudoers file that ships with macOS has the HOME path set to
+inherit when escalating with sudo, leading to your local admin&#39;s dotfiles being
+executed as root when you escalate. I would strongly recommend disabling this.
+If you like the convenience of keeping your HOME environment variable when
+escalating you can simply add this to /var/root/.bashrc:
+
+export HOME=/Users/user
+
+(or whatever your home path is). This gives you basically the same convenience
+without the security compromise of having your dotfiles executed as root every
+time.
+
+But I digress. For the purposes of this post I&#39;ll assume that you have made this
+change and that when you sudo your /var/root/.bashrc is the one that gets
+executed rather than the non-root user&#39;s one.
+
+The second problem with doing this on macOS is that there&#39;s not (at least as far
+as I know) an easy way to look up the real binary path for a process without
+using a system call. We have no handy proc filesystem like we have on linux and
+I&#39;m not really a big fan of fuse.
+
+So first we need to write a little tool that will take a process id and give us
+the real path to its binary:
+
+-------------------------------------------------------------------------------
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;libproc.h&gt;
+
+int main (int argc, char* argv[])
+{
+    pid_t pid; int ret;
+    char pathbuf[PROC_PIDPATHINFO_MAXSIZE];
+    int i;
+
+    if (argc &lt; 2) {
+      printf(&quot;usage: %s &lt;pid&gt;\n&quot;, argv[0]);
+      return 0;
+    }
+
+    ret = proc_pidpath (atoi(argv[1]), pathbuf, sizeof(pathbuf));
+
+    if ( ret &gt; 0 ) {
+      printf(&quot;%s\n&quot;, pathbuf);
+    } else {
+      fprintf(stderr, &quot;%s\n&quot;, strerror(errno));
+    }
+
+    return 0;
+}
+-------------------------------------------------------------------------------
+
+Stick this in /usr/local/bin/ like so:
+
+$ sudo gcc -o /usr/local/bin/psr psr.c
+
+Now we can grab the real binary path for any process:
+
+$ psr $$
+/bin/bash
+$
+
+Cool. By the way the proc_pidpath() system call is quite handy when examining
+processes on your system. The process name shown in the ps output can be easily
+manipulated by overwriting argv[0] but I have no found a way to mask the real
+binary path returned by proc_pidpath(). It seems to be a low-level kernel
+function.
+
+So now we just need a bit of bash similar to the linux version in our
+/var/root/.bashrc file:
+
+-------------------------------------------------------------------------------
+screen=`which screen`
+tmux=`which tmux`
+
+function expand_path()
+{
+  p=$1
+
+  while :
+  do
+    realpath=`python -c &#39;import os,sys;print(os.path.realpath(sys.argv[1]))&#39; $p`
+    if [ &quot;$realpath&quot; == &quot;$p&quot; ] ; then
+      break
+    fi
+    p=$realpath
+  done
+}
+
+if [ &quot;$screen&quot; != &quot;&quot; ] ; then
+  expand_path $screen
+  screen=$p
+fi
+
+if [ &quot;$tmux&quot; != &quot;&quot; ] ; then
+  expand_path $tmux
+  tmux=$p
+fi
+
+pid=$$
+
+while :
+do
+  parent=`ps -o ppid= $pid 2&gt;/dev/null | xargs`
+
+  if [ &quot;$parent&quot; == &quot;1&quot; ] ; then
+    break
+  fi
+
+  exe=`/usr/local/bin/psr $parent`
+  owner=`ps h -o ruser= $parent`
+
+  if [ &quot;$owner&quot; != &quot;root&quot; ] ; then
+    if [ &quot;$exe&quot; == &quot;$screen&quot; -o &quot;$exe&quot; == &quot;$tmux&quot; ] ; then
+      echo &quot;unsafe escalation - don&#39;t do this in a non-root screen/tmux session!&quot;
+      kill -9 `ps -o ppid= $$ 2&gt;/dev/null | xargs`
+      exit 0
+    fi
+  fi
+
+  pid=$parent
+done
+-------------------------------------------------------------------------------
+
+It&#39;s a little more complicated because macOS package managers often install
+binaries using symlinks. I use screen from macports because it seems to work
+better than the standard one but the path returned by which is a symlink which
+obviously isn&#39;t useful if we&#39;re comparing against the output of the
+proc_pidpath() call. Also macOS doesn&#39;t seem to support readlink -f so we need
+to use a tiny bit of python to expand the symlinks.</pre>
+            </div>
+
+
+            </div>
+            <div id="right-content">
+                
+            <ul>
+              <li>&nbsp;&nbsp;<a href="/blog.html">all posts</a>
+            </ul>
+
+            <ul>
+              <li>&nbsp;&nbsp;[year]</li>
+                <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+            </ul>
+
+            <ul>
+              <li>&nbsp;&nbsp;[tag]</li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+            </ul>
+
+            </div>
+        </div>
+				<script>
+						(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+						(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+						m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+						})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+						ga('create', 'UA-91604161-1', 'auto');
+						ga('send', 'pageview');
+				</script>
+    </body>
+</html>

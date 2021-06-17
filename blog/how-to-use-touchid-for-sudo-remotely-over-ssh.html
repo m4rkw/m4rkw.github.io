@@ -1,0 +1,432 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+        <link rel="stylesheet" type="text/css" href="/css/style.css" />
+        <link rel="alternate" type="application/rss+xml" title="m4.rkw.io blog" href="http://m4.rkw.io/blog/rss" />
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+        <script src='https://www.google.com/recaptcha/api.js'></script>
+        <script src="/js/site.js"></script>
+        <title>Mark Wadham</title>
+    </head>
+    <body>
+        <div id="menu">
+                        <h3>Mark Wadham</h3>
+            <ul>
+                <li><a href="/index.html">profile</a></li>
+                <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
+                <li><a href="/cves.html">CVEs</a></li>
+                <li><a href="/jsdemos.html">js demos</a></li>
+                <li><a href="/contact.html">contact</a></li>
+                <li class="space small">twitter: <a href="https://twitter.com/m4rkw">m4rkw</a></li>
+                <li class="small">github: <a href="https://github.com/m4rkw">m4rkw</a></li>
+                <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
+                <li class="red space small"></li>
+            </ul>
+
+        </div>
+        <div id="content">
+            <div id="main-content">
+                                            <div class="post">
+                <h2><a href="/blog/how-to-use-touchid-for-sudo-remotely-over-ssh.html">How to use touchID for sudo remotely over ssh</a></h2>
+                <h3>18 Apr 2020 14:25  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/touchID.html">touchID</a></h3>
+                  <pre>TouchID on the mac is really cool. It&#39;s awesome being able to use it for sudo,
+but I thought it would be even more awesome if it could be used to authenticate
+sudo remotely over ssh.
+
+I&#39;ve made this work using touch2sudo - <a href="https://github.com/prbinu/touch2sudo">https://github.com/prbinu/touch2sudo</a>
+which is a simple binary that when executed will show a touchID authentication
+prompt and return 0 if the auth was successful and non-zero if not.
+
+I&#39;ve created a simple nginx vhost that exposes a python cgi script. When
+executed this spawns touch2sudo and returns the status code to indicate if
+authentication was successful or not.
+
+I then create a persistent ssh connection to the remote server I want to use
+this with, reverse forwarding the local nginx instance to the remote machine.
+
+Then I wrote a simple PAM module which calls the endpoint in order to initiate
+the touchID authentication.
+
+## warning
+
+Please be aware this is just a proof-of-concept, it&#39;s very rough around the
+edges and will likely have security issues. Please don&#39;t use this for systems
+you care about unless you know what you&#39;re doing. I am not liable for any issues
+that may arise from following these steps.
+
+Also note that when the nginx endpoint isn&#39;t listening on the remote machine,
+any local user could throw up a tcp listener that just responds with &quot;0&quot; in
+order to bypass sudo authentication. If you want to use this securely you&#39;ll
+need to do a bit more work.
+
+One possible way to mitigate this might be to use SSL on the nginx endpoint and
+verify the fingerprint of the SSL cert in the touchid shell script wrapper.
+
+## setup
+
+1) Install fcgiwrap from macports
+
+$ sudo port install fcgiwrap
+
+2) Give your local user permission to execute /opt/local/bin/spawn-fcgi as root
+without a password:
+
+/etc/sudoers.d/fcgiwrap
+
+--------------
+admin ALL=(ALL) NOPASSWD: /opt/local/bin/spawn-fcgi
+--------------
+
+3) Create ~/Library/LaunchAgents/org.macports.fcgiwrap.plist
+
+This has to be in your local user&#39;s LaunchAgents path as it needs to be able to
+spawn the touchID gui popup on the user&#39;s desktop.
+
+--------------
+&lt;?xml version=&#39;1.0&#39; encoding=&#39;UTF-8&#39;?&gt;
+&lt;!DOCTYPE plist PUBLIC &quot;-//Apple//DTD PLIST 1.0//EN&quot;
+&quot;<a href="http://www.apple.com/DTDs/PropertyList-1.0.dtd&quot; &gt">http://www.apple.com/DTDs/PropertyList-1.0.dtd&quot; &gt</a>;
+&lt;plist version=&#39;1.0&#39;&gt;
+&lt;dict&gt;
+&lt;key&gt;Label&lt;/key&gt;&lt;string&gt;org.macports.fcgiwrap&lt;/string&gt;
+&lt;key&gt;ProgramArguments&lt;/key&gt;
+&lt;array&gt;
+  &lt;string&gt;/usr/bin/sudo&lt;/string&gt;
+  &lt;string&gt;/opt/local/bin/spawn-fcgi&lt;/string&gt;
+  &lt;string&gt;-F&lt;/string&gt;
+  &lt;string&gt;1&lt;/string&gt;
+  &lt;string&gt;-P&lt;/string&gt;
+  &lt;string&gt;/opt/local/var/run/fcgiwrap.pid&lt;/string&gt;
+  &lt;string&gt;-s&lt;/string&gt;
+  &lt;string&gt;/opt/local/var/run/fcgiwrap.socket&lt;/string&gt;
+  &lt;string&gt;-U&lt;/string&gt;
+  &lt;string&gt;nobody&lt;/string&gt;
+  &lt;string&gt;-G&lt;/string&gt;
+  &lt;string&gt;nobody&lt;/string&gt;
+  &lt;string&gt;/opt/local/sbin/fcgiwrap&lt;/string&gt;
+&lt;/array&gt;
+&lt;key&gt;KeepAlive&lt;/key&gt;&lt;true/&gt;
+&lt;/dict&gt;
+&lt;/plist&gt;
+--------------
+
+4) Spawn fcgiwrap
+
+$ launchctl load -w ~/Library/LaunchAgents/org.macports.fcgiwrap.plist
+
+5) Install nginx from macports
+
+/opt/local/etc/nginx/nginx.conf
+
+--------------
+worker\_processes  1;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    sendfile        on;
+    keepalive_timeout  65;
+
+    include conf.d/*.conf;
+    include sites-enabled/*;
+
+    upstream fcgiwrap {
+      server unix:/opt/local/var/run/fcgiwrap.socket;
+    }
+}
+--------------
+
+6) Create /opt/local/etc/nginx/fastcgi_params
+
+--------------
+fastcgi_param  QUERY_STRING       $query_string;
+fastcgi_param  REQUEST_METHOD     $request_method;
+fastcgi_param  CONTENT_TYPE       $content_type;
+fastcgi_param  CONTENT_LENGTH     $content_length;
+
+fastcgi_param  SCRIPT_NAME        $fastcgi_script_name;
+fastcgi_param  REQUEST_URI        $request_uri;
+fastcgi_param  DOCUMENT_URI       $document_uri;
+fastcgi_param  DOCUMENT_ROOT      $document_root;
+fastcgi_param  SERVER_PROTOCOL    $server_protocol;
+fastcgi_param  REQUEST_SCHEME     $scheme;
+fastcgi_param  HTTPS              $https if_not_empty;
+
+fastcgi_param  GATEWAY_INTERFACE  CGI/1.1;
+fastcgi_param  SERVER_SOFTWARE    nginx/$nginx_version;
+
+fastcgi_param  REMOTE_ADDR        $remote_addr;
+fastcgi_param  REMOTE_PORT        $remote_port;
+fastcgi_param  SERVER_ADDR        $server_addr;
+fastcgi_param  SERVER_PORT        $server_port;
+fastcgi_param  SERVER_NAME        $server_name;
+--------------
+
+# PHP only, required if PHP was built with --enable-force-cgi-redirect
+fastcgi_param  REDIRECT_STATUS    200;
+
+7) Create the vhost config: /opt/local/etc/nginx/sites-enabled/auth.conf
+
+--------------
+server {
+  listen 61111 default_server;
+
+  root /var/www/auth/htdocs;
+  index index.py;
+
+  server_name auth;
+
+  rewrite ^/auth$ /auth.py;
+
+  location ~ \.py$ {
+    include /opt/local/etc/nginx/fastcgi_params;
+
+    fastcgi_param DOCUMENT_ROOT /var/www/auth/htdocs;
+    fastcgi_param SCRIPT_FILENAME /var/www/auth/htdocs$fastcgi_script_name;
+
+    fastcgi_pass fcgiwrap;
+    fastcgi_read_timeout 300s;
+  }
+}
+--------------
+
+8) Start nginx
+
+$ sudo launchctl load -w /Library/LaunchDaemons/org.macports.nginx.plist
+
+9) Grab the touch2sudo binary from here:
+
+<a href="https://github.com/prbinu/touch2sudo">https://github.com/prbinu/touch2sudo</a>/releases/download/v0.1/touch2sudo-0.1.tgz
+
+copy it to:
+
+/usr/local/bin/touch2sudo
+
+10) Create the python CGI wrap at /var/www/auth/htdocs/auth.py
+
+--------------
+#!/usr/bin/env python3
+
+import os
+import sys
+
+KEY = &#39;YOUR_KEY_HERE&#39;
+
+if &#39;HTTP_AUTH&#39; not in os.environ or os.environ[&#39;HTTP_AUTH&#39;] != KEY:
+  sys.exit(0)
+
+rc = os.system(&quot;/usr/bin/sudo -u admin /usr/local/bin/touch2sudo&quot;)
+
+print(&quot;Content-type: text/plain\n&quot;)
+print(str(rc))
+--------------
+
+Be sure to replace the key with a random string of your own choosing.
+
+11) Test that the nginx auth endpoint works:
+
+$ curl -s -H &#39;Auth: YOUR_KEY_HERE&#39; <a href="<a href="<a href="http://localhost:61111/auth">http://localhost:61111/auth</a>"><a href="http://localhost:61111/auth">http://localhost:61111/auth</a></a>"><a href="<a href="http://localhost:61111/auth">http://localhost:61111/auth</a>"><a href="http://localhost:61111/auth">http://localhost:61111/auth</a></a></a>
+
+This should show a touchID prompt, and the output from curl should be 0 if you
+authenticate correctly with touchID. If this doesn&#39;t work, check the logs and
+see why it isn&#39;t working before proceeding.
+
+12) Create a new non-admin user on your mac to run the persistent ssh connection
+as. For example you could call the user &quot;sshuser&quot;. If you want to hide them from
+the macOS login window you can execute:
+
+$ sudo dscl . create /Users/sshuser IsHidden 0
+
+If you want to remove them from the FileVault authentication page on startup,
+run this:
+
+$ sudo fdesetup remove -user sshuser
+
+13) Create the same unprivileged user on your remote machine. I&#39;ll assume you
+used the same username.
+
+14) (Optional) prevent the user on the remote machine from spawning a shell.
+This is for additional security. Add the below lines to your sshd config on the
+remote machine and restart sshd.
+
+--------------
+# tail -n3 /etc/ssh/sshd_config
+Match User sshuser
+  PermitTTY no
+  ForceCommand /bin/true
+--------------
+
+15) Become sshuser on your mac and generate an ssh key for them:
+
+$ sudo -Hu sshuser bash
+$ cd
+$ ssh-keygen
+
+16) Add the contents of /Users/sshuser/.ssh/id_rsa.pub on your mac to
+/home/sshuser/.ssh/authorized_keys on the remote machine
+
+17) Verify that the key authentication is working from sshuser on the mac to the
+remote machine.
+
+$ sudo -Hu mbssh bash
+$ cd
+$ ssh sshuser@REMOTE_MACHINE
+PTY allocation request failed on channel 0
+Connection to REMOTE_MACHINE closed.
+
+If you see &quot;PTY allocation request failed&quot; this means it&#39;s working.
+
+18) Create a launchd config to launch and maintain the persistent ssh
+connection at: /Library/LaunchDaemons/com.sshuser.ssh.plist
+
+--------------
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;!DOCTYPE plist PUBLIC &quot;-//Apple//DTD PLIST 1.0//EN&quot; &quot;<a href="http://www.apple.com/DTDs/PropertyList-1.0.dtd&quot;&gt">http://www.apple.com/DTDs/PropertyList-1.0.dtd&quot;&gt</a>;
+&lt;plist version=&quot;1.0&quot;&gt;
+&lt;dict&gt;
+    &lt;key&gt;Label&lt;/key&gt;
+    &lt;string&gt;com.sshuser.ssh.plist&lt;/string&gt;
+    &lt;key&gt;ProgramArguments&lt;/key&gt;
+    &lt;array&gt;
+      &lt;string&gt;/usr/bin/ssh&lt;/string&gt;
+      &lt;string&gt;-NT&lt;/string&gt;
+      &lt;string&gt;-o ServerAliveInterval=60&lt;/string&gt;
+      &lt;string&gt;-o ExitOnForwardFailure=yes&lt;/string&gt;
+      &lt;string&gt;-i&lt;/string&gt;
+      &lt;string&gt;/Users/sshuser/.ssh/id_rsa&lt;/string&gt;
+      &lt;string&gt;-R 61111:localhost:61111&lt;/string&gt;
+      &lt;string&gt;sshuser@REMOTE_MACHINE&lt;/string&gt;
+    &lt;/array&gt;
+    &lt;key&gt;RunAtLoad&lt;/key&gt;
+    &lt;true/&gt;
+    &lt;key&gt;KeepAlive&lt;/key&gt;
+    &lt;true/&gt;
+    &lt;key&gt;UserName&lt;/key&gt;
+    &lt;string&gt;sshuser&lt;/string&gt;
+&lt;/dict&gt;
+&lt;/plist&gt;
+--------------
+
+19) Start the launch service:
+
+$ sudo launchctl load -w /Library/LaunchDaemons/com.sshuser.ssh.plist
+
+20) Test that the touchID prompt comes up when you hit the nginx endpoint from
+the remote server:
+
+$ ssh REMOTE_SERVER
+$ curl -sH &#39;Auth: YOUR_KEY_HERE&#39; <a href="<a href="<a href="http://localhost:61111/auth">http://localhost:61111/auth</a>"><a href="http://localhost:61111/auth">http://localhost:61111/auth</a></a>"><a href="<a href="http://localhost:61111/auth">http://localhost:61111/auth</a>"><a href="http://localhost:61111/auth">http://localhost:61111/auth</a></a></a>
+
+You should get a touchID prompt on your mac. If not, investigate and resolve the
+issue before proceeding.
+
+21) Create a simple bash wrapper to invoke the touchid authentication:
+
+/usr/local/bin/touchid
+
+--------------
+#!/bin/bash
+/bin/netstat -nat |grep &#39;:61111&#39; 1&gt;/dev/null
+if [ $? -eq 0 ] ; then
+  r=`/usr/bin/curl -s -H &#39;Auth: YOUR_KEY_HERE&#39; <a href="<a href="<a href="http://localhost:61111/auth">http://localhost:61111/auth</a>"><a href="http://localhost:61111/auth">http://localhost:61111/auth</a></a>"><a href="<a href="http://localhost:61111/auth">http://localhost:61111/auth</a>"><a href="http://localhost:61111/auth">http://localhost:61111/auth</a></a></a>`
+  if [ &quot;$r&quot; == &quot;0&quot; ] ; then
+    exit 0
+  else
+    exit 1
+  fi
+fi
+exit 1
+--------------
+
+This wrapper will first check that the :61111 socket is listening, if it isn&#39;t
+there it will return a non-zero exit code allowing sudo to fall back to password
+authentication.
+
+Test that this works before proceeding.
+
+22) Clone my fork of simple-pam: <a href="<a href="https://github.com/m4rkw/simple-pam">https://github.com/m4rkw/simple-pam</a>"><a href="https://github.com/m4rkw/simple-pam">https://github.com/m4rkw/simple-pam</a></a>
+
+$ git clone <a href="<a href="https://github.com/m4rkw/simple-pam">https://github.com/m4rkw/simple-pam</a>"><a href="https://github.com/m4rkw/simple-pam">https://github.com/m4rkw/simple-pam</a></a>
+
+23) Compile and install the pam module
+
+$ sudo apt install libpam-dev
+$ cd simple-pam
+$ gcc -fPIC -fno-stack-protector -c src/mypam.c
+$ sudo ld -x --shared -o /lib/security/mypam.so mypam.o
+
+24) Add the auth sufficient line to the top of your /etc/pam.d/sudo file after
+the bangline:
+
+--------------
+#%PAM-1.0
+
+auth sufficient mypam.so
+--------------
+
+At this point it should work. You should be able to ssh to your remote machine,
+type &quot;sudo bash&quot; and authenticate the sudo escalation with touchID.
+
+How cool is that? :)</pre>
+            </div>
+
+
+            </div>
+            <div id="right-content">
+                
+            <ul>
+              <li>&nbsp;&nbsp;<a href="/blog.html">all posts</a>
+            </ul>
+
+            <ul>
+              <li>&nbsp;&nbsp;[year]</li>
+                <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+            </ul>
+
+            <ul>
+              <li>&nbsp;&nbsp;[tag]</li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+            </ul>
+
+            </div>
+        </div>
+				<script>
+						(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+						(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+						m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+						})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+						ga('create', 'UA-91604161-1', 'auto');
+						ga('send', 'pageview');
+				</script>
+    </body>
+</html>

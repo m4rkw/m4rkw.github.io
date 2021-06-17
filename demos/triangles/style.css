@@ -1,0 +1,133 @@
+html {
+	border: none;
+	font-family: courier;
+}
+
+body {
+	background-color: #000;
+	border: none;
+	margin: 0;
+}
+
+#wrapper {
+}
+
+#dmt-logo {
+	width: 400px;
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 40px
+}
+
+.bouncer-shadow {
+	font-size: 44px;
+	z-index: -100;
+	position:absolute;
+}
+
+.bouncer {
+	color: #fff;
+}
+
+.dots {
+	position: absolute;
+}
+
+#sine-scroller {
+	font-size: 34px;
+	font-weight: bold;
+}
+
+.sine-scroller {
+	position: absolute;
+}
+
+#starfield {
+	z-index: -200;
+	position: absolute;
+	left: 0;
+	top: 0;
+}
+
+.star1 {
+	color: #fff;
+	font-size: 4px;
+	position: absolute;
+}
+
+.star2 {
+	color: #fff;
+	font-size: 8px;
+	position: absolute;
+}
+
+.star3 {
+	color: #fff;
+	font-size: 10px;
+	position: absolute;
+}
+
+.star4 {
+	color: #fff;
+	font-size: 14px;
+	position: absolute;
+}
+
+.star5 {
+	color: #fff;
+	font-size: 16px;
+	position: absolute;
+}
+
+#raster {
+	position: absolute;
+}
+
+#raster-text {
+	position: absolute;
+	margin-top: 6px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.raster-line {
+	height: 1px;
+	margin: 0;
+	border: none;
+	padding: 0;
+}
+
+#spinner {
+	position: absolute;
+	left: -10;
+	top: -80;
+}
+
+.spinner {
+	color: #fff;
+	font-size: 42px;
+	position: absolute;
+}
+
+#debug {
+	position: absolute;
+	top: 200;
+	left: 10;
+	color: #fff;
+}
+
+.binary-block {
+	position: absolute;
+	z-index: +100;
+	background-color: #000;
+	color: #000;
+	display: none;
+}
+
+.binary-bit {
+	position: absolute;
+	z-index: -100;
+	color: #fff;
+	background-color: #000;
+	display: none;
+}

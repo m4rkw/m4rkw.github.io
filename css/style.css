@@ -1,0 +1,178 @@
+
+body {
+    font-family: courier;
+    font-size: 10pt;
+    margin-top: 0;
+    padding-top: 0;
+}
+
+#menu {
+    float: left;
+    /*width: 12em;*/
+    min-width: 12em;
+    width: 15%;
+    font-size: 12pt;
+    margin-left: 40px;
+}
+
+#content {
+    margin-bottom: 3em;
+}
+
+#main-content {
+    float: left;
+    /*width: 50em;*/
+    min-width: 50em;
+    width: 70%;
+    margin-bottom: 5em;
+    margin-right: 2em;
+}
+
+#right-content {
+    float: left;
+    /*width: 9em;*/
+    min-width: 9em;
+    width: 15%;
+    font-size: 11pt;
+    margin-top: 2em;
+}
+
+h1 {
+    font-size: 12pt;
+}
+
+#content {
+    margin-left: 18em;
+}
+
+h3 {
+    margin-top: 0;
+}
+
+ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+#menu li {
+    margin-bottom: 0.6em;
+}
+
+
+li.space {
+    margin-top: 2em;
+}
+
+li.small {
+    font-size: 10pt;
+}
+
+a {
+    color: #444;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #777;
+}
+
+.work-history-entry {
+    margin-top: 2.2em;
+}
+
+.work-history-text {
+    display: none;
+}
+
+#download-cv {
+    margin-top: 2em;
+}
+
+#download-cv div {
+    margin-top: 1em;
+}
+
+#recruiter-agreement {
+    display: none;
+}
+
+#contact-form div {
+    margin-top: 1em;
+}
+
+#contact-form label {
+    display: inline-block;
+    width: 5em;
+    vertical-align: top;
+}
+
+#contact-form input[type="text"] {
+    width: 20em;
+}
+
+#contact-form textarea {
+    width: 30em;
+    height: 15em;
+}
+
+#contact-form span.error {
+    margin-left: 5.7em;
+    color: #f00;
+}
+
+#contact-form .g-recaptcha {
+    margin-left: 5.7em;
+}
+
+#contact-form input[type="submit"] {
+    margin-left: 6.8em;
+}
+
+.red {
+    color: #f00;
+}
+
+.demo-row {
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+
+.demo {
+    margin: 5px;
+    display: inline-block;
+}
+
+.project {
+    margin-top: 2em;
+}
+
+.projectdetail {
+    display: none;
+}
+
+.post { margin-bottom: 2em; }
+
+.post h2 {
+    margin-bottom: 0;
+}
+
+.post h3 {
+    color: #bbb;
+}
+
+.post h3 a.tag {
+    color: #bbb;
+}
+
+.post h3 a.tag:hover {
+    color: #999;
+}
+
+#right-content ul {
+  margin-bottom: 2em;
+}
+
+.extended-content {
+  display: none;
+}

