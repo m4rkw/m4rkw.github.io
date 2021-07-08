@@ -61,13 +61,20 @@ a lot of tedious guesswork (which and how many characters were dropped) or worse
 - restoring from a backup.
 
 At first I thought it was failing to unlock because it was sending the keys
-too quickly. The Yubikey Personlisation Tool has an option to add up to 60ms
-delay and this seemed to help, but it still wasn&#39;t 100% reliable (see
-further down for how I eventually figured out what was really happening).
+too quickly. The Yubikey Personalisation Tool has an option to add up to 60ms
+of delay between the keystrokes and this seemed to help, but it still wasn&#39;t
+100% reliable. After further testing I eventually determined that the ! prefix
+I was using was being converted into a 1 about 30% of the time. This did not
+seem to happen on the mac so is likely something to do with iOS or the
+lightning interface. I turned off the ! prefix and then found that the first
+character that should be uppercase was occasionally being turned lowercase.
+This glitch only seems to affect the first character of the password and it
+seems to relate to the shift modifier. After disabling both the ! prefix and
+uppercase characters it worked flawlessly every time.
 
-When it works it&#39;s really cool, as well as FaceID when that&#39;s active I now have
-a much stronger password protecting the device when it&#39;s locked without the huge
-inconvenience of typing a very long password into it manually.
+When it works it&#39;s really cool - FaceID most of the time and then when I need
+to re-authenticate FaceID I have a much stronger password than before but also
+don&#39;t need to actually type all of it.
 
 There are a couple of downsides - you have to enable USB access on the lock
 screen or else the key won&#39;t be able to talk to the phone in order to send the
@@ -81,25 +88,7 @@ that&#39;s easily solved with a bit of sandpaper.
 
 If you&#39;re going to attempt this make sure you backup the secret password
 somewhere, I recommend storing it in an encrypted file and making several
-backups, including at least one offline.
-
-=== Update 21:38
-
-I have dome some further testing and discovered that the unreliability of the
-key is down to my use of the ! prefix for the static password. This is an
-optional feature in the Yubikey Personalisation Tool and can be disabled. I
-ran several tests and noticed that this leading ! is frequently replaced by a
-1 when using iOS. It doesn&#39;t happen on my mac so I don&#39;t think it&#39;s a faulty
-key, more likely just a &quot;feature&quot; of iOS. I will disable this prefix and see
-if the key works more reliably then, including at the regular output speed.
-
-=== Update 22:11
-
-Turns out the first character of the password is the problem if it&#39;s either
-! or uppercase. The ! sometimes gets turned into a 1 and an uppercase
-character sometimes gets turned into its lowercase equivalent. If I disable
-the ! prefix and uppercase characters it works flawlessly - even with the
-speed set to the default. Happy days.</pre>
+backups, including at least one offline.</pre>
             </div>
 
 
