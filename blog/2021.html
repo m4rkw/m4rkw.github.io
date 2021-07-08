@@ -82,7 +82,17 @@ that&#39;s easily solved with a bit of sandpaper.
 
 If you&#39;re going to attempt this make sure you backup the secret password
 somewhere, I recommend storing it in an encrypted file and making several
-backups, including at least one offline.</pre>
+backups, including at least one offline.
+
+=== Update 21:38
+
+I have dome some further testing and discovered that the unreliability of the
+key is down to my use of the ! prefix for the static password. This is an
+optional feature in the Yubikey Personalisation Tool and can be disabled. I
+ran several tests and noticed that this leading ! is frequently replaced by a
+1 when using iOS. It doesn&#39;t happen on my mac so I don&#39;t think it&#39;s a faulty
+key, more likely just a &quot;feature&quot; of iOS. I will disable this prefix and see
+if the key works more reliably then, including at the regular output speed.</pre>
             </div>
 
 
