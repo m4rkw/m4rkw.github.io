@@ -6,7 +6,7 @@
   </author>
   <id>http://m4.rkw.io/blog/</id>
   <title>m4.rkw.io</title>
-  <updated>2021-07-09T00:21:45+01:00</updated>
+  <updated>2021-07-09T00:24:50+01:00</updated>
   <entry>
     <id>http://m4.rkw.io/blog/unlocking-ios-devices-with-a-yubikey.html</id>
     <link href="http://m4.rkw.io/blog/unlocking-ios-devices-with-a-yubikey.html"/>
@@ -67,9 +67,9 @@ enabled. The other downside is that the Apple leather case doesn&amp;#39;t quite
 big enough hole around the lightning socket for the key to insert, but that&amp;#39;s
 easily solved with a bit of sandpaper.
 
-If you&amp;#39;re going to attempt this make sure you back up the static secret
-somewhere, I recommend storing it in an encrypted file and making several
-backups, including at least one offline.&lt;/pre&gt;</summary>
+It&amp;#39;s a very good idea to have more than one Yubikey. Also make sure you back up
+the static secret somewhere, I recommend storing it in an encrypted file and
+making several backups, including at least one offline.&lt;/pre&gt;</summary>
     <title>Unlocking iOS devices with a Yubikey</title>
     <updated>2021-07-08T20:53:22+01:00</updated>
     <dc:date>2021-07-08T20:53:22+01:00</dc:date>
@@ -2520,5 +2520,5 @@ done
     <updated>2017-11-29T19:02:01+00:00</updated>
     <dc:date>2017-11-29T19:02:01+00:00</dc:date>
   </entry>
-  <dc:date>2021-07-09T00:21:45+01:00</dc:date>
+  <dc:date>2021-07-09T00:24:50+01:00</dc:date>
 </feed>
