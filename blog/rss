@@ -6,7 +6,7 @@
   </author>
   <id>http://m4.rkw.io/blog/</id>
   <title>m4.rkw.io</title>
-  <updated>2021-07-09T00:18:42+01:00</updated>
+  <updated>2021-07-09T00:21:45+01:00</updated>
   <entry>
     <id>http://m4.rkw.io/blog/unlocking-ios-devices-with-a-yubikey.html</id>
     <link href="http://m4.rkw.io/blog/unlocking-ios-devices-with-a-yubikey.html"/>
@@ -14,10 +14,10 @@
 services that you care a lot about. I use them for all kinds of things but one
 thing I was quite excited to try was the Yubikey 5ci in static password mode.
 
-On Yubikeys 5-series keys static password mode simply acts as a virtual
-keyboard, playing back a static sequence of characters over the connected
-interface (usually USB). I wasn&amp;#39;t sure at first if this was supported over the
-lightning port but it turns out it is which is very cool.
+Static password mode simply acts as a virtual keyboard, playing back a static
+sequence of characters over the connected interface (usually USB). I wasn&amp;#39;t
+sure at first if this was supported over the lightning port but it turns out it
+is which is very cool.
 
 Using static password mode to supply the entire password for something is a bad
 idea - if someone steals the key then they have the entire password and there&amp;#39;s
@@ -2520,5 +2520,5 @@ done
     <updated>2017-11-29T19:02:01+00:00</updated>
     <dc:date>2017-11-29T19:02:01+00:00</dc:date>
   </entry>
-  <dc:date>2021-07-09T00:18:42+01:00</dc:date>
+  <dc:date>2021-07-09T00:21:45+01:00</dc:date>
 </feed>
