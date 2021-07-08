@@ -28,27 +28,61 @@
         <div id="content">
             <div id="main-content">
                                             <div class="post">
-                <h2><a href="/blog/how-to-use-touchid-for-sudo-remotely-over-ssh.html">How to use touchID for sudo remotely over ssh</a></h2>
-                <h3>18 Apr 2020 14:25  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/touchID.html">touchID</a></h3>
-                  <pre>TouchID on the mac is really cool. It&#39;s awesome being able to use it for sudo,
-but I thought it would be even more awesome if it could be used to authenticate
-sudo remotely over ssh.
+                <h2><a href="/blog/unlocking-ios-devices-with-a-yubikey.html">Unlocking iOS devices with a Yubikey</a></h2>
+                <h3>8 Jul 2021 20:53  | <a class="tag" href="/blog/tag/apple.html">apple</a> | <a class="tag" href="/blog/tag/iOS.html">iOS</a></h3>
+                  <pre>I love Yubikeys, they provide a very strong second factor for accounts and
+services that you care a lot about. I use them for all kinds of things but one
+thing I was quite excited to try was the Yubikey 5ci in static password mode.
 
-I&#39;ve made this work using touch2sudo - <a href="https://github.com/prbinu/touch2sudo">https://github.com/prbinu/touch2sudo</a>
-which is a simple binary that when executed will show a touchID authentication</pre>
-                  <a href="/blog/how-to-use-touchid-for-sudo-remotely-over-ssh.html" class="read-more">[read more...]</a>
-            </div>
+On Yubikeys 5-series keys static password mode simply acts as a virtual
+keyboard, playing back a static sequence of characters over the connected
+interface (usually USB). I wasn&#39;t sure at first if this was supported over the
+lightning port but it turns out it is which is very cool.
 
-                            <div class="post">
-                <h2><a href="/blog/2020-macbook-air-carbon-copy-cloner-vs-the-t2-chip.html">2020 Macbook Air: Carbon Copy Cloner vs the T2 chip</a></h2>
-                <h3>18 Apr 2020 11:53  | <a class="tag" href="/blog/tag/macOS.html">macOS</a></h3>
-                  <pre>I love Carbon Copy Cloner, it is an awesome piece of software. I frequently rave
-about it to anyone who&#39;ll listen, it&#39;s so useful.
+Using static password mode to supply the entire password for something is a bad
+idea - if someone steals the key then they have the entire password and there&#39;s
+no way to protect it on the key. Plug it in, press the sensor and voila you&#39;ve
+got the entire secret string. But using it in combination with a known
+passphrase is very powerful. I was quite excited about the idea of using this on
+iOS - a relatively simple password combined with a huge amount of extra entropy
+from the Yubikey as a salt.
 
-It does however seem to have been somewhat limited by the introduction of
-Apple&#39;s new T2 security chip. I recently purchased one of the new 2020 Macbook
-Airs - a great computer and my first mac with the T2 chip.</pre>
-                  <a href="/blog/2020-macbook-air-carbon-copy-cloner-vs-the-t2-chip.html" class="read-more">[read more...]</a>
+If you&#39;re going to attempt this, DON&#39;T do what I did first and set the password
+on the iPhone using the Yubikey. This is a really really bad idea - I did this
+at first and although it appeared to work, the password set correctly, as soon
+as I tried to unlock the phone by typing my passphrase and then activating the
+Yubikey it didn&#39;t unlock. This was quite unnerving at the time but luckily I had
+the secret string emitted by the key noted down and simply typing it in
+carefully got me back into the phone. So learn from my mistake - type the
+password into the iPhone very carefully rather than using the key to set it,
+because if it just happens to fail in the same way twice in that moment you
+might find yourself locked out of your device and facing the prospect of either
+a lot of tedious guesswork (which and how many characters were dropped) or worse
+- restoring from a backup.
+
+The reason it failed to unlock was because the default output speed of the
+Yubikey is too fast for an iPhone (it&#39;s a modern iPhone too - 12 Mini). I did
+some testing and determined that I had to configure the maximum possible delay
+of 60ms in the Yubikey Personalisation Tool before it would work semi-reliably.
+Even with this extra delay it&#39;s not 100% but it works most of the time.
+
+But now that it does it&#39;s really cool, as well as FaceID when that&#39;s active I
+now have a much stronger password protecting the device when it&#39;s locked without
+the huge inconvenience of typing a very long password into it manually.
+
+There are a couple of downsides - you have to enable USB access on the lock
+screen or else the key won&#39;t be able to talk to the phone in order to send the
+keys. This seems like a reasonable trade-off for most people though - if you&#39;ve
+got someone plugging hardware into your phone to try to break into it you&#39;ve
+likely got much bigger things to worry about than me. To enable USB access go
+to Settings -&gt; FaceID &amp; Passcode and make sure the &quot;USB Accessories&quot; checkbox
+is enabled. The other downside is that the Apple leather case doesn&#39;t quite
+have a big enough hole around the lightning socket for the key to insert, but
+that&#39;s easily solved with a bit of sandpaper.
+
+If you&#39;re going to attempt this make sure you backup the secret password
+somewhere, I recommend storing it in an encrypted file and making several
+backups, including at least one offline.</pre>
             </div>
 
 
@@ -62,7 +96,7 @@ Airs - a great computer and my first mac with the T2 chip.</pre>
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
-                <li>&gt; <a href="/blog/2020.html">2020</a> &lt;</li>
+                <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
                 <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>

