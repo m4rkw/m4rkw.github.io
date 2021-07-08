@@ -6,7 +6,7 @@
   </author>
   <id>http://m4.rkw.io/blog/</id>
   <title>m4.rkw.io</title>
-  <updated>2021-07-08T21:41:51+01:00</updated>
+  <updated>2021-07-08T22:13:35+01:00</updated>
   <entry>
     <id>http://m4.rkw.io/blog/unlocking-ios-devices-with-a-yubikey.html</id>
     <link href="http://m4.rkw.io/blog/unlocking-ios-devices-with-a-yubikey.html"/>
@@ -72,7 +72,15 @@ optional feature in the Yubikey Personalisation Tool and can be disabled. I
 ran several tests and noticed that this leading ! is frequently replaced by a
 1 when using iOS. It doesn&amp;#39;t happen on my mac so I don&amp;#39;t think it&amp;#39;s a faulty
 key, more likely just a &amp;quot;feature&amp;quot; of iOS. I will disable this prefix and see
-if the key works more reliably then, including at the regular output speed.&lt;/pre&gt;</summary>
+if the key works more reliably then, including at the regular output speed.
+
+=== Update 22:11
+
+Turns out the first character of the password is the problem if it&amp;#39;s either
+! or uppercase. The ! sometimes gets turned into a 1 and an uppercase
+character sometimes gets turned into its lowercase equivalent. If I disable
+the ! prefix and uppercase characters it works flawlessly - even with the
+speed set to the default. Happy days.&lt;/pre&gt;</summary>
     <title>Unlocking iOS devices with a Yubikey</title>
     <updated>2021-07-08T20:53:22+01:00</updated>
     <dc:date>2021-07-08T20:53:22+01:00</dc:date>
@@ -2523,5 +2531,5 @@ done
     <updated>2017-11-29T19:02:01+00:00</updated>
     <dc:date>2017-11-29T19:02:01+00:00</dc:date>
   </entry>
-  <dc:date>2021-07-08T21:41:51+01:00</dc:date>
+  <dc:date>2021-07-08T22:13:35+01:00</dc:date>
 </feed>

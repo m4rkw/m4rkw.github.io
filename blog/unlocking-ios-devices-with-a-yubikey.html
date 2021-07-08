@@ -92,7 +92,15 @@ optional feature in the Yubikey Personalisation Tool and can be disabled. I
 ran several tests and noticed that this leading ! is frequently replaced by a
 1 when using iOS. It doesn&#39;t happen on my mac so I don&#39;t think it&#39;s a faulty
 key, more likely just a &quot;feature&quot; of iOS. I will disable this prefix and see
-if the key works more reliably then, including at the regular output speed.</pre>
+if the key works more reliably then, including at the regular output speed.
+
+=== Update 22:11
+
+Turns out the first character of the password is the problem if it&#39;s either
+! or uppercase. The ! sometimes gets turned into a 1 and an uppercase
+character sometimes gets turned into its lowercase equivalent. If I disable
+the ! prefix and uppercase characters it works flawlessly - even with the
+speed set to the default. Happy days.</pre>
             </div>
 
 
