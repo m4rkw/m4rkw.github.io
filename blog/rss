@@ -6,7 +6,7 @@
   </author>
   <id>http://m4.rkw.io/blog/</id>
   <title>m4.rkw.io</title>
-  <updated>2021-07-09T00:14:58+01:00</updated>
+  <updated>2021-07-09T00:18:42+01:00</updated>
   <entry>
     <id>http://m4.rkw.io/blog/unlocking-ios-devices-with-a-yubikey.html</id>
     <link href="http://m4.rkw.io/blog/unlocking-ios-devices-with-a-yubikey.html"/>
@@ -61,13 +61,13 @@ There are a couple of downsides - you have to enable USB access on the lock
 screen or else the key won&amp;#39;t be able to talk to the phone in order to send the
 keys. This seems like a reasonable trade-off for most people though - if you&amp;#39;ve
 got someone plugging hardware into your phone to try to break into it you&amp;#39;ve
-likely got much bigger things to worry about than me. To enable USB access go
-to Settings -&amp;gt; FaceID &amp;amp; Passcode and make sure the &amp;quot;USB Accessories&amp;quot; checkbox
-is enabled. The other downside is that the Apple leather case doesn&amp;#39;t quite
-have a big enough hole around the lightning socket for the key to insert, but
-that&amp;#39;s easily solved with a bit of sandpaper.
+likely got much bigger things to worry about. To enable USB access go to
+Settings -&amp;gt; FaceID &amp;amp; Passcode and make sure the &amp;quot;USB Accessories&amp;quot; checkbox is
+enabled. The other downside is that the Apple leather case doesn&amp;#39;t quite have a
+big enough hole around the lightning socket for the key to insert, but that&amp;#39;s
+easily solved with a bit of sandpaper.
 
-If you&amp;#39;re going to attempt this make sure you backup the secret password
+If you&amp;#39;re going to attempt this make sure you back up the static secret
 somewhere, I recommend storing it in an encrypted file and making several
 backups, including at least one offline.&lt;/pre&gt;</summary>
     <title>Unlocking iOS devices with a Yubikey</title>
@@ -2520,5 +2520,5 @@ done
     <updated>2017-11-29T19:02:01+00:00</updated>
     <dc:date>2017-11-29T19:02:01+00:00</dc:date>
   </entry>
-  <dc:date>2021-07-09T00:14:58+01:00</dc:date>
+  <dc:date>2021-07-09T00:18:42+01:00</dc:date>
 </feed>
