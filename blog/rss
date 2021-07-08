@@ -6,7 +6,7 @@
   </author>
   <id>http://m4.rkw.io/blog/</id>
   <title>m4.rkw.io</title>
-  <updated>2021-07-09T00:12:06+01:00</updated>
+  <updated>2021-07-09T00:14:58+01:00</updated>
   <entry>
     <id>http://m4.rkw.io/blog/unlocking-ios-devices-with-a-yubikey.html</id>
     <link href="http://m4.rkw.io/blog/unlocking-ios-devices-with-a-yubikey.html"/>
@@ -50,7 +50,8 @@ lightning interface. I turned off the ! prefix and then found that the first
 character that should be uppercase was occasionally being turned lowercase.
 This glitch only seems to affect the first character of the password and it
 seems to relate to the shift modifier. After disabling both the ! prefix and
-uppercase characters it worked flawlessly every time.
+uppercase characters it worked flawlessly every time without any input delay
+necessary.
 
 When it works it&amp;#39;s really cool - FaceID most of the time and then when I need
 to re-authenticate FaceID I have a much stronger password than before but also
@@ -2519,5 +2520,5 @@ done
     <updated>2017-11-29T19:02:01+00:00</updated>
     <dc:date>2017-11-29T19:02:01+00:00</dc:date>
   </entry>
-  <dc:date>2021-07-09T00:12:06+01:00</dc:date>
+  <dc:date>2021-07-09T00:14:58+01:00</dc:date>
 </feed>
