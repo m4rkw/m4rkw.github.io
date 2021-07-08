@@ -60,15 +60,14 @@ might find yourself locked out of your device and facing the prospect of either
 a lot of tedious guesswork (which and how many characters were dropped) or worse
 - restoring from a backup.
 
-The reason it failed to unlock was because the default output speed of the
-Yubikey is too fast for an iPhone (it&#39;s a modern iPhone too - 12 Mini). I did
-some testing and determined that I had to configure the maximum possible delay
-of 60ms in the Yubikey Personalisation Tool before it would work semi-reliably.
-Even with this extra delay it&#39;s not 100% but it works most of the time.
+At first I thought it was failing to unlock because it was sending the keys
+too quickly. The Yubikey Personlisation Tool has an option to add up to 60ms
+delay and this seemed to help, but it still wasn&#39;t 100% reliable (see
+further down for how I eventually figured out what was really happening).
 
-But now that it does it&#39;s really cool, as well as FaceID when that&#39;s active I
-now have a much stronger password protecting the device when it&#39;s locked without
-the huge inconvenience of typing a very long password into it manually.
+When it works it&#39;s really cool, as well as FaceID when that&#39;s active I now have
+a much stronger password protecting the device when it&#39;s locked without the huge
+inconvenience of typing a very long password into it manually.
 
 There are a couple of downsides - you have to enable USB access on the lock
 screen or else the key won&#39;t be able to talk to the phone in order to send the
