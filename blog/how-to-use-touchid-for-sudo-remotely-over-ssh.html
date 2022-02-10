@@ -50,14 +50,14 @@ the touchID authentication.
 
 ## warning
 
-Please be aware this is just a proof-of-concept, it&#39;s very rough around the
-edges and will likely have security issues. Please don&#39;t use this for systems
-you care about unless you know what you&#39;re doing. I am not liable for any issues
+Please be aware this is just a proof-of-concept, it's very rough around the
+edges and will likely have security issues. Please don't use this for systems
+you care about unless you know what you're doing. I am not liable for any issues
 that may arise from following these steps.
 
-Also note that when the nginx endpoint isn&#39;t listening on the remote machine,
-any local user could throw up a tcp listener that just responds with &quot;0&quot; in
-order to bypass sudo authentication. If you want to use this securely you&#39;ll
+Also note that when the nginx endpoint isn't listening on the remote machine,
+any local user could throw up a tcp listener that just responds with "0" in
+order to bypass sudo authentication. If you want to use this securely you'll
 need to do a bit more work.
 
 One possible way to mitigate this might be to use SSL on the nginx endpoint and
@@ -202,7 +202,7 @@ $ sudo launchctl load -w /Library/LaunchDaemons/org.macports.nginx.plist
 
 9) Grab the touch2sudo binary from here:
 
-<a href="https://github.com/prbinu/touch2sudo">https://github.com/prbinu/touch2sudo</a>/releases/download/v0.1/touch2sudo-0.1.tgz
+<a href="https://github.com/prbinu/touch2sudo/releases/download/v0.1/touch2sudo-0.1.tgz">https://github.com/prbinu/touch2sudo/releases/download/v0.1/touch2sudo-0.1.tgz</a>
 
 copy it to:
 
@@ -231,7 +231,7 @@ Be sure to replace the key with a random string of your own choosing.
 
 11) Test that the nginx auth endpoint works:
 
-$ curl -s -H &#39;Auth: YOUR_KEY_HERE&#39; <a href="<a href="<a href="http://localhost:61111/auth">http://localhost:61111/auth</a>"><a href="http://localhost:61111/auth">http://localhost:61111/auth</a></a>"><a href="<a href="http://localhost:61111/auth">http://localhost:61111/auth</a>"><a href="http://localhost:61111/auth">http://localhost:61111/auth</a></a></a>
+$ curl -s -H &#39;Auth: YOUR_KEY_HERE&#39; http://localhost:61111/auth
 
 This should show a touchID prompt, and the output from curl should be 0 if you
 authenticate correctly with touchID. If this doesn&#39;t work, check the logs and
@@ -321,7 +321,7 @@ $ sudo launchctl load -w /Library/LaunchDaemons/com.sshuser.ssh.plist
 the remote server:
 
 $ ssh REMOTE_SERVER
-$ curl -sH &#39;Auth: YOUR_KEY_HERE&#39; <a href="<a href="<a href="http://localhost:61111/auth">http://localhost:61111/auth</a>"><a href="http://localhost:61111/auth">http://localhost:61111/auth</a></a>"><a href="<a href="http://localhost:61111/auth">http://localhost:61111/auth</a>"><a href="http://localhost:61111/auth">http://localhost:61111/auth</a></a></a>
+$ curl -sH &#39;Auth: YOUR_KEY_HERE&#39; http://localhost:61111/auth
 
 You should get a touchID prompt on your mac. If not, investigate and resolve the
 issue before proceeding.
@@ -334,7 +334,7 @@ issue before proceeding.
 #!/bin/bash
 /bin/netstat -nat |grep &#39;:61111&#39; 1&gt;/dev/null
 if [ $? -eq 0 ] ; then
-  r=`/usr/bin/curl -s -H &#39;Auth: YOUR_KEY_HERE&#39; <a href="<a href="<a href="http://localhost:61111/auth">http://localhost:61111/auth</a>"><a href="http://localhost:61111/auth">http://localhost:61111/auth</a></a>"><a href="<a href="http://localhost:61111/auth">http://localhost:61111/auth</a>"><a href="http://localhost:61111/auth">http://localhost:61111/auth</a></a></a>`
+  r=`/usr/bin/curl -s -H &#39;Auth: YOUR_KEY_HERE&#39; http://localhost:61111/auth`
   if [ &quot;$r&quot; == &quot;0&quot; ] ; then
     exit 0
   else
@@ -350,9 +350,9 @@ authentication.
 
 Test that this works before proceeding.
 
-22) Clone my fork of simple-pam: <a href="<a href="https://github.com/m4rkw/simple-pam">https://github.com/m4rkw/simple-pam</a>"><a href="https://github.com/m4rkw/simple-pam">https://github.com/m4rkw/simple-pam</a></a>
+22) Clone my fork of simple-pam: <a href="https://github.com/m4rkw/simple-pam">https://github.com/m4rkw/simple-pam</a>
 
-$ git clone <a href="<a href="https://github.com/m4rkw/simple-pam">https://github.com/m4rkw/simple-pam</a>"><a href="https://github.com/m4rkw/simple-pam">https://github.com/m4rkw/simple-pam</a></a>
+$ git clone https://github.com/m4rkw/simple-pam
 
 23) Compile and install the pam module
 
@@ -386,7 +386,6 @@ How cool is that? :)</pre>
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
-                <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>

