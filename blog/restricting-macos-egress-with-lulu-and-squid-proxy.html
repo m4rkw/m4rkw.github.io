@@ -35,20 +35,88 @@ straightforward to do it well. If any malware manages to execute on your system
 one of the first things it&#39;s likely going to try to do is call home and
 establish a C2 channel. With effective egress filtering you can break this link
 in the attack chain and stop it dead in its tracks.
-</pre>
-                  <a href="/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html" class="read-more">[read more...]</a>
-            </div>
 
-                            <div class="post">
-                <h2><a href="/blog/getting-back-into-blogging.html">Getting back into blogging</a></h2>
-                <h3>10 Feb 2022 05:48  | <a class="tag" href="/blog/tag/security.html">security</a></h3>
-                  <pre>It&#39;s been a while since I&#39;ve blogged so I thought I&#39;d get back into it with some
-security stuff. My dayjob has had a very heavy security focus for the last 3
-years and it&#39;s infected my personal life too such that I&#39;m now even more
-obsessed with security than I was before.
+There are two well-known products which do egress filtering on macs - Little
+Snitch and LuLu. LuLu is made available by the awesome Patrick Wardle on his
+website - <a href="https://objective-see.com - along with a load of other very clever">https://objective-see.com - along with a load of other very clever</a>
+security tools.
 
-I recently wrote a first draft of a Linux server hardening guide:</pre>
-                  <a href="/blog/getting-back-into-blogging.html" class="read-more">[read more...]</a>
+This post is mostly going to discuss LuLu but the approach taken here may well
+work just as well with Little Snitch. LuLu is free and very cleverly made, it
+even allows you to configure regexes for web urls that applications are allowed
+to connect to. It does have one major limitation imposed by the operating
+system though which is mentioned on the website:
+
+&quot;Due to limitations of macOS, blocking via host name is only applicable to (as
+Apple notes) &quot;Network.framework or NSURLSession connections&quot;. 
+
+As such, for browsers (such as Chrome), that do not leverage these frameworks,
+only ip address based blocking is supported.&quot;
+
+So what this means is that you will often get LuLu popups for connections with
+only IPs specified. This isn&#39;t ideal because the endpoints being connected to
+will often change IPs so if you simply add rules based on the IPs you&#39;ll be
+forever plagued with popups whenever they change, and so because of this the
+tendency is to simply allow *:443 or similar to avoid endless popups. This is
+bad because you&#39;re granting more egress to the application than would
+otherwise be ideal.
+
+There is however a way you can make this a lot letter and that&#39;s by using an
+http proxy to filtering the outbound requests. One such proxy product is Squid
+which is freely available via Homebrew or Macports. If you can force
+applications to connect through squid instead of directly you can have proper
+control over what hosts they can connect to using hostnames even if the
+applications themselves don&#39;t use the Network or NSURLSession frameworks.
+
+The first thing to determine is what stuff you can force over the proxy. Good
+candidates for this are anything that you run from the terminal - curl,
+terraform, python, anything like this can be configured to connect to an http
+proxy. Most terminal apps will respect the environment variables https_proxy or
+HTTPS_PROXY so these can simply be set in your bash config.
+
+Next we need Squid installed via either brew or macports, if you&#39;re using brew
+be aware that it install everything with file ownership as the local user so you
+won&#39;t want launchd invoking the squid binary as root. Obviously squid will need
+LuLu rules allowing it to make outbound connections, I&#39;d suggest allowing ports
+80 and 443 outbound to all addresses at a minimum.
+
+Then we want a simple allowlist config for squid:
+
+acl allowlist dstdom_regex &#39;/etc/squid/allowlist.txt&#39;
+http_access allow allowlist
+http_access deny all
+dns_v4_first on
+query_icmp off
+
+We can put hostname regexes into allowlist.txt and these will be allowed by the
+proxy.
+
+LuLu won&#39;t filter any connections to localhost so the ruleset for your
+applications that can talk to the proxy can be very simple - allow DNS and
+nothing else. I like to create two rules in Lulu for all applications, one to
+allow DNS and one to block all other traffic. Any rules created that allow
+connections will override the default block-everything rule, and this way if a
+connection is denied it&#39;s simply denied - no annoying popups.
+
+Once this is set up you can simply tail the Squid access log to see what stuff
+is being connected to, anything that isn&#39;t in the allowlist.txt will return a
+403 and you can edit the list and restart squid if you need to.
+
+It&#39;s even possible to control access to github using this approach. Github is
+annoying in that its IPs change almost by the second, making filtering
+connections to it with LuLu practically impossible without simply allowing all
+traffic on tcp/22. However using this squid approach and socat we can route all
+ssh connections to github over the proxy:
+
+Host github.com
+  User git
+  Port 22
+  Hostname github.com
+  ProxyCommand socat - PROXY:localhost:%h:%p,proxyport=3128
+
+Lulu is an excellent product but the limitations of the OS hold it back, by
+integrating it with a local http proxy we can get much more control over what
+connections go out of the system.</pre>
             </div>
 
 
@@ -61,7 +129,7 @@ I recently wrote a first draft of a Linux server hardening guide:</pre>
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
-                <li>&gt; <a href="/blog/2022.html">2022</a> &lt;</li>
+                <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>

