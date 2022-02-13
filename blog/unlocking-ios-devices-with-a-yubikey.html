@@ -13,7 +13,7 @@
         <div id="menu">
                         <h3>Mark Wadham</h3>
             <ul>
-                <li><a href="/index.html">profile</a></li>
+                <li><a href="/">profile</a></li>
                 <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
                 <li><a href="/cves.html">CVEs</a></li>
                 <li><a href="/jsdemos.html">js demos</a></li>
@@ -23,35 +23,36 @@
                 <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
                 <li class="red space small"></li>
             </ul>
-
         </div>
         <div id="content">
             <div id="main-content">
-                                            <div class="post">
+                            
+                            <div class="post">
                 <h2><a href="/blog/unlocking-ios-devices-with-a-yubikey.html">Unlocking iOS devices with a Yubikey</a></h2>
                 <h3>8 Jul 2021 20:53  | <a class="tag" href="/blog/tag/apple.html">apple</a> | <a class="tag" href="/blog/tag/iOS.html">iOS</a></h3>
+                
                   <pre>I love Yubikeys, they provide a very strong second factor for accounts and
 services that you care a lot about. I use them for all kinds of things but one
 thing I was quite excited to try was the Yubikey 5ci in static password mode.
 
 Static password mode simply acts as a virtual keyboard, playing back a static
-sequence of characters over the connected interface (usually USB). I wasn&#39;t
+sequence of characters over the connected interface (usually USB). I wasn&#x27;t
 sure at first if this was supported over the lightning port but it turns out it
 is which is very cool.
 
 Using static password mode to supply the entire password for something is a bad
-idea - if someone steals the key then they have the entire password and there&#39;s
-no way to protect it on the key. Plug it in, press the sensor and voila you&#39;ve
+idea - if someone steals the key then they have the entire password and there&#x27;s
+no way to protect it on the key. Plug it in, press the sensor and voila you&#x27;ve
 got the entire secret string. But using it in combination with a known
 passphrase is very powerful. I was quite excited about the idea of using this on
 iOS - a relatively simple password combined with a huge amount of extra entropy
 from the Yubikey as a salt.
 
-If you&#39;re going to attempt this, DON&#39;T do what I did first and set the password
+If you&#x27;re going to attempt this, DON&#x27;T do what I did first and set the password
 on the iPhone using the Yubikey. This is a really really bad idea - I did this
 at first and although it appeared to work, the password set correctly, as soon
 as I tried to unlock the phone by typing my passphrase and then activating the
-Yubikey it didn&#39;t unlock. This was quite unnerving at the time but luckily I had
+Yubikey it didn&#x27;t unlock. This was quite unnerving at the time but luckily I had
 the secret string emitted by the key noted down and simply typing it in
 carefully got me back into the phone. So learn from my mistake - type the
 password into the iPhone very carefully rather than using the key to set it,
@@ -62,7 +63,7 @@ a lot of tedious guesswork (which and how many characters were dropped) or worse
 
 At first I thought it was failing to unlock because it was sending the keys
 too quickly. The Yubikey Personalisation Tool has an option to add up to 60ms
-of delay between the keystrokes and this seemed to help, but it still wasn&#39;t
+of delay between the keystrokes and this seemed to help, but it still wasn&#x27;t
 100% reliable. After further testing I eventually determined that the ! prefix
 I was using was being converted into a 1 about 30% of the time. This did not
 seem to happen on the mac so is likely something to do with iOS or the
@@ -73,26 +74,27 @@ seems to relate to the shift modifier. After disabling both the ! prefix and
 uppercase characters it worked flawlessly every time without any input delay
 necessary.
 
-When it works it&#39;s really cool - FaceID most of the time and then when I need
+When it works it&#x27;s really cool - FaceID most of the time and then when I need
 to re-authenticate FaceID I have a much stronger password than before but also
-don&#39;t need to actually type all of it.
+don&#x27;t need to actually type all of it.
 
 There are a couple of downsides - you have to enable USB access on the lock
-screen or else the key won&#39;t be able to talk to the phone in order to send the
-keys. This seems like a reasonable trade-off for most people though - if you&#39;ve
-got someone plugging hardware into your phone to try to break into it you&#39;ve
+screen or else the key won&#x27;t be able to talk to the phone in order to send the
+keys. This seems like a reasonable trade-off for most people though - if you&#x27;ve
+got someone plugging hardware into your phone to try to break into it you&#x27;ve
 likely got much bigger things to worry about. To enable USB access go to
 Settings -&gt; FaceID &amp; Passcode and make sure the &quot;USB Accessories&quot; checkbox is
-enabled. The other downside is that the Apple leather case doesn&#39;t quite have a
-big enough hole around the lightning socket for the key to insert, but that&#39;s
+enabled. The other downside is that the Apple leather case doesn&#x27;t quite have a
+big enough hole around the lightning socket for the key to insert, but that&#x27;s
 easily solved with a bit of sandpaper.
 
-It&#39;s a very good idea to have more than one Yubikey. Also make sure you back up
+It&#x27;s a very good idea to have more than one Yubikey. Also make sure you back up
 the static secret somewhere, I recommend storing it in an encrypted file and
-making several backups, including at least one offline.</pre>
+making several backups, including at least one offline.
+</pre>
+                
             </div>
-
-
+            
             </div>
             <div id="right-content">
                 
@@ -102,39 +104,67 @@ making several backups, including at least one offline.</pre>
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+              
             </ul>
 
             <ul>
               <li>&nbsp;&nbsp;[tag]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+              
             </ul>
-
             </div>
         </div>
 				<script>

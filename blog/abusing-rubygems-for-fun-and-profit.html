@@ -13,7 +13,7 @@
         <div id="menu">
                         <h3>Mark Wadham</h3>
             <ul>
-                <li><a href="/index.html">profile</a></li>
+                <li><a href="/">profile</a></li>
                 <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
                 <li><a href="/cves.html">CVEs</a></li>
                 <li><a href="/jsdemos.html">js demos</a></li>
@@ -23,26 +23,27 @@
                 <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
                 <li class="red space small"></li>
             </ul>
-
         </div>
         <div id="content">
             <div id="main-content">
-                                            <div class="post">
+                            
+                            <div class="post">
                 <h2><a href="/blog/abusing-rubygems-for-fun-and-profit.html">Abusing rubygems for fun and profit</a></h2>
                 <h3>29 May 2016 12:18  | <a class="tag" href="/blog/tag/ruby.html">ruby</a> | <a class="tag" href="/blog/tag/security.html">security</a></h3>
+                
                   <pre>RubyGems is a nice system, very easy to use and also easy to abuse.  Anyone can push
 a gem straight into the global namespace, even if the gem has the same name as a core
 library.
 
-This can be trivially abused to break into systems of anyone who isn&#39;t very careful
-what gems they use (and let&#39;s be honest, that&#39;s probably a lot of developers :).
+This can be trivially abused to break into systems of anyone who isn&#x27;t very careful
+what gems they use (and let&#x27;s be honest, that&#x27;s probably a lot of developers :).
 
 Ruby gems can include executable scripts which get installed into /usr/local/bin/.
 On Ubuntu, Centos and probably most other linux distros, /usr/local/bin takes precedence
 over /bin, /usr/bin, /sbin etc.  This means we can drop a fake &quot;ls&quot; script into
 /usr/local/bin/ which will get executed every time the user types ls.
 
-A PoC for this can be found here: <a href="https://github.com/m4rkw/rubygems-poc">https://github.com/m4rkw/rubygems-poc</a>
+A PoC for this can be found here: https://github.com/m4rkw/rubygems-poc
 
 Once installed the fake ls binary takes precedence and can then silently run whatever
 malicious code you like (eg a connect-back shell to a remote system) before passing
@@ -65,9 +66,9 @@ The PoC just prints a silly message.
     bin  file-4.3.2.gem  file.gemspec  lib  LICENSE  README&lt;br/&gt;
     $
 
-At the time of writing the &quot;file&quot; gem name isn&#39;t taken so anyone could push a gem
+At the time of writing the &quot;file&quot; gem name isn&#x27;t taken so anyone could push a gem
 straight into rubygems that would be installed whenever anyone types &quot;gem install file&quot;.
-This could easily catch someone out if they don&#39;t realise that the File class is built-in
+This could easily catch someone out if they don&#x27;t realise that the File class is built-in
 rather than provided by a gem.
 
 Another vector would be creating a small gem that actually does something useful and
@@ -78,13 +79,14 @@ hundreds of downloads.
 Conclusions
 ===========
 
-Since there&#39;s very little inherent security it seems the onus is on developers to be
-careful what gems they install.  However since most gems don&#39;t need to install executables
+Since there&#x27;s very little inherent security it seems the onus is on developers to be
+careful what gems they install.  However since most gems don&#x27;t need to install executables
 it would probably be sensible for the rubygems maintainers to make the &quot;gem&quot; command
-explicitly warn users if they&#39;re installing an executable.</pre>
+explicitly warn users if they&#x27;re installing an executable.
+</pre>
+                
             </div>
-
-
+            
             </div>
             <div id="right-content">
                 
@@ -94,39 +96,67 @@ explicitly warn users if they&#39;re installing an executable.</pre>
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+              
             </ul>
 
             <ul>
               <li>&nbsp;&nbsp;[tag]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+              
             </ul>
-
             </div>
         </div>
 				<script>

@@ -13,7 +13,7 @@
         <div id="menu">
                         <h3>Mark Wadham</h3>
             <ul>
-                <li><a href="/index.html">profile</a></li>
+                <li><a href="/">profile</a></li>
                 <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
                 <li><a href="/cves.html">CVEs</a></li>
                 <li><a href="/jsdemos.html">js demos</a></li>
@@ -23,20 +23,21 @@
                 <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
                 <li class="red space small"></li>
             </ul>
-
         </div>
         <div id="content">
             <div id="main-content">
-                                            <div class="post">
+                            
+                            <div class="post">
                 <h2><a href="/blog/enjoy-the-cylance.html">Enjoy the Cylance</a></h2>
                 <h3>11 May 2017 22:08  | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/macOS.html">macOS</a></h3>
+                
                   <pre>I blogged about Cylance a couple of times earlier this year after testing their
 endpoint security product CylancePROTECT on MacOS.  I ended up deleting both
 blog posts shortly after posting them because I was concerned about
 inaccuracies in the original post and wanted to give Cylance a chance to
 respond to the issues I raised.
 
-Having now tested it for a good few months I think I&#39;m in a good position to
+Having now tested it for a good few months I think I&#x27;m in a good position to
 give a fair and honest review of the product.  This post is 100% related to the
 MacOS version of CylancePROTECT - I have never tested the Windows version in
 any way.
@@ -48,7 +49,7 @@ google search was objectivesee.com run by the very awesome Patrick Wardle, an
 independent security researcher.  These samples included OSX.Mokes which was
 described in a blog post in September 2016 as a &quot;sophisticated MacOS backdoor&quot;:
 
-<a href="https://securelist.com/blog/research/75990/the-missing-piece-sophisticated-os-x-backdoor-discovered">https://securelist.com/blog/research/75990/the-missing-piece-sophisticated-os...</a>/
+https://securelist.com/blog/research/75990/the-missing-piece-sophisticated-os-x-backdoor-discovered/
 
 Despite being blogged about publicly in early September and known to VirusTotal
 not long afterwards, the current release of CylancePROTECT I was using in
@@ -64,7 +65,7 @@ detect it, but only the exact OSX.Mokes binary that I had reported.  If I
 changed a single byte (such as a character in one of the c&amp;c domains listed in
 the binary) Cylance would no longer detect it.  I again reported this issue to
 Cylance and it turned out that although they had updated their math model, the
-new model hasn&#39;t been released yet.  As an interim measure Cylance had added the
+new model hasn&#x27;t been released yet.  As an interim measure Cylance had added the
 sha256 hash of the binary to a global quarantine list but this would only work
 if it was an exact match.
 
@@ -76,17 +77,17 @@ To be clear on the timeframes here:
 - The false positives were reported to Cylance in early February 2017 - still
   undetected despite being in VirusTotal for at least 3 months
 
-Around April 20th 2017 the InfinityEngine (Cylance&#39;s cloud service) was updated
-with the new math model.  Unfortunately this doesn&#39;t really provide much
+Around April 20th 2017 the InfinityEngine (Cylance&#x27;s cloud service) was updated
+with the new math model.  Unfortunately this doesn&#x27;t really provide much
 protection - if a modified version of OSX.Mokes is scanned by Cylance it will
 initially not detect it, even if the modification is only a single byte.  If the
 policy on the endpoint has auto-upload enabled it will upload un-previously-seen
 binaries to Infinity.  Some time later the Infinity Engine, with its new math
 model, will classify the binary as bad and this will get picked up in the local
-user&#39;s Cylance agent.  However the time for this to occur is such that a user
+user&#x27;s Cylance agent.  However the time for this to occur is such that a user
 could easily have executed the binary and become compromised in the meantime.
 
-At the time of writing, 11th May 2017 9pm BST, I still don&#39;t have the updated
+At the time of writing, 11th May 2017 9pm BST, I still don&#x27;t have the updated
 math model that detects OSX.Mokes other than via a static sha256 hash.
 Modified version of it will eventually get picked up and blacklisted by the
 InfinityEngine but this is a fairly weak defence.  Even free signature scanners
@@ -97,13 +98,13 @@ More recently the handbrake.br website was hacked and the application was
 implanted with a malware called Photon.B.  I tested the sample with the local
 agent I have and found that Cylance did not detect it.  Additionally, uploading
 it to the Infinity Engine also did not result in detection, so the new math
-model that is pending release to local agents still doesn&#39;t pick it up.
-Admittedly at the time I tested this the traditional signature scanners weren&#39;t
+model that is pending release to local agents still doesn&#x27;t pick it up.
+Admittedly at the time I tested this the traditional signature scanners weren&#x27;t
 detecting it either but this is where Cylance is meant to be superior.
 
-This is Patrick Wardle&#39;s post about this attack:
+This is Patrick Wardle&#x27;s post about this attack:
 
-<a href="https://objective-see.com/blog/blog_0x1D.html">https://objective-see.com/blog/blog_0x1D.html</a>
+https://objective-see.com/blog/blog_0x1D.html
 
 At least this time Cylance were aware of the issue internally and are working to
 resolve it.
@@ -113,48 +114,48 @@ Dok.A is detected by Cylance but Dok.B is not.  Cylance sells itself exactly on
 this kind of detection - variants and mutations of pre-existing malware - but
 here it is failing to do exactly what it is marketed to do.
 
-ref: <a href="https://twitter.com/objective_see/status/859240059471638528">https://twitter.com/objective_see/status/859240059471638528</a>
+ref: https://twitter.com/objective_see/status/859240059471638528
 
 Another instance of Cylance failing to do its job was when I recently discovered
-an RCE vulnerability in a popular virtualisation product.  I can&#39;t give details
-yet because the vendor hasn&#39;t patched it but essentially it allows a vector for
+an RCE vulnerability in a popular virtualisation product.  I can&#x27;t give details
+yet because the vendor hasn&#x27;t patched it but essentially it allows a vector for
 injecting a malicious dylib.  I quickly knocked up a dylib that had no actual
 library code but just a constructor that initiates a reverse tcp shell
 connection to the attacker on a pre-determined IP address.  When compiled this
 was not detected by Cylance as malicious at all, despite it being a library with
 a) no library code and b) an obviously malicious constructor.  The reason for
 putting the payload in the constructor is that this gets called as soon as the
-library is loaded into the parent process so there&#39;s no need to wait for it to
+library is loaded into the parent process so there&#x27;s no need to wait for it to
 actually call a specific function in the library.
 
-So all this negativity and failure.. at this point if you&#39;re still reading you
-probably think I don&#39;t think very highly of Cylance or their product.
-Surprisingly, that&#39;s not the case.  I actually think CylancePROTECT is a pretty
-cool product despite it&#39;s apparent ineffectiveness as an antivirus solution.
+So all this negativity and failure.. at this point if you&#x27;re still reading you
+probably think I don&#x27;t think very highly of Cylance or their product.
+Surprisingly, that&#x27;s not the case.  I actually think CylancePROTECT is a pretty
+cool product despite it&#x27;s apparent ineffectiveness as an antivirus solution.
 
-In the media and even in Cylance&#39;s own marketing the focus is on AV, and
+In the media and even in Cylance&#x27;s own marketing the focus is on AV, and
 understandably so, but it does more than just AV.  As well as the
 machine-learning AV engine CylancePROTECT also provides memory exploit
 protection and is able to stop a long list of memory exploitation techniques.
-It&#39;s simple to test the effectiveness of these - grab MetaSploit and try running
+It&#x27;s simple to test the effectiveness of these - grab MetaSploit and try running
 some MacOS memory corruption exploits.  I quickly found that Cylance blocked
 them purely based on behaviour rather than statically analysing the binary.
 
-It&#39;s worth mentioning as well that of the malware binaries that Cylance did
+It&#x27;s worth mentioning as well that of the malware binaries that Cylance did
 detect, I was able to modify them extensively without breaking the detection.
 
-I&#39;ve a pretty competent computer user and don&#39;t really need antivirus in any
-form, the only reason I ever run it is because it&#39;s required by the corporate
-policies of clients that I worked with when I&#39;m on site.  I know what malware
+I&#x27;ve a pretty competent computer user and don&#x27;t really need antivirus in any
+form, the only reason I ever run it is because it&#x27;s required by the corporate
+policies of clients that I worked with when I&#x27;m on site.  I know what malware
 looks like and what not to open so regardless of the effectiveness of the AV
-I&#39;m probably not going to get owned like that (although handbrake.br getting
+I&#x27;m probably not going to get owned like that (although handbrake.br getting
 owned is a potential and worrying vector!).  0day exploits however are a
 different thing entirely and having something that can actually defend against
 this kind of attack is pretty cool.  Some of the incumbent AV products claim
-to defend against this but as far as I can tell it&#39;s all just based on
+to defend against this but as far as I can tell it&#x27;s all just based on
 reacting to known threats and releasing signatures as fast as possible.
 Technologies like Bromium look like a really cool way to defend against exploits
-but it&#39;s not available to end users or event SMBs running MacOS yet.
+but it&#x27;s not available to end users or event SMBs running MacOS yet.
 
 Cylance also has some pretty clever and well thought out protection against a
 local user disabling or bypassing the agent.  With a &quot;completely locked down&quot;
@@ -163,27 +164,28 @@ effort spent trying.  The kernel driver disallows access to pretty much every
 file related to Cylance and blocks all signals to its processes.
 
 To summarise I think Cylance is cool tech and I hope that it gets better on
-MacOS over the next year or two.  Given how much Cylance is valued at I&#39;m
+MacOS over the next year or two.  Given how much Cylance is valued at I&#x27;m
 willing to believe that the Windows version is way more effective at AV than the
-Mac version but I don&#39;t really care enough about Windows to test it.  It would
-stand to reason though - there&#39;s likely much more Windows malware to train the
+Mac version but I don&#x27;t really care enough about Windows to test it.  It would
+stand to reason though - there&#x27;s likely much more Windows malware to train the
 ML algorithm with and a much bigger market to motivate the company.
 
-I&#39;d like to see Apple implement some of Cylance&#39;s memory protection techniques
-into the kernel but I&#39;m not holding my breath as they&#39;re clearly not very
+I&#x27;d like to see Apple implement some of Cylance&#x27;s memory protection techniques
+into the kernel but I&#x27;m not holding my breath as they&#x27;re clearly not very
 focused on security.
 
-If you know what you&#39;re doing with computers, unlikely to click on a dodgy
+If you know what you&#x27;re doing with computers, unlikely to click on a dodgy
 attachment and work in industries that could be deliberately targeted by
 attackers you might want to add CylancePROTECT to your defences.
 
 I would also highly recommend BlockBlock by Patrick Wardle for Mac users looking
 for additional protection.  BlockBlock was able to detect and block Photon.B
 from persisting itself when none of the traditional AV or CylancePROTECT was
-able to.  And it&#39;s free!</pre>
+able to.  And it&#x27;s free!
+</pre>
+                
             </div>
-
-
+            
             </div>
             <div id="right-content">
                 
@@ -193,39 +195,67 @@ able to.  And it&#39;s free!</pre>
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+              
             </ul>
 
             <ul>
               <li>&nbsp;&nbsp;[tag]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+              
             </ul>
-
             </div>
         </div>
 				<script>

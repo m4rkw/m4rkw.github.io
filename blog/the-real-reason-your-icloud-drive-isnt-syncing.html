@@ -13,7 +13,7 @@
         <div id="menu">
                         <h3>Mark Wadham</h3>
             <ul>
-                <li><a href="/index.html">profile</a></li>
+                <li><a href="/">profile</a></li>
                 <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
                 <li><a href="/cves.html">CVEs</a></li>
                 <li><a href="/jsdemos.html">js demos</a></li>
@@ -23,20 +23,21 @@
                 <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
                 <li class="red space small"></li>
             </ul>
-
         </div>
         <div id="content">
             <div id="main-content">
-                                            <div class="post">
+                            
+                            <div class="post">
                 <h2><a href="/blog/the-real-reason-your-icloud-drive-isnt-syncing.html">The real reason your iCloud Drive isn't syncing</a></h2>
                 <h3>9 Jul 2019 18:34  | <a class="tag" href="/blog/tag/apple.html">apple</a> | <a class="tag" href="/blog/tag/macOS.html">macOS</a></h3>
+                
                   <pre>I recently had the logic board replaced in my 2017 Macbook Pro. I use the
 awesome Carbon Copy Cloner to keep an image of my system as a bootable backup
 which can then be easily restored when the machine is returned to me.
 
 This time however I had some issues with iCloud Drive. After restoring the
-backup I found it wasn&#39;t syncing. I tried the usual troubleshooting steps: turn
-it off, reboot the machine, turn it back on again. Still wasn&#39;t syncing, just
+backup I found it wasn&#x27;t syncing. I tried the usual troubleshooting steps: turn
+it off, reboot the machine, turn it back on again. Still wasn&#x27;t syncing, just
 sitting there with all my files and folders seemingly stuck in the state of
 &quot;waiting to download&quot;. I scoured the internet, lots of people with the same
 issue and no obvious solution. Curiously though some of the threads had people
@@ -46,7 +47,7 @@ without them having done anything to prompt it.
 Well I have AppleCare so with a due sense of exhaustion and dread I gave them a
 call. We started a screen share session so they could see the problem. Their
 first suggestion was to try creating a new user account and seeing if that would
-sync. I took exception to this - I don&#39;t need this to work on another account, I
+sync. I took exception to this - I don&#x27;t need this to work on another account, I
 need it to work on *this* account. I hung up the call and decided to investigate
 myself.
 
@@ -68,8 +69,8 @@ $ log stream |egrep -i bird
 2019-07-09 18:11:13.496400+0100 0x64538    Activity    0x6c4a8              1609   0    bird: (CloudDocsDaemon) server-zone/did-sync-down
 2019-07-09 18:11:14.429404+0100 0x5afcd    Activity    0x6c4a9              1609   0    bird: (CloudDocsDaemon) server-zone/did-sync-down
 
-Interesting. These log messages seem to indicate that it&#39;s syncing something
-down, but what? My files don&#39;t appear to be syncing at all. There&#39;s no obvious
+Interesting. These log messages seem to indicate that it&#x27;s syncing something
+down, but what? My files don&#x27;t appear to be syncing at all. There&#x27;s no obvious
 activity in the Finder. Curious I had a look at what files the bird process had
 open:
 
@@ -134,17 +135,17 @@ obviously associated with cloud docs seemed to be:
 /Users/admin/Library/Application Support/CloudDocs/session/s/com~apple~CloudDocs:0/db.db
 
 So I went to that directory and had a look. Sure enough this file is a SQLite
-database. What&#39;s more it was slowing growing in size. So the obvious inference
+database. What&#x27;s more it was slowing growing in size. So the obvious inference
 is that this is some kind of metadata database that is being actively synced by
 the system. Presumably when this is done the files themselves could be synced.
 
 And that turned out to be the case. Eventually it finished syncing its metadata
-and the files themselves started appearing. So there wasn&#39;t actually any
+and the files themselves started appearing. So there wasn&#x27;t actually any
 problem, but within the first minute of my call with Apple Support they agreed
 with me that there *was* a problem and would no doubt have wasted hours of my
-time trying to fix something that wasn&#39;t actually broken.
+time trying to fix something that wasn&#x27;t actually broken.
 
-I haven&#39;t dug too deeply into how the syncing process works but I have a theory
+I haven&#x27;t dug too deeply into how the syncing process works but I have a theory
 about why it stalled for so long in my case. I had some git repos in my iCloud
 Drive that had a *lot* of files in them. One of them had over 77k files. The way
 the SQLite database was growing and the corresponding log messages being
@@ -153,20 +154,21 @@ database one by one or in batches, rather than simply downloading a snapshot of
 it. This is presumably slow because the number of API requests is a factor of
 the number of files for which it has to hold metadata. Somebody with a huge
 number of files in their iCloud Drive would presumably experience this taking
-even longer than I did, especially if they didn&#39;t have a particularly fast
+even longer than I did, especially if they didn&#x27;t have a particularly fast
 internet connection.
 
 Why Apple chose to make this process invisible in the UI is a mystery. Their
 discussion forums are full of people baffled by this. They must have had endless
 support calls and genius bar visits in relation to it, and in many of those
 cases there may have been nothing actually wrong. The only issue was that the UI
-gives no indication of what it&#39;s doing so the user thinks it isn&#39;t doing
+gives no indication of what it&#x27;s doing so the user thinks it isn&#x27;t doing
 anything
 
-This is bad design.</pre>
+This is bad design.
+</pre>
+                
             </div>
-
-
+            
             </div>
             <div id="right-content">
                 
@@ -176,39 +178,67 @@ This is bad design.</pre>
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+              
             </ul>
 
             <ul>
               <li>&nbsp;&nbsp;[tag]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+              
             </ul>
-
             </div>
         </div>
 				<script>

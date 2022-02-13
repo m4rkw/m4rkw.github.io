@@ -13,7 +13,7 @@
         <div id="menu">
                         <h3>Mark Wadham</h3>
             <ul>
-                <li><a href="/index.html">profile</a></li>
+                <li><a href="/">profile</a></li>
                 <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
                 <li><a href="/cves.html">CVEs</a></li>
                 <li><a href="/jsdemos.html">js demos</a></li>
@@ -23,13 +23,14 @@
                 <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
                 <li class="red space small"></li>
             </ul>
-
         </div>
         <div id="content">
             <div id="main-content">
-                                            <div class="post">
+                            
+                            <div class="post">
                 <h2><a href="/blog/two-local-root-privesc-bugs-in-arq-backup--510.html">Two local root privesc bugs in Arq Backup <= 5.10</a></h2>
                 <h3>29 Jan 2018 06:33  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
+                
                   <pre>Last year I found a couple more privilege escalation vectors in Arq Backup
 for Mac version 5.10. Both have now been fixed in the latest release.
 
@@ -37,7 +38,7 @@ The first is relatively simple - the arq_updater binary (which runs as root)
 takes a path argument for the url to retrieve an Arq update from in the format
 Arq.zip. We can simply specify an arbitrary path - eg file:///tmp/blah/Arq.zip -
 on the local filesystem and this will get unzipped in the /Applications/
-directory. Although we can&#39;t embed suid permissions into a zip file the updater
+directory. Although we can&#x27;t embed suid permissions into a zip file the updater
 binary sets +s on a handful of binaries as part of the installation process
 without validation.
 
@@ -66,11 +67,11 @@ An interesting target for this is the root users crontab file at:
 
 /var/at/tabs/root
 
-It turns out that if a file appears at this path, even if it isn&#39;t root-owned,
+It turns out that if a file appears at this path, even if it isn&#x27;t root-owned,
 it will be immediately processed by the cron system and any commands within will
 be executed as root (this oversight was reported to Apple).
 
-So, theoretically at this point we can create a cron file in the user&#39;s home
+So, theoretically at this point we can create a cron file in the user&#x27;s home
 directory, wait for it to get backed up by Arq and then restore it in place of
 the root crontab in order to escalate to root access.
 
@@ -95,18 +96,19 @@ Both of these issues are fixed in the latest release of Arq.
 
 CVE-2017-16928 backup/restore exploit PoC:
 
-<a href="https://m4.rkw.io/arq_5.10.rb.txt">https://m4.rkw.io/arq_5.10.rb.txt</a>
+https://m4.rkw.io/arq_5.10.rb.txt
 98428e05e5a4c1a289e1077787adffd97dd422dc0073bafdc25a07e5e6788cb8
 ------------------------------------------------------------------------------
 
 CVE-2017-16945 update mechanism exploit PoC:
 
-<a href="https://m4.rkw.io/arq_5.10.sh.txt">https://m4.rkw.io/arq_5.10.sh.txt</a>
+https://m4.rkw.io/arq_5.10.sh.txt
 1557066028363d7961ec04d7af52cdab41a34234c5aa1e9fe22d0ca36ab651e1
-------------------------------------------------------------------------------</pre>
+------------------------------------------------------------------------------
+</pre>
+                
             </div>
-
-
+            
             </div>
             <div id="right-content">
                 
@@ -116,39 +118,67 @@ CVE-2017-16945 update mechanism exploit PoC:
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+              
             </ul>
 
             <ul>
               <li>&nbsp;&nbsp;[tag]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+              
             </ul>
-
             </div>
         </div>
 				<script>

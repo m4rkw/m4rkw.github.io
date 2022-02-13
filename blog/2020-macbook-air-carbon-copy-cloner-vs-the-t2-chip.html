@@ -13,7 +13,7 @@
         <div id="menu">
                         <h3>Mark Wadham</h3>
             <ul>
-                <li><a href="/index.html">profile</a></li>
+                <li><a href="/">profile</a></li>
                 <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
                 <li><a href="/cves.html">CVEs</a></li>
                 <li><a href="/jsdemos.html">js demos</a></li>
@@ -23,30 +23,31 @@
                 <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
                 <li class="red space small"></li>
             </ul>
-
         </div>
         <div id="content">
             <div id="main-content">
-                                            <div class="post">
+                            
+                            <div class="post">
                 <h2><a href="/blog/2020-macbook-air-carbon-copy-cloner-vs-the-t2-chip.html">2020 Macbook Air: Carbon Copy Cloner vs the T2 chip</a></h2>
                 <h3>18 Apr 2020 11:53  | <a class="tag" href="/blog/tag/macOS.html">macOS</a></h3>
+                
                   <pre>I love Carbon Copy Cloner, it is an awesome piece of software. I frequently rave
-about it to anyone who&#39;ll listen, it&#39;s so useful.
+about it to anyone who&#x27;ll listen, it&#x27;s so useful.
 
 It does however seem to have been somewhat limited by the introduction of
-Apple&#39;s new T2 security chip. I recently purchased one of the new 2020 Macbook
+Apple&#x27;s new T2 security chip. I recently purchased one of the new 2020 Macbook
 Airs - a great computer and my first mac with the T2 chip.
 
 My usual process when I get a new mac is to transfer everything over from my old
 one using an external SSD and Carbon Copy Cloner. After plugging the drive in to
-the new computer I discovered it wouldn&#39;t boot from it as the T2 chip has
+the new computer I discovered it wouldn&#x27;t boot from it as the T2 chip has
 external device boot disabled by default. Not a major problem, it was simple
 enough to enable it.
 
 So I booted into my clone drive, opened CCC and created a restore task. I
-clicked go and then the unexpected happened - CCC said it couldn&#39;t proceed
-because the source drive was FileVault encrypted but the destination wasn&#39;t. I
-hadn&#39;t seen this before, but the recommended workaround was to simply turn off
+clicked go and then the unexpected happened - CCC said it couldn&#x27;t proceed
+because the source drive was FileVault encrypted but the destination wasn&#x27;t. I
+hadn&#x27;t seen this before, but the recommended workaround was to simply turn off
 FileVault on the clone drive. Not ideal but not the end of the world, so I did
 that and everything seemed to work.
 
@@ -71,13 +72,13 @@ if this might be an artefact of having restored from a CCC clone, so I hopped
 onto a friendly irc channel to ask some mac nerds.
 
 I was immediately told that you should never restore a clone onto a T2 mac.
-Instead you have to always use the Migration Assistant or you&#39;ll run into issues
+Instead you have to always use the Migration Assistant or you&#x27;ll run into issues
 with the T2 chip just like I did. I was advised to start again with internet
 recovery so I made sure my clone drive was up to date, rebooted, erased the
 startup disk, rebooted again and launched internet recovery.
 
 At this point it was late in the evening and I figured this was going to be a
-time-consuming pain but not the end of the world. Unfortunately things didn&#39;t
+time-consuming pain but not the end of the world. Unfortunately things didn&#x27;t
 quite go to plan. The initial download of the OS from internet recovery seemed
 to work, the machine rebooted and said 12mins remaining but then after a moment
 or two it suddenly bounced back into the GUI and said:
@@ -90,7 +91,7 @@ An internal error has occurred. : (-69624)
 Quit the installer to restart your computer and try again.
 ------------
 
-<img src="https://m4.rkw.io/img/69624.jpg" />
+https://m4.rkw.io/img/69624.jpg
 
 This was very disheartening for a brand new machine. Hoping it was some kind of
 transient network issue I rebooted and ran through the process again. Same
@@ -98,17 +99,17 @@ error. I tried removing my startup security password and ran it again, same
 error.
 
 I glanced at my clone drive, remembering it had a recovery partition, and
-thought maybe I could reinstall using that. First I&#39;d have to enable booting
+thought maybe I could reinstall using that. First I&#x27;d have to enable booting
 from external devices, so I tried to open the startup security utility, only to
-find that it refused to do anything because it couldn&#39;t authentiate me against
-an admin account on the system disk (which was now blank) and I&#39;d removed my
+find that it refused to do anything because it couldn&#x27;t authentiate me against
+an admin account on the system disk (which was now blank) and I&#x27;d removed my
 password. It seems that it might be worth setting a startup security password
 just to have a fallback authentication method for this scenario.
 
-At this point I did some googling, found a few people who&#39;d run into the same
+At this point I did some googling, found a few people who&#x27;d run into the same
 issue, one of whom ending up returning his machine for a logic board replacement
 as a result. At this point I was feeling depressed, a 2-day old machine turned
-into a brick because Apple apparently couldn&#39;t make a reliable recovery service.
+into a brick because Apple apparently couldn&#x27;t make a reliable recovery service.
 
 Finally as a last resort I went through a methodical sequence of steps:
 
@@ -118,12 +119,12 @@ Finally as a last resort I went through a methodical sequence of steps:
 4) Powered off, reset PRAM and NVRAM again
 5) Booted back into internet recovery and restarted the installer
 
-I don&#39;t know if any of these steps made a difference or whether there was a
+I don&#x27;t know if any of these steps made a difference or whether there was a
 transient issue that resolved itself but thankfully this 3rd time the installer
 worked and the machine was back into a usable state.
 
 After installation I plugged my clone drive in and used the Migration Assistant
-to restore my data. I was actually impressed at how well this worked - I&#39;d
+to restore my data. I was actually impressed at how well this worked - I&#x27;d
 always assumed a full-system clone with CCC would be a better experience but the
 Migration Assistant did really well and completed very quickly.
 
@@ -132,26 +133,27 @@ I did run into a few minor issues with it:
 1) After it completed my first login attempt resulted in a perpetual spinner,
 but a simple reboot resolved it
 
-2) Some of my system settings were restored to defaults but that&#39;s not really a
+2) Some of my system settings were restored to defaults but that&#x27;s not really a
 major problem
 
 Other than those two minor glitches the system is exactly as it would have been
-if I&#39;d restored from the clone, except that Apple Pay now works and it also
-didn&#39;t re-download all my photos from iCloud.
+if I&#x27;d restored from the clone, except that Apple Pay now works and it also
+didn&#x27;t re-download all my photos from iCloud.
 
 So a bumpy road but ultimately successful.
 
-I have since reached out to CCC support to ask them if they&#39;d consider adding a
+I have since reached out to CCC support to ask them if they&#x27;d consider adding a
 warning to the application when attempting to restore a clone to a T2 mac.
 Hopefully if they do this it will prevent others from going through the same
 trouble. I can easily imagine many people restoring clones, noticing Apple Pay
-doesn&#39;t work and not connecting the dots - likely leading to many hours on the
+doesn&#x27;t work and not connecting the dots - likely leading to many hours on the
 phone to Apple Support.
 
-Much thanks to Branes and Cpuroast of ##apple for their help in resolving this!</pre>
+Much thanks to Branes and Cpuroast of ##apple for their help in resolving this!
+</pre>
+                
             </div>
-
-
+            
             </div>
             <div id="right-content">
                 
@@ -161,39 +163,67 @@ Much thanks to Branes and Cpuroast of ##apple for their help in resolving this!<
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+              
             </ul>
 
             <ul>
               <li>&nbsp;&nbsp;[tag]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+              
             </ul>
-
             </div>
         </div>
 				<script>

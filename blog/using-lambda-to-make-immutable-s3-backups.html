@@ -13,7 +13,7 @@
         <div id="menu">
                         <h3>Mark Wadham</h3>
             <ul>
-                <li><a href="/index.html">profile</a></li>
+                <li><a href="/">profile</a></li>
                 <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
                 <li><a href="/cves.html">CVEs</a></li>
                 <li><a href="/jsdemos.html">js demos</a></li>
@@ -23,22 +23,23 @@
                 <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
                 <li class="red space small"></li>
             </ul>
-
         </div>
         <div id="content">
             <div id="main-content">
-                                            <div class="post">
+                            
+                            <div class="post">
                 <h2><a href="/blog/using-lambda-to-make-immutable-s3-backups.html">Using lambda to make immutable S3 backups</a></h2>
                 <h3>2 Jan 2017 17:55  | <a class="tag" href="/blog/tag/AWS.html">AWS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/linux.html">linux</a></h3>
-                  <pre>S3 is really handy for server backups and at $0.023/GB/month it&#39;s incredibly
+                
+                  <pre>S3 is really handy for server backups and at $0.023/GB/month it&#x27;s incredibly
 cost-effective.
 
 However the default way most people use it is to simply spray their data
-directly into an S3 bucket from the machine they&#39;re backing up.  This works fine
+directly into an S3 bucket from the machine they&#x27;re backing up.  This works fine
 right up until you get hacked by someone malicious who then has the ability to
 trash all of your backups from the machine that has access to the bucket.
 
-Enter lambda, Amazon&#39;s magic function-in-the-sky service that allows you to do
+Enter lambda, Amazon&#x27;s magic function-in-the-sky service that allows you to do
 serverless computation.
 
 This post describes how to secure your backups using a lambda function.
@@ -61,18 +62,18 @@ s3://backups1/backup.tar.gz.gpg
 
 2. Any writes to the backups1 bucket will trigger this lambda function:
 
-<a href="https://m4.rkw.io/lambda.py">https://m4.rkw.io/lambda.py</a>
+https://m4.rkw.io/lambda.py
 
-3. The lambda function checks the name of the uploaded object.  If it&#39;s
+3. The lambda function checks the name of the uploaded object.  If it&#x27;s
 backup.tar.gz.gpg it will check for a file in the backups2 bucket called
-{YYYY-mm-dd}.tar.gz.gpg.  If the file doesn&#39;t exist then it will move
+{YYYY-mm-dd}.tar.gz.gpg.  If the file doesn&#x27;t exist then it will move
 backup.tar.gz.gpg from backups1 to backups2 using the timestamped filename.
 If it already exists it will do nothing - this prevents backups from being
 overwritten once created.
 
 4. The lambda function also handles hourly sql snapshots - if the uploaded file
 is called sql.gz.gpg it will look for an object called
-{YYYY-mm-dd}.{HH}.sql.gz.gpg.  Again if the file doesn&#39;t exist it will move the
+{YYYY-mm-dd}.{HH}.sql.gz.gpg.  Again if the file doesn&#x27;t exist it will move the
 uploaded file to backups2 using the timestamped name.
 
 Because the filenames are determined by the lambda function which cannot be
@@ -87,10 +88,11 @@ issues.
 
 You will probably also want to create a lifecycle policy for your backups2
 bucket to delete the backups after a certain time period or archive them to
-glacier long term storage.</pre>
+glacier long term storage.
+</pre>
+                
             </div>
-
-
+            
             </div>
             <div id="right-content">
                 
@@ -100,39 +102,67 @@ glacier long term storage.</pre>
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+              
             </ul>
 
             <ul>
               <li>&nbsp;&nbsp;[tag]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+              
             </ul>
-
             </div>
         </div>
 				<script>

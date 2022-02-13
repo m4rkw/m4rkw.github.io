@@ -13,7 +13,7 @@
         <div id="menu">
                         <h3>Mark Wadham</h3>
             <ul>
-                <li><a href="/index.html">profile</a></li>
+                <li><a href="/">profile</a></li>
                 <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
                 <li><a href="/cves.html">CVEs</a></li>
                 <li><a href="/jsdemos.html">js demos</a></li>
@@ -23,22 +23,23 @@
                 <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
                 <li class="red space small"></li>
             </ul>
-
         </div>
         <div id="content">
             <div id="main-content">
-                                            <div class="post">
+                            
+                            <div class="post">
                 <h2><a href="/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html">Restricting macOS egress with LuLu and Squid proxy</a></h2>
                 <h3>10 Feb 2022 20:55  | <a class="tag" href="/blog/tag/apple.html">apple</a> | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a></h3>
-                  <pre>Egress filtering is an immensely powerful security control but it&#39;s not so
+                
+                  <pre>Egress filtering is an immensely powerful security control but it&#x27;s not so
 straightforward to do it well. If any malware manages to execute on your system
-one of the first things it&#39;s likely going to try to do is call home and
+one of the first things it&#x27;s likely going to try to do is call home and
 establish a C2 channel. With effective egress filtering you can break this link
 in the attack chain and stop it dead in its tracks.
 
 There are two well-known products which do egress filtering on macs - Little
 Snitch and LuLu. LuLu is made available by the awesome Patrick Wardle on his
-website - <a href="https://objective-see.com - along with a load of other very clever">https://objective-see.com - along with a load of other very clever</a>
+website - https://objective-see.com - along with a load of other very clever
 security tools.
 
 This post is mostly going to discuss LuLu but the approach taken here may well
@@ -54,19 +55,19 @@ As such, for browsers (such as Chrome), that do not leverage these frameworks,
 only ip address based blocking is supported.&quot;
 
 So what this means is that you will often get LuLu popups for connections with
-only IPs specified. This isn&#39;t ideal because the endpoints being connected to
-will often change IPs so if you simply add rules based on the IPs you&#39;ll be
+only IPs specified. This isn&#x27;t ideal because the endpoints being connected to
+will often change IPs so if you simply add rules based on the IPs you&#x27;ll be
 forever plagued with popups whenever they change, and so because of this the
 tendency is to simply allow *:443 or similar to avoid endless popups. This is
-bad because you&#39;re granting more egress to the application than would
+bad because you&#x27;re granting more egress to the application than would
 otherwise be ideal.
 
-There is however a way you can make this a lot letter and that&#39;s by using an
+There is however a way you can make this a lot letter and that&#x27;s by using an
 http proxy to filtering the outbound requests. One such proxy product is Squid
 which is freely available via Homebrew or Macports. If you can force
 applications to connect through squid instead of directly you can have proper
 control over what hosts they can connect to using hostnames even if the
-applications themselves don&#39;t use the Network or NSURLSession frameworks.
+applications themselves don&#x27;t use the Network or NSURLSession frameworks.
 
 The first thing to determine is what stuff you can force over the proxy. Good
 candidates for this are anything that you run from the terminal - curl,
@@ -74,15 +75,15 @@ terraform, python, anything like this can be configured to connect to an http
 proxy. Most terminal apps will respect the environment variables https_proxy or
 HTTPS_PROXY so these can simply be set in your bash config.
 
-Next we need Squid installed via either brew or macports, if you&#39;re using brew
+Next we need Squid installed via either brew or macports, if you&#x27;re using brew
 be aware that it install everything with file ownership as the local user so you
-won&#39;t want launchd invoking the squid binary as root. Obviously squid will need
-LuLu rules allowing it to make outbound connections, I&#39;d suggest allowing ports
+won&#x27;t want launchd invoking the squid binary as root. Obviously squid will need
+LuLu rules allowing it to make outbound connections, I&#x27;d suggest allowing ports
 80 and 443 outbound to all addresses at a minimum.
 
 Then we want a simple allowlist config for squid:
 
-acl allowlist dstdom_regex &#39;/etc/squid/allowlist.txt&#39;
+acl allowlist dstdom_regex &#x27;/etc/squid/allowlist.txt&#x27;
 http_access allow allowlist
 http_access deny all
 dns_v4_first on
@@ -91,18 +92,18 @@ query_icmp off
 We can put hostname regexes into allowlist.txt and these will be allowed by the
 proxy.
 
-LuLu won&#39;t filter any connections to localhost so the ruleset for your
+LuLu won&#x27;t filter any connections to localhost so the ruleset for your
 applications that can talk to the proxy can be very simple - allow DNS and
 nothing else. I like to create two rules in Lulu for all applications, one to
 allow DNS and one to block all other traffic. Any rules created that allow
 connections will override the default block-everything rule, and this way if a
-connection is denied it&#39;s simply denied - no annoying popups.
+connection is denied it&#x27;s simply denied - no annoying popups.
 
 Once this is set up you can simply tail the Squid access log to see what stuff
-is being connected to, anything that isn&#39;t in the allowlist.txt will return a
+is being connected to, anything that isn&#x27;t in the allowlist.txt will return a
 403 and you can edit the list and restart squid if you need to.
 
-It&#39;s even possible to control access to github using this approach. Github is
+It&#x27;s even possible to control access to github using this approach. Github is
 annoying in that its IPs change almost by the second, making filtering
 connections to it with LuLu practically impossible without simply allowing all
 traffic on tcp/22. However using this squid approach and socat we can route all
@@ -116,10 +117,11 @@ Host github.com
 
 Lulu is an excellent product but the limitations of the OS hold it back, by
 integrating it with a local http proxy we can get much more control over what
-connections go out of the system.</pre>
+connections go out of the system.
+</pre>
+                
             </div>
-
-
+            
             </div>
             <div id="right-content">
                 
@@ -129,39 +131,67 @@ connections go out of the system.</pre>
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+              
             </ul>
 
             <ul>
               <li>&nbsp;&nbsp;[tag]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+              
             </ul>
-
             </div>
         </div>
 				<script>

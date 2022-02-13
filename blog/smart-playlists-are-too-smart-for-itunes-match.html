@@ -13,7 +13,7 @@
         <div id="menu">
                         <h3>Mark Wadham</h3>
             <ul>
-                <li><a href="/index.html">profile</a></li>
+                <li><a href="/">profile</a></li>
                 <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
                 <li><a href="/cves.html">CVEs</a></li>
                 <li><a href="/jsdemos.html">js demos</a></li>
@@ -23,13 +23,14 @@
                 <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
                 <li class="red space small"></li>
             </ul>
-
         </div>
         <div id="content">
             <div id="main-content">
-                                            <div class="post">
+                            
+                            <div class="post">
                 <h2><a href="/blog/smart-playlists-are-too-smart-for-itunes-match.html">Smart playlists are too smart for iTunes Match</a></h2>
                 <h3>30 Jun 2015 21:07  | <a class="tag" href="/blog/tag/apple.html">apple</a></h3>
+                
                   <pre>This has been driving me nuts for months and I finally figured it out - smart
 playlists break iTunes Match.
 
@@ -47,42 +48,43 @@ download the songs but then starts adding hundreds of my deleted songs back
 into iTunes, and thus back into the smart playlist itself.
 
 My previous workaround was to simply disable iTunes Match, sync the songs
-manually from my mac and then re-enable it again, but if you&#39;re doing that you
+manually from my mac and then re-enable it again, but if you&#x27;re doing that you
 have to wonder what the point of paying for the service is.
 
 Anyway, today whilst installing the 8.4 release I finally made some progress
-and figured out that it&#39;s something to do with the smart playlist.  If I put
+and figured out that it&#x27;s something to do with the smart playlist.  If I put
 all my (non-deleted) music into a regular playlist and download that right
-after a restore, it works exactly as it should.  So it seems that there&#39;s some
+after a restore, it works exactly as it should.  So it seems that there&#x27;s some
 kind of bug in the way smart playlists are handled - they work fine for the
 most part until you try to download an entire one on an iDevice.
 
-What&#39;s also interesting is that when this starts happening, if I turn off the
+What&#x27;s also interesting is that when this starts happening, if I turn off the
 iPhone it stops straight away, no more deleted songs will appear in iTunes so
 it seems to be specific to some API that the iPhone is calling in order to
 download all the songs.
 
 My best guess is that the API the iPhone calls in order to determine which
-tracks are in a smart playlist doesn&#39;t by default exclude songs that have been
-previously deleted.  As it&#39;s then downloading all the deleted songs on the
+tracks are in a smart playlist doesn&#x27;t by default exclude songs that have been
+previously deleted.  As it&#x27;s then downloading all the deleted songs on the
 iPhone, iTunes Match interprets this as a willful re-download of the song by me
 and then undeletes it.
 
-Unfortunately there isn&#39;t an obvious way I can see to configure the smart
+Unfortunately there isn&#x27;t an obvious way I can see to configure the smart
 playlist to explictly exclude deleted songs.  It has an &quot;iCloud Status&quot; field,
-but it&#39;s not possible to have a multi-part OR condition alongside two other AND
-conditions so I can&#39;t really do it.  I think what you&#39;d need is:
+but it&#x27;s not possible to have a multi-part OR condition alongside two other AND
+conditions so I can&#x27;t really do it.  I think what you&#x27;d need is:
 
 Media kind is &quot;Music&quot; AND Genre is not &quot;Audiobooks&quot; AND ( iCloud Status is
 &quot;Matched&quot; or iCloud Status is &quot;Uploaded&quot; or iCloud Status is &quot;Purchased&quot; )
 
 Of course the best solution would be for Apple to just fix their broken API.
-I&#39;ve submitted this as bug report #21617107, fingers crossed someone will pick
-it up and fix it.  Until then I&#39;ll have to stick to a dumb playlist for my &quot;all
-music&quot; list.</pre>
+I&#x27;ve submitted this as bug report #21617107, fingers crossed someone will pick
+it up and fix it.  Until then I&#x27;ll have to stick to a dumb playlist for my &quot;all
+music&quot; list.
+</pre>
+                
             </div>
-
-
+            
             </div>
             <div id="right-content">
                 
@@ -92,39 +94,67 @@ music&quot; list.</pre>
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+              
             </ul>
 
             <ul>
               <li>&nbsp;&nbsp;[tag]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+              
             </ul>
-
             </div>
         </div>
 				<script>

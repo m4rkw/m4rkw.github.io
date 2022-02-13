@@ -13,7 +13,7 @@
         <div id="menu">
                         <h3>Mark Wadham</h3>
             <ul>
-                <li><a href="/index.html">profile</a></li>
+                <li><a href="/">profile</a></li>
                 <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
                 <li><a href="/cves.html">CVEs</a></li>
                 <li><a href="/jsdemos.html">js demos</a></li>
@@ -23,13 +23,14 @@
                 <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
                 <li class="red space small"></li>
             </ul>
-
         </div>
         <div id="content">
             <div id="main-content">
-                                            <div class="post">
+                            
+                            <div class="post">
                 <h2><a href="/blog/cve201715358-local-root-privesc-in-charles-proxy-42.html">CVE-2017-15358 Local root privesc in Charles Proxy 4.2</a></h2>
                 <h3>30 Jul 2018 06:41  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
+                
                   <pre>Charles Proxy is a great mac application for debugging web services and
 inspecting SSL traffic for any application on your machine.
 
@@ -48,7 +49,7 @@ uses to re-set the root+suid permissions on itself, with a graphical dialog
 shown to the user. However if this is called when the binary is already
 root+suid then no password dialog is shown.
 
-It doesn&#39;t validate the path to itself and uses a simple API call to get the
+It doesn&#x27;t validate the path to itself and uses a simple API call to get the
 path to the binary at the time it was invoked. This means that between executing
 the binary and reaching the code path where root+suid is set there is enough
 time to replace the path to the binary with an alternate payload which will then
@@ -56,14 +57,14 @@ receive the suid+root permissions instead of the Charles binary.
 
 This issue was fixed in Charles 4.2.1 released in November 2017.
 
-<a href="https://m4.rkw.io/charles_4.2.sh.txt">https://m4.rkw.io/charles_4.2.sh.txt</a>
+https://m4.rkw.io/charles_4.2.sh.txt
 2f4a2dca6563d05a201108ec6e9454e2894b603b68b3b70b8f8b043b43ee9284
 -------------------------------------------------------------------------------
 #!/bin/bash
 
 ####################################################
 ###### Charles 4.2 local root privesc exploit ######
-###### by m4rkw - <a href="https://m4.rkw.io/blog.html">https://m4.rkw.io/blog.html</a> ######
+###### by m4rkw - https://m4.rkw.io/blog.html ######
 ####################################################
 
 cd
@@ -109,10 +110,11 @@ do
   fi
 done
 
-./Charles\ Proxy\ Settings</pre>
+./Charles\ Proxy\ Settings
+</pre>
+                
             </div>
-
-
+            
             </div>
             <div id="right-content">
                 
@@ -122,39 +124,67 @@ done
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+              
             </ul>
 
             <ul>
               <li>&nbsp;&nbsp;[tag]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+              
             </ul>
-
             </div>
         </div>
 				<script>

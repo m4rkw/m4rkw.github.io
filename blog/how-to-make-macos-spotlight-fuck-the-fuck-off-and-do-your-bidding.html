@@ -13,7 +13,7 @@
         <div id="menu">
                         <h3>Mark Wadham</h3>
             <ul>
-                <li><a href="/index.html">profile</a></li>
+                <li><a href="/">profile</a></li>
                 <li><a href="/blog.html">blog</a> <a href="/blog/rss"><img src="/img/rss.png" /></a></li>
                 <li><a href="/cves.html">CVEs</a></li>
                 <li><a href="/jsdemos.html">js demos</a></li>
@@ -23,22 +23,23 @@
                 <li class="small">linkedin: <a href="https://uk.linkedin.com/in/mark-wadham-14ab49a6">379069834</a></li>
                 <li class="red space small"></li>
             </ul>
-
         </div>
         <div id="content">
             <div id="main-content">
-                                            <div class="post">
+                            
+                            <div class="post">
                 <h2><a href="/blog/how-to-make-macos-spotlight-fuck-the-fuck-off-and-do-your-bidding.html">How to make macOS Spotlight fuck the fuck off and do your bidding</a></h2>
                 <h3>24 Oct 2017 12:27  | <a class="tag" href="/blog/tag/macOS.html">macOS</a></h3>
+                
                   <pre>Recently I had a recurring problem where I would see mdworker running at high
 CPU every 5 minutes or so for no apparent reason. Internet searches reveal loads
 of people with the same problem and lots of witchcrafty ways to try to resolve
-it that often don&#39;t work.
+it that often don&#x27;t work.
 
 This is how I fixed it. The problem seems to occur because *something* is
 writing a bunch of files to the disk and spotlight is then having to index them.
 I use Spotlight for a very small number of use cases - launching applications
-and searching for documents, that&#39;s it. Therefore I don&#39;t actually need
+and searching for documents, that&#x27;s it. Therefore I don&#x27;t actually need
 spotlight to index the entire disk, just my /Applications/ and iCloud documents
 folders is sufficient.
 
@@ -46,15 +47,15 @@ First, disable all indexing:
 
 $ sudo mdutil -i off /
 
-then trash any partial indexes you&#39;ve already got:
+then trash any partial indexes you&#x27;ve already got:
 
 $ sudo rm -rf /.Spotlight-V100/
 
 Now go to System Preferences -&gt; Spotlight and go to the Privacy tab. As a
 general rule of thumb you should put your Volumes directory in here, otherwise
 spotlight will try to index any external drive you attach which is probably not
-what you want. This is especially true if you&#39;re using Carbon Copy Cloner or
-Superduper to clone your root volume, as then you&#39;ll end up launching apps from
+what you want. This is especially true if you&#x27;re using Carbon Copy Cloner or
+Superduper to clone your root volume, as then you&#x27;ll end up launching apps from
 the backup disk and all kinds of weird shit will happen.
 
 Make sure finder is set to show hidden files:
@@ -67,30 +68,30 @@ Now open finder at the root of your system volume:
 $ open /
 
 Then drag all the folders from it except Applications into the privacy tab of
-the spotlight preferences. You&#39;ll get some errors if you have symlinks in the
-root, don&#39;t worry about them just continue. Then turn indexing back on with:
+the spotlight preferences. You&#x27;ll get some errors if you have symlinks in the
+root, don&#x27;t worry about them just continue. Then turn indexing back on with:
 
 $ sudo mdiutil -i on /
 
 Now watch top and wait for it to index /Applications/. After 20-30 minutes at
 most for an SSD-backed system it should have finished and settled down.
 
-At this point you&#39;ve fixed the load issue but you&#39;ve only got /Applications/
+At this point you&#x27;ve fixed the load issue but you&#x27;ve only got /Applications/
 indexed, maybe you want your cloud documents too or some other folders.
 
 The trick is to add them one by one and watch. This is a bit tricky because you
-can only add folders to exclude rather than include. We&#39;ve currently got &quot;Users&quot;
-excluded so your entire home directory won&#39;t currently be indexed.
+can only add folders to exclude rather than include. We&#x27;ve currently got &quot;Users&quot;
+excluded so your entire home directory won&#x27;t currently be indexed.
 
 Go to your ~/Library/ directory (in Finder click Go from the top menubar and
 click Library). Drag all of the directories *except* &quot;Mobile Documents&quot; into the
 Privacy tab of the Spotlight preferences.
 
 As an extra precaution also go into your home directory and drag any folders
-in that you don&#39;t care about indexing, especially if you know they have frequent
+in that you don&#x27;t care about indexing, especially if you know they have frequent
 changes.
 
-Once you&#39;ve done this you can remove &quot;Users&quot; from the Privacy tab of the
+Once you&#x27;ve done this you can remove &quot;Users&quot; from the Privacy tab of the
 Spotlight settings and mds will fire up again and start indexing the stuff that
 is no longer excluded, which should be your cloud documents directory and not
 much else. On my system with around ~20GB of cloud docs this took under half an
@@ -104,10 +105,11 @@ problem with the indexing and then investigate why.
 Now you should have a very carefully tuned spotlight system that only indexes
 the folders you actually care about being able to search and nothing else. Apps
 that start blasting data into random places in your home directory should no
-longer cause high mdworker cpu usage.</pre>
+longer cause high mdworker cpu usage.
+</pre>
+                
             </div>
-
-
+            
             </div>
             <div id="right-content">
                 
@@ -117,39 +119,67 @@ longer cause high mdworker cpu usage.</pre>
 
             <ul>
               <li>&nbsp;&nbsp;[year]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2022.html">2022</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2021.html">2021</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2020.html">2020</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2019.html">2019</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2018.html">2018</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2017.html">2017</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2016.html">2016</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/2015.html">2015</a></li>
+              
             </ul>
 
             <ul>
               <li>&nbsp;&nbsp;[tag]</li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/AWS.html">AWS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/agile.html">agile</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/apple.html">apple</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/bash.html">bash</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/cryptocurrency.html">cryptocurrency</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/iOS.html">iOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/linux.html">linux</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/macOS.html">macOS</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mining.html">mining</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/mysql.html">mysql</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/php.html">php</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/ruby.html">ruby</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/scrum.html">scrum</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/security.html">security</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/touchID.html">touchID</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/vim.html">vim</a></li>
+              
                 <li>&nbsp;&nbsp;<a href="/blog/tag/work.html">work</a></li>
+              
             </ul>
-
             </div>
         </div>
 				<script>
