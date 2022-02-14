@@ -6,7 +6,7 @@
   </author>
   <id>https://m4.rkw.io/blog/</id>
   <title>m4.rkw.io</title>
-  <updated>2022-02-14T11:20:24+00:00</updated>
+  <updated>2022-02-14T11:28:56+00:00</updated>
   <entry>
     <id>https://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy</id>
     <link href="https://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy"/>
@@ -157,11 +157,11 @@ that may arise from following these steps.</p><p>Also note that when the nginx e
 any local user could throw up a tcp listener that just responds with &quot;0&quot; in
 order to bypass sudo authentication. If you want to use this securely you&#x27;ll
 need to do a bit more work.</p><p>One possible way to mitigate this might be to use SSL on the nginx endpoint and
-verify the fingerprint of the SSL cert in the touchid shell script wrapper.</p><p>## setup</p><p>1) Install fcgiwrap from macports</p><p>$ sudo port install fcgiwrap</p><p>2) Give your local user permission to execute /opt/local/bin/spawn-fcgi as root
-without a password:</p><p><pre>/etc/sudoers.d/fcgiwrap</pre></p><p>--------------
+verify the fingerprint of the SSL cert in the touchid shell script wrapper.</p><p>## setup</p><p>1) Install fcgiwrap from macports:</p><p><pre>$ sudo port install fcgiwrap</pre></p><p>2) Give your local user permission to execute /opt/local/bin/spawn-fcgi as root
+without a password</p><p>/etc/sudoers.d/fcgiwrap:</p><p><pre>--------------
 admin ALL=(ALL) NOPASSWD: /opt/local/bin/spawn-fcgi
---------------</p><p>3) Create ~/Library/LaunchAgents/org.macports.fcgiwrap.plist</p><p>This has to be in your local user&#x27;s LaunchAgents path as it needs to be able to
-spawn the touchID gui popup on the user&#x27;s desktop.</p><p>--------------
+--------------</pre></p><p>3) Create ~/Library/LaunchAgents/org.macports.fcgiwrap.plist</p><p>This has to be in your local user&#x27;s LaunchAgents path as it needs to be able to
+spawn the touchID gui popup on the user&#x27;s desktop:</p><p><pre>--------------
 &lt;?xml version=&#x27;1.0&#x27; encoding=&#x27;UTF-8&#x27;?&gt;
 &lt;!DOCTYPE plist PUBLIC &quot;-//Apple//DTD PLIST 1.0//EN&quot;
 &quot;http://www.apple.com/DTDs/PropertyList-1.0.dtd&quot; &gt;
@@ -187,8 +187,8 @@ spawn the touchID gui popup on the user&#x27;s desktop.</p><p>--------------
 &lt;key&gt;KeepAlive&lt;/key&gt;&lt;true/&gt;
 &lt;/dict&gt;
 &lt;/plist&gt;
---------------</p><p>4) Spawn fcgiwrap</p><p>$ launchctl load -w ~/Library/LaunchAgents/org.macports.fcgiwrap.plist</p><p>5) Install nginx from macports</p><p>/opt/local/etc/nginx/nginx.conf</p><p>--------------
-worker\_processes  1;</p><p>events {
+--------------</pre></p><p>4) Spawn fcgiwrap:</p><p><pre>$ launchctl load -w ~/Library/LaunchAgents/org.macports.fcgiwrap.plist</pre></p><p>5) Install nginx from macports</p><p>/opt/local/etc/nginx/nginx.conf:</p><p><pre>--------------
+worker\_processes  1;</pre></p><p>events {
     worker_connections  1024;
 }</p><p>http {
     include       mime.types;
@@ -198,11 +198,11 @@ worker\_processes  1;</p><p>events {
       server unix:/opt/local/var/run/fcgiwrap.socket;
     }
 }
---------------</p><p>6) Create /opt/local/etc/nginx/fastcgi_params</p><p>--------------
+--------------</p><p>6) Create /opt/local/etc/nginx/fastcgi_params:</p><p><pre>--------------
 fastcgi_param  QUERY_STRING       $query_string;
 fastcgi_param  REQUEST_METHOD     $request_method;
 fastcgi_param  CONTENT_TYPE       $content_type;
-fastcgi_param  CONTENT_LENGTH     $content_length;</p><p>fastcgi_param  SCRIPT_NAME        $fastcgi_script_name;
+fastcgi_param  CONTENT_LENGTH     $content_length;</pre></p><p>fastcgi_param  SCRIPT_NAME        $fastcgi_script_name;
 fastcgi_param  REQUEST_URI        $request_uri;
 fastcgi_param  DOCUMENT_URI       $document_uri;
 fastcgi_param  DOCUMENT_ROOT      $document_root;
@@ -215,17 +215,17 @@ fastcgi_param  SERVER_ADDR        $server_addr;
 fastcgi_param  SERVER_PORT        $server_port;
 fastcgi_param  SERVER_NAME        $server_name;
 --------------</p><p># PHP only, required if PHP was built with --enable-force-cgi-redirect
-fastcgi_param  REDIRECT_STATUS    200;</p><p>7) Create the vhost config: /opt/local/etc/nginx/sites-enabled/auth.conf</p><p>--------------
+fastcgi_param  REDIRECT_STATUS    200;</p><p>7) Create the vhost config: /opt/local/etc/nginx/sites-enabled/auth.conf:</p><p><pre>--------------
 server {
-  listen 61111 default_server;</p><p>  root /var/www/auth/htdocs;
+  listen 61111 default_server;</pre></p><p>  root /var/www/auth/htdocs;
   index index.py;</p><p>  server_name auth;</p><p>  rewrite ^/auth$ /auth.py;</p><p>  location ~ \.py$ {
     include /opt/local/etc/nginx/fastcgi_params;</p><p>    fastcgi_param DOCUMENT_ROOT /var/www/auth/htdocs;
     fastcgi_param SCRIPT_FILENAME /var/www/auth/htdocs$fastcgi_script_name;</p><p>    fastcgi_pass fcgiwrap;
     fastcgi_read_timeout 300s;
   }
 }
---------------</p><p>8) Start nginx</p><p>$ sudo launchctl load -w /Library/LaunchDaemons/org.macports.nginx.plist</p><p>9) Grab the touch2sudo binary from here:</p><p><pre>https://github.com/prbinu/touch2sudo/releases/download/v0.1/touch2sudo-0.1.tgz</pre></p><p>copy it to:</p><p><pre>/usr/local/bin/touch2sudo</pre></p><p>10) Create the python CGI wrap at /var/www/auth/htdocs/auth.py</p><p>--------------
-#!/usr/bin/env python3</p><p>import os
+--------------</p><p>8) Start nginx:</p><p><pre>$ sudo launchctl load -w /Library/LaunchDaemons/org.macports.nginx.plist</pre></p><p>9) Grab the touch2sudo binary from here:</p><p><pre>https://github.com/prbinu/touch2sudo/releases/download/v0.1/touch2sudo-0.1.tgz</pre></p><p>copy it to:</p><p><pre>/usr/local/bin/touch2sudo</pre></p><p>10) Create the python CGI wrap at /var/www/auth/htdocs/auth.py:</p><p><pre>--------------
+#!/usr/bin/env python3</pre></p><p>import os
 import sys</p><p>KEY = &#x27;YOUR_KEY_HERE&#x27;</p><p>if &#x27;HTTP_AUTH&#x27; not in os.environ or os.environ[&#x27;HTTP_AUTH&#x27;] != KEY:
   sys.exit(0)</p><p>rc = os.system(&quot;/usr/bin/sudo -u admin /usr/local/bin/touch2sudo&quot;)</p><p>print(&quot;Content-type: text/plain\n&quot;)
 print(str(rc))
@@ -237,21 +237,21 @@ the macOS login window you can execute:</p><p><pre>$ sudo dscl . create /Users/s
 run this:</p><p><pre>$ sudo fdesetup remove -user sshuser</pre></p><p>13) Create the same unprivileged user on your remote machine. I&#x27;ll assume you
 used the same username.</p><p>14) (Optional) prevent the user on the remote machine from spawning a shell.
 This is for additional security. Add the below lines to your sshd config on the
-remote machine and restart sshd.</p><p>--------------
+remote machine and restart sshd:</p><p><pre>--------------
 # tail -n3 /etc/ssh/sshd_config
 Match User sshuser
   PermitTTY no
   ForceCommand /bin/true
---------------</p><p>15) Become sshuser on your mac and generate an ssh key for them:</p><p><pre>$ sudo -Hu sshuser bash
+--------------</pre></p><p>15) Become sshuser on your mac and generate an ssh key for them:</p><p><pre>$ sudo -Hu sshuser bash
 $ cd
 $ ssh-keygen</pre></p><p>16) Add the contents of /Users/sshuser/.ssh/id_rsa.pub on your mac to
 /home/sshuser/.ssh/authorized_keys on the remote machine</p><p>17) Verify that the key authentication is working from sshuser on the mac to the
-remote machine.</p><p>$ sudo -Hu mbssh bash
+remote machine:</p><p><pre>$ sudo -Hu mbssh bash
 $ cd
 $ ssh sshuser@REMOTE_MACHINE
 PTY allocation request failed on channel 0
-Connection to REMOTE_MACHINE closed.</p><p>If you see &quot;PTY allocation request failed&quot; this means it&#x27;s working.</p><p>18) Create a launchd config to launch and maintain the persistent ssh
-connection at: /Library/LaunchDaemons/com.sshuser.ssh.plist</p><p>--------------
+Connection to REMOTE_MACHINE closed.</pre></p><p>If you see &quot;PTY allocation request failed&quot; this means it&#x27;s working.</p><p>18) Create a launchd config to launch and maintain the persistent ssh
+connection at: /Library/LaunchDaemons/com.sshuser.ssh.plist:</p><p><pre>--------------
 &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
 &lt;!DOCTYPE plist PUBLIC &quot;-//Apple//DTD PLIST 1.0//EN&quot; &quot;http://www.apple.com/DTDs/PropertyList-1.0.dtd&quot;&gt;
 &lt;plist version=&quot;1.0&quot;&gt;
@@ -277,10 +277,10 @@ connection at: /Library/LaunchDaemons/com.sshuser.ssh.plist</p><p>--------------
     &lt;string&gt;sshuser&lt;/string&gt;
 &lt;/dict&gt;
 &lt;/plist&gt;
---------------</p><p>19) Start the launch service:</p><p><pre>$ sudo launchctl load -w /Library/LaunchDaemons/com.sshuser.ssh.plist</pre></p><p>20) Test that the touchID prompt comes up when you hit the nginx endpoint from
+--------------</pre></p><p>19) Start the launch service:</p><p><pre>$ sudo launchctl load -w /Library/LaunchDaemons/com.sshuser.ssh.plist</pre></p><p>20) Test that the touchID prompt comes up when you hit the nginx endpoint from
 the remote server:</p><p><pre>$ ssh REMOTE_SERVER
 $ curl -sH &#x27;Auth: YOUR_KEY_HERE&#x27; http://localhost:61111/auth</pre></p><p>You should get a touchID prompt on your mac. If not, investigate and resolve the
-issue before proceeding.</p><p>21) Create a simple bash wrapper to invoke the touchid authentication:</p><p><pre>/usr/local/bin/touchid</pre></p><p>--------------
+issue before proceeding.</p><p>21) Create a simple bash wrapper to invoke the touchid authentication</p><p>/usr/local/bin/touchid:</p><p><pre>--------------
 #!/bin/bash
 /bin/netstat -nat |grep &#x27;:61111&#x27; 1&gt;/dev/null
 if [ $? -eq 0 ] ; then
@@ -292,12 +292,12 @@ if [ $? -eq 0 ] ; then
   fi
 fi
 exit 1
---------------</p><p>This wrapper will first check that the :61111 socket is listening, if it isn&#x27;t
+--------------</pre></p><p>This wrapper will first check that the :61111 socket is listening, if it isn&#x27;t
 there it will return a non-zero exit code allowing sudo to fall back to password
-authentication.</p><p>Test that this works before proceeding.</p><p>22) Clone my fork of simple-pam: https://github.com/m4rkw/simple-pam</p><p>$ git clone https://github.com/m4rkw/simple-pam</p><p>23) Compile and install the pam module</p><p>$ sudo apt install libpam-dev
+authentication.</p><p>Test that this works before proceeding.</p><p>22) Clone my fork of simple-pam: https://github.com/m4rkw/simple-pam:</p><p><pre>$ git clone https://github.com/m4rkw/simple-pam</pre></p><p>23) Compile and install the pam module:</p><p><pre>$ sudo apt install libpam-dev
 $ cd simple-pam
 $ gcc -fPIC -fno-stack-protector -c src/mypam.c
-$ sudo ld -x --shared -o /lib/security/mypam.so mypam.o</p><p>24) Add the auth sufficient line to the top of your /etc/pam.d/sudo file after
+$ sudo ld -x --shared -o /lib/security/mypam.so mypam.o</pre></p><p>24) Add the auth sufficient line to the top of your /etc/pam.d/sudo file after
 the bangline:</p><p><pre>--------------
 #%PAM-1.0</pre></p><p>auth sufficient mypam.so
 --------------</p><p>At this point it should work. You should be able to ssh to your remote machine,
@@ -1469,5 +1469,5 @@ malware so that they can escalate opportunistically.
     <updated>2017-11-29T21:04:29+00:00</updated>
     <dc:date>2017-11-29T21:04:29+00:00</dc:date>
   </entry>
-  <dc:date>2022-02-14T11:20:24+00:00</dc:date>
+  <dc:date>2022-02-14T11:28:56+00:00</dc:date>
 </feed>
