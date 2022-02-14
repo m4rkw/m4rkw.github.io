@@ -6,10 +6,10 @@
   </author>
   <id>https://m4.rkw.io/blog/</id>
   <title>m4.rkw.io</title>
-  <updated>2022-02-14T11:12:18+00:00</updated>
+  <updated>2022-02-14T11:20:24+00:00</updated>
   <entry>
-    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
-    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <id>https://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy</id>
+    <link href="https://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy"/>
     <summary><p>Egress filtering is an immensely powerful security control but it&#x27;s not so
 straightforward to do it well. If any malware manages to execute on your system
 one of the first things it&#x27;s likely going to try to do is call home and
@@ -71,8 +71,8 @@ connections go out of the system.
     <dc:date>2022-02-10T20:55:46+00:00</dc:date>
   </entry>
   <entry>
-    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
-    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <id>https://m4.rkw.io/blog/getting-back-into-blogging</id>
+    <link href="https://m4.rkw.io/blog/getting-back-into-blogging"/>
     <summary><p>It&#x27;s been a while since I&#x27;ve blogged so I thought I&#x27;d get back into it with some
 security stuff. My dayjob has had a very heavy security focus for the last 3
 years and it&#x27;s infected my personal life too such that I&#x27;m now even more
@@ -86,8 +86,8 @@ example configs etc.</p><p>Watch this space!
     <dc:date>2022-02-10T05:48:18+00:00</dc:date>
   </entry>
   <entry>
-    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
-    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <id>https://m4.rkw.io/blog/unlocking-ios-devices-with-a-yubikey</id>
+    <link href="https://m4.rkw.io/blog/unlocking-ios-devices-with-a-yubikey"/>
     <summary><p>I love Yubikeys, they provide a very strong second factor for accounts and
 services that you care a lot about. I use them for all kinds of things but one
 thing I was quite excited to try was the Yubikey 5ci in static password mode.</p><p>Static password mode simply acts as a virtual keyboard, playing back a static
@@ -140,8 +140,8 @@ making several backups, including at least one offline.
     <dc:date>2021-07-08T20:53:22+00:00</dc:date>
   </entry>
   <entry>
-    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
-    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <id>https://m4.rkw.io/blog/how-to-use-touchid-for-sudo-remotely-over-ssh</id>
+    <link href="https://m4.rkw.io/blog/how-to-use-touchid-for-sudo-remotely-over-ssh"/>
     <summary><p>TouchID on the mac is really cool. It&#x27;s awesome being able to use it for sudo,
 but I thought it would be even more awesome if it could be used to authenticate
 sudo remotely over ssh.</p><p>I&#x27;ve made this work using touch2sudo - https://github.com/prbinu/touch2sudo
@@ -308,8 +308,8 @@ type &quot;sudo bash&quot; and authenticate the sudo escalation with touchID.</p
     <dc:date>2020-04-18T14:25:39+00:00</dc:date>
   </entry>
   <entry>
-    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
-    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <id>https://m4.rkw.io/blog/2020-macbook-air-carbon-copy-cloner-vs-the-t2-chip</id>
+    <link href="https://m4.rkw.io/blog/2020-macbook-air-carbon-copy-cloner-vs-the-t2-chip"/>
     <summary><p>I love Carbon Copy Cloner, it is an awesome piece of software. I frequently rave
 about it to anyone who&#x27;ll listen, it&#x27;s so useful.</p><p>It does however seem to have been somewhat limited by the introduction of
 Apple&#x27;s new T2 security chip. I recently purchased one of the new 2020 Macbook
@@ -381,8 +381,8 @@ phone to Apple Support.</p><p>Much thanks to Branes and Cpuroast of ##apple for 
     <dc:date>2020-04-18T11:53:16+00:00</dc:date>
   </entry>
   <entry>
-    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
-    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <id>https://m4.rkw.io/blog/cylance-local-protection-seems-a-bit-daft</id>
+    <link href="https://m4.rkw.io/blog/cylance-local-protection-seems-a-bit-daft"/>
     <summary><p>On a mac if you set Cylance&#x27;s &quot;local protection&quot; to &quot;system&quot; it seems to
 disallow all filesystem access to the CylanceSvc service&#x27;s launchd plist file:</p><p><pre>/Library/LaunchDaemons/com.cylance.agent_service.plist</pre></p><p>This access is completely denied even to the root user. At first glance this
 would appear to prevent all users, including root, from stopping the service.</p><p>However launchd does not look at the filename when processing one of these
@@ -401,8 +401,8 @@ can do to interrupt things being done as root.
     <dc:date>2019-07-25T19:14:56+00:00</dc:date>
   </entry>
   <entry>
-    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
-    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <id>https://m4.rkw.io/blog/the-real-reason-your-icloud-drive-isnt-syncing</id>
+    <link href="https://m4.rkw.io/blog/the-real-reason-your-icloud-drive-isnt-syncing"/>
     <summary><p>I recently had the logic board replaced in my 2017 Macbook Pro. I use the
 awesome Carbon Copy Cloner to keep an image of my system as a bootable backup
 which can then be easily restored when the machine is returned to me.</p><p>This time however I had some issues with iCloud Drive. After restoring the
@@ -511,8 +511,8 @@ anything</p><p>This is bad design.
     <dc:date>2019-07-09T18:34:11+00:00</dc:date>
   </entry>
   <entry>
-    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
-    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <id>https://m4.rkw.io/blog/hijacking-sudo-in-real-time</id>
+    <link href="https://m4.rkw.io/blog/hijacking-sudo-in-real-time"/>
     <summary><p>A while ago I posted about how sudo can be easily backdoored by dropping a fake
 sudo script into the user&#x27;s PATH:</p><p><pre>https://m4.rkw.io/blog/getting-root-without-an-exploit--stealth-sudo-backdoor.html</pre></p><p>Another attack vector for sudo is monitoring the process list for invocations of
 sudo where the user is being prompted for their sudo password and the target
@@ -631,8 +631,8 @@ import time</p><p>
     <dc:date>2018-08-15T22:03:15+00:00</dc:date>
   </entry>
   <entry>
-    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
-    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <id>https://m4.rkw.io/blog/cve201715358-local-root-privesc-in-charles-proxy-42</id>
+    <link href="https://m4.rkw.io/blog/cve201715358-local-root-privesc-in-charles-proxy-42"/>
     <summary><p>Charles Proxy is a great mac application for debugging web services and
 inspecting SSL traffic for any application on your machine.</p><p>In order to inspect the SSL traffic it needs to configure the system to use a
 proxy so that it can capture the packets and use its custom root CA to decode
@@ -689,8 +689,8 @@ done</p><p>./Charles\ Proxy\ Settings
     <dc:date>2018-07-30T06:41:01+00:00</dc:date>
   </entry>
   <entry>
-    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
-    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <id>https://m4.rkw.io/blog/201617-macbook-pro-keyboard-recall</id>
+    <link href="https://m4.rkw.io/blog/201617-macbook-pro-keyboard-recall"/>
     <summary><p>Somebody started a petition asking Apple to recall the 2016 (and presumably
 2017 since they&#x27;re basically the same) macbook pros and fit them with a
 keyboard &quot;that works&quot;:</p><p><pre>https://www.change.org/p/apple-apple-recall-macbook-pro-w-defective-keyboard-replace-with-different-working-keyboard</pre></p><p>This is a rather absurd proposition.</p><p>I have a 2016 macbook pro escape and I&#x27;m currently on my 4th topcase because of
@@ -725,8 +725,8 @@ with its mastery of hardware design can fully solve.</p><p>Just get an air duste
     <dc:date>2018-05-04T07:38:07+00:00</dc:date>
   </entry>
   <entry>
-    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
-    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <id>https://m4.rkw.io/blog/cve201716512-hashicorp-vagrantvmwarefusion-v502504-local-root</id>
+    <link href="https://m4.rkw.io/blog/cve201716512-hashicorp-vagrantvmwarefusion-v502504-local-root"/>
     <summary><p>Another Hashicorp bug that I&#x27;ve been sitting on since late last year. This one
 was exploitable only during the vagrant update process, or even if the user
 typed &quot;vagrant plugin update&quot; and there was no pending update.</p><p>It was possible for a rogue process on the system to subvert the upgrade process
@@ -782,8 +782,8 @@ done
     <dc:date>2018-03-28T21:08:28+00:00</dc:date>
   </entry>
   <entry>
-    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
-    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <id>https://m4.rkw.io/blog/cve201716839-hashicorp-vagrantvmwarefusion-v504-local-root</id>
+    <link href="https://m4.rkw.io/blog/cve201716839-hashicorp-vagrantvmwarefusion-v504-local-root"/>
     <summary><p>Another exploit for the now deprecated vagrant-vmware-fusion plugin. This one
 only works if VMware Fusion is not installed which is an unlikely scenario.
 However if this should occur then it&#x27;s an easy root escalation so users should
@@ -898,8 +898,8 @@ cd
     <dc:date>2018-03-28T21:03:02+00:00</dc:date>
   </entry>
   <entry>
-    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
-    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <id>https://m4.rkw.io/blog/cve201716873-hashicorp-vagrantvmwarefusion-v4025504-local-root</id>
+    <link href="https://m4.rkw.io/blog/cve201716873-hashicorp-vagrantvmwarefusion-v4025504-local-root"/>
     <summary><p>This issue was reported to Hashicorp on 16/11/17. At first they claimed it was
 low priority because it required local access, despite being a straight-to-root
 escalation. Then they conceded that this wasn&#x27;t reasonable and said it was high
@@ -981,8 +981,8 @@ attempt &quot;awk&quot;</p><p>cleanup</p><p>echo &quot;not vulnerable&quot;
     <dc:date>2018-03-28T07:22:01+00:00</dc:date>
   </entry>
   <entry>
-    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
-    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <id>https://m4.rkw.io/blog/minotaur-fanotaur-and-excavataur</id>
+    <link href="https://m4.rkw.io/blog/minotaur-fanotaur-and-excavataur"/>
     <summary><p>I have released three cryptocurrency mining projects:</p><p><pre>- Fanotaur: independently monitors Nvidia card temperatures and regulates fan
   speeds to keep them at a preset temperature.</pre></p><p>- Minotaur: derives calibrated hashrates and power limits from your devices for
   various crypto algorithms so as to get the maximum hashrate with the lowest
@@ -996,8 +996,8 @@ attempt &quot;awk&quot;</p><p>cleanup</p><p>echo &quot;not vulnerable&quot;
     <dc:date>2018-01-31T08:53:37+00:00</dc:date>
   </entry>
   <entry>
-    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
-    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <id>https://m4.rkw.io/blog/two-local-root-privesc-bugs-in-arq-backup--510</id>
+    <link href="https://m4.rkw.io/blog/two-local-root-privesc-bugs-in-arq-backup--510"/>
     <summary><p>Last year I found a couple more privilege escalation vectors in Arq Backup
 for Mac version 5.10. Both have now been fixed in the latest release.</p><p>The first is relatively simple - the arq_updater binary (which runs as root)
 takes a path argument for the url to retrieve an Arq update from in the format
@@ -1044,8 +1044,8 @@ cron interval to arrive and our payload gets executed.</p><p>Both of these issue
     <dc:date>2018-01-29T06:33:01+00:00</dc:date>
   </entry>
   <entry>
-    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
-    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <id>https://m4.rkw.io/blog/protecting-against-unsafe-use-of-screentmux</id>
+    <link href="https://m4.rkw.io/blog/protecting-against-unsafe-use-of-screentmux"/>
     <summary><p>It occurred to me recently that a lot of people probably use screen or tmux in
 ways that leave an easy path to privilege escalation open. For example if you
 start a screen session as your local user and then escalate to root inside the
@@ -1158,8 +1158,8 @@ to use a tiny bit of python to expand the symlinks.
     <dc:date>2017-12-15T09:35:22+00:00</dc:date>
   </entry>
   <entry>
-    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
-    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <id>https://m4.rkw.io/blog/macos-high-sierra-10131-insecure-cron-system</id>
+    <link href="https://m4.rkw.io/blog/macos-high-sierra-10131-insecure-cron-system"/>
     <summary><p>Recently I was working on a security issue in some other software that has yet
 to be disclosed which created a rather interesting condition. As a non-root
 user I was able to write to any file on the system that was not SIP-protected
@@ -1176,8 +1176,8 @@ issue or a hangover from the BSD-inherited cron system, I suspect the latter.</p
     <dc:date>2017-12-06T07:32:52+00:00</dc:date>
   </entry>
   <entry>
-    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
-    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <id>https://m4.rkw.io/blog/murus-firewall-1411-escalation-hihack--root-privesc</id>
+    <link href="https://m4.rkw.io/blog/murus-firewall-1411-escalation-hihack--root-privesc"/>
     <summary><p>I recently blogged about the prevalence of escalation hijack vulnerabilities
 amongst macOS applications. One example of this is the latest version of Murus
 firewall. By design it requires the user to authenticate every time in order to
@@ -1240,8 +1240,8 @@ done</p><p>echo &quot;kapow&quot;</p><p>/tmp/murus411_exp
     <dc:date>2017-12-04T12:23:56+00:00</dc:date>
   </entry>
   <entry>
-    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
-    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <id>https://m4.rkw.io/blog/owning-virtualbox-via-mitm</id>
+    <link href="https://m4.rkw.io/blog/owning-virtualbox-via-mitm"/>
     <summary><p>VirtualBox is a virtualisation application written by Oracle that is quite popular
 presumably because its free. I&#x27;m not a fan myself - if my mac locks up
 completely or kernel panics it&#x27;s usually because I&#x27;ve loaded the vbox kernel
@@ -1438,8 +1438,8 @@ system(&quot;rm -rf vbox_exp_temp&quot;)</p><p>puts &quot;\ncreated backdoored e
     <dc:date>2017-11-30T08:25:03+00:00</dc:date>
   </entry>
   <entry>
-    <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
-    <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
+    <id>https://m4.rkw.io/blog/escalation-hijacking-on-macs</id>
+    <link href="https://m4.rkw.io/blog/escalation-hijacking-on-macs"/>
     <summary><p>With all the hype today about the blank-password root bug in High Sierra I
 thought I&#x27;d write a quick post about escalation hihacking on macOS and how
 common it is for software to be vulnerable to this.</p><p>Consider the case of malware gaining execution on a mac. This is pretty bad to
@@ -1469,5 +1469,5 @@ malware so that they can escalate opportunistically.
     <updated>2017-11-29T21:04:29+00:00</updated>
     <dc:date>2017-11-29T21:04:29+00:00</dc:date>
   </entry>
-  <dc:date>2022-02-14T11:12:18+00:00</dc:date>
+  <dc:date>2022-02-14T11:20:24+00:00</dc:date>
 </feed>
