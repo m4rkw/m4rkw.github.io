@@ -6,7 +6,7 @@
   </author>
   <id>https://m4.rkw.io/blog/</id>
   <title>m4.rkw.io</title>
-  <updated>2022-02-14T11:28:56+00:00</updated>
+  <updated>2022-02-14T11:45:43+00:00</updated>
   <entry>
     <id>https://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy</id>
     <link href="https://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy"/>
@@ -418,8 +418,7 @@ first suggestion was to try creating a new user account and seeing if that would
 sync. I took exception to this - I don&#x27;t need this to work on another account, I
 need it to work on *this* account. I hung up the call and decided to investigate
 myself.</p><p>I knew from previous messing around with macOS that the main process involved in
-iCloud Drive syncing was bird. I decided to see if it was logging anything:</p><p><pre>
-$ log stream |egrep -i bird
+iCloud Drive syncing was bird. I decided to see if it was logging anything:</p><p><pre>$ log stream |egrep -i bird
 2019-07-09 18:11:09.546067+0100 0x5afcd    Activity    0x6c4a4              1609   0    bird: (CloudDocsDaemon) server-zone/did-sync-down
 2019-07-09 18:11:10.672324+0100 0x5afcd    Activity    0x6c4a5              1609   0    bird: (CloudDocsDaemon) server-zone/did-sync-down
 2019-07-09 18:11:11.626342+0100 0x5afcd    Activity    0x6c4a6              1609   0    bird: (CloudDocsDaemon) server-zone/did-sync-down
@@ -1469,5 +1468,5 @@ malware so that they can escalate opportunistically.
     <updated>2017-11-29T21:04:29+00:00</updated>
     <dc:date>2017-11-29T21:04:29+00:00</dc:date>
   </entry>
-  <dc:date>2022-02-14T11:28:56+00:00</dc:date>
+  <dc:date>2022-02-14T11:45:43+00:00</dc:date>
 </feed>
