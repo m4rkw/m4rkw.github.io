@@ -6,7 +6,7 @@
   </author>
   <id>https://m4.rkw.io/blog/</id>
   <title>m4.rkw.io</title>
-  <updated>2022-02-14T11:09:33+00:00</updated>
+  <updated>2022-02-14T11:12:18+00:00</updated>
   <entry>
     <id>http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html</id>
     <link href="http://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy.html"/>
@@ -506,7 +506,7 @@ cases there may have been nothing actually wrong. The only issue was that the UI
 gives no indication of what it&#x27;s doing so the user thinks it isn&#x27;t doing
 anything</p><p>This is bad design.
 </p></summary>
-    <title>The real reason your iCloud Drive isn't syncing</title>
+    <title>The real reason your iCloud Drive isn&#x27;t syncing</title>
     <updated>2019-07-09T18:34:11+00:00</updated>
     <dc:date>2019-07-09T18:34:11+00:00</dc:date>
   </entry>
@@ -1039,7 +1039,7 @@ cron interval to arrive and our payload gets executed.</p><p>Both of these issue
 1557066028363d7961ec04d7af52cdab41a34234c5aa1e9fe22d0ca36ab651e1
 ------------------------------------------------------------------------------
 </pre></p></summary>
-    <title>Two local root privesc bugs in Arq Backup <= 5.10</title>
+    <title>Two local root privesc bugs in Arq Backup &lt;= 5.10</title>
     <updated>2018-01-29T06:33:01+00:00</updated>
     <dc:date>2018-01-29T06:33:01+00:00</dc:date>
   </entry>
@@ -1469,5 +1469,5 @@ malware so that they can escalate opportunistically.
     <updated>2017-11-29T21:04:29+00:00</updated>
     <dc:date>2017-11-29T21:04:29+00:00</dc:date>
   </entry>
-  <dc:date>2022-02-14T11:09:33+00:00</dc:date>
+  <dc:date>2022-02-14T11:12:18+00:00</dc:date>
 </feed>
