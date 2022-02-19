@@ -6,7 +6,7 @@
   </author>
   <id>https://m4.rkw.io/blog/</id>
   <title>m4.rkw.io</title>
-  <updated>2022-02-19T14:12:01+00:00</updated>
+  <updated>2022-02-19T14:29:43+00:00</updated>
   <entry>
     <id>https://m4.rkw.io/blog/touchid-over-ssh-part-2-secretive-agent</id>
     <link href="https://m4.rkw.io/blog/touchid-over-ssh-part-2-secretive-agent"/>
@@ -48,7 +48,15 @@ forwarded socket on the remote machine can attempt to make use of any keys that
 are held on the agent which could potentially be used to access other machines
 that accept those keys. To mitigate this it&#x27;s worth making sure that all of your
 keys in Secretive are set to require touchID so they can&#x27;t be silently used
-without your awareness.
+without your awareness.</p><p>Another really cool thing you can do with this approach is to delegate a key on
+your iOS device as having sudo access as well. For example if you create a new
+ssh key in your SSH client on iOS, add it to the authorized_keys file specified
+above and enable agent forwarding on the connection you can then invoke sudo and
+it will use the key from the agent to authenticate sudo - passwordless and
+without any prompt. Because iOS devices are inherently very secure this is a
+reasonable tradeoff - my SSH client (Shelly) requires faceID when it loads.</p><p>Prevously I was using the Duo PAM module to authenticate sudo over SSH when
+connecting from my iOS device but this new method is much quicker and easier as
+there&#x27;s no confirmation step.
 </p></summary>
     <title>TouchID over SSH part 2: Secretive agent</title>
     <updated>2022-02-19T13:46:16+00:00</updated>
@@ -1483,5 +1491,5 @@ system(&quot;rm -rf vbox_exp_temp&quot;)</pre></p><p><pre>puts &quot;\ncreated b
     <updated>2017-11-30T08:25:03+00:00</updated>
     <dc:date>2017-11-30T08:25:03+00:00</dc:date>
   </entry>
-  <dc:date>2022-02-19T14:12:01+00:00</dc:date>
+  <dc:date>2022-02-19T14:29:43+00:00</dc:date>
 </feed>
