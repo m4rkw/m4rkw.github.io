@@ -6,7 +6,54 @@
   </author>
   <id>https://m4.rkw.io/blog/</id>
   <title>m4.rkw.io</title>
-  <updated>2022-02-14T12:03:52+00:00</updated>
+  <updated>2022-02-19T14:12:01+00:00</updated>
+  <entry>
+    <id>https://m4.rkw.io/blog/touchid-over-ssh-part-2-secretive-agent</id>
+    <link href="https://m4.rkw.io/blog/touchid-over-ssh-part-2-secretive-agent"/>
+    <summary><p>For some time I&#x27;ve been using a hand-rolled solution for touchID over ssh which
+I previously blogged about. Up until recently it&#x27;s been a somewhat
+loosely-compiled scattering of config that wasn&#x27;t really in a releasable form
+but with a pending security talk on the horizon I thought it would be worth
+tidying it up and making it releasable so I could mention it in my talk.</p><p>That code can be found here: https://github.com/m4rkw/touchid-remote</p><p>However when I was compiling it I was under the impression that one of the tools
+it relies on - touch2sudo - was merely a standalone binary for authenticating
+sudo commands locally. I didn&#x27;t realise that the author had also noted in the
+README that it&#x27;s possible to use it over SSH. The solution presented there
+involves forwarding the local ssh agent over the SSH connection and then
+configuring touch2sudo as the askpass agent.</p><p>This is cool and has some advantages over my solution - there are no static
+secrets that need to be configured and no local server daemon that needs to be
+running locally.</p><p>It got me thinking though, for a while I&#x27;ve been using Secretive for ssh keys -
+https://github.com/maxgoedjen/secretive. This lets you create ssh keys in the
+mac&#x27;s secure enclave so the private key cannot be extracted. When you create
+such a key you can optionally choose to require touchID authentication with it.
+I wondered if I could perhaps use this instead of touch2sudo for a simpler
+solution that required less config and no local server daemon.</p><p>The pam_ssh_auth_agent PAM module is available for Debian distributions but the
+version that came with my machines was 0.10.3 which segfaults when used with
+keys from the secure enclave. 0.10.4 also seems to do this but the latest code
+on github works.</p><p>Here&#x27;s the setup process.</p><p>1) Compile and install pam_ssh_agent_auth on your target machines:</p><p><pre>$ git clone https://github.com/jbeverly/pam_ssh_agent_auth
+$ cd pam_ssh_agent_auth
+$ git submodule init
+$ git submodule update
+$ ./configure --without-openssl-header-check # this flag was necessary for me
+$ make
+$ sudo make install</pre></p><p>2) Add this line to your sudoers file:</p><p><pre>Defaults env_keep += SSH_AUTH_SOCK</pre></p><p>3) Enable the module in /etc/pam.d/sudo:</p><p><pre>auth sufficient /usr/local/libexec/pam_ssh_agent_auth.so file=/etc/ssh/sudo_authorized_keys/%u</pre></p><p>4) Create the authorized_keys file with the public key from Secretive, this
+should be set to require touchID and the file should be root-owned and mode
+0600.</p><p>5) Configure the local ssh connection in ~/.ssh/config:</p><p><pre>Host myserver
+  Hostname myserver.mydomain.com
+  IdentityAgent ~/Library/Containers/com.maxgoedjen.Secretive.SecretAgent/Data/socket.ssh
+  ForwardAgent yes</pre></p><p>Now connect to the machine and execute sudo, you should get a touchID prompt
+from Secretive asking you to authenticate. This is very cool and doesn&#x27;t require
+touch2sudo at all, everything is done by the Secretive agent.</p><p>It&#x27;s important to understand the security implications of forwarding your local
+agent to the remote server. An adversary that manages to gain access to the
+forwarded socket on the remote machine can attempt to make use of any keys that
+are held on the agent which could potentially be used to access other machines
+that accept those keys. To mitigate this it&#x27;s worth making sure that all of your
+keys in Secretive are set to require touchID so they can&#x27;t be silently used
+without your awareness.
+</p></summary>
+    <title>TouchID over SSH part 2: Secretive agent</title>
+    <updated>2022-02-19T13:46:16+00:00</updated>
+    <dc:date>2022-02-19T13:46:16+00:00</dc:date>
+  </entry>
   <entry>
     <id>https://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy</id>
     <link href="https://m4.rkw.io/blog/restricting-macos-egress-with-lulu-and-squid-proxy"/>
@@ -1436,37 +1483,5 @@ system(&quot;rm -rf vbox_exp_temp&quot;)</pre></p><p><pre>puts &quot;\ncreated b
     <updated>2017-11-30T08:25:03+00:00</updated>
     <dc:date>2017-11-30T08:25:03+00:00</dc:date>
   </entry>
-  <entry>
-    <id>https://m4.rkw.io/blog/escalation-hijacking-on-macs</id>
-    <link href="https://m4.rkw.io/blog/escalation-hijacking-on-macs"/>
-    <summary><p>With all the hype today about the blank-password root bug in High Sierra I
-thought I&#x27;d write a quick post about escalation hihacking on macOS and how
-common it is for software to be vulnerable to this.</p><p>Consider the case of malware gaining execution on a mac. This is pretty bad to
-begin with but it&#x27;s all the more worse if the malware obtains root access. Even
-with apple&#x27;s &quot;rootless&quot; feature it still provides a potential path to
-rootkitting the machine, loading kexts etc.</p><p>I&#x27;ve found a slew of privilege escalation issues in various Mac applications
-this year but as well as these more direct exploits I&#x27;ve also noticed that a lot
-of mac software that requires elevated privileges requested with an
-authentication prompt does so in a way that can be easily and silently hijacked
-by a third party process.</p><p>The two most common insecure ways of doing this that I&#x27;ve seen are:</p><p><pre>1) sudo</pre></p><p>2) applescript via osascript, eg &quot;execute blah with administrator privileges&quot;</p><p>In both cases these actions pause waiting for user authentication and are
-clearly visible in the process list. Since we can see the exact shell commands
-that are going to be executed with sudo or osascript and that the user will take
-at least a couple of seconds to enter their password, we have the perfect
-opportunity to steal the escalation.</p><p>Consider this sudo command in the process list:</p><p><pre>sudo chown root:wheel /tmp/some/file &amp;&amp; sudo chmod 4755 /tmp/some/file</pre></p><p>If we know that this will occasionally occur given that application X is
-installed we can lie in wait until it happens and then switch /tmp/some/file out
-for some other arbitrary payload. Once it&#x27;s been made root-owned and +s we can
-then use it to escalate, swap the original file back in place and set the
-required permissions on that so the user will have no idea that anything
-happened.</p><p>To make this even easier we can even send a STOP signal to the parent process to
-effectively pause it until our meddling is complete and then send a CONT signal
-to resume it.</p><p>An example of an exploit using this technique is my code for the 5.0.0 release
-of the Hashicorp vagrant-vmware-fusion plugin:</p><p><pre>https://m4.rkw.io/blog/cve201715884-local-root-privesc-in-hashicorp-vagrantvmwarefusion-500.html</pre></p><p>However this vulnerability is present in loads of Mac software. Eventually smart
-malware authors will realise this and start rolling such exploits into their
-malware so that they can escalate opportunistically.
-</p></summary>
-    <title>Escalation hijacking on macs</title>
-    <updated>2017-11-29T21:04:29+00:00</updated>
-    <dc:date>2017-11-29T21:04:29+00:00</dc:date>
-  </entry>
-  <dc:date>2022-02-14T12:03:52+00:00</dc:date>
+  <dc:date>2022-02-19T14:12:01+00:00</dc:date>
 </feed>
