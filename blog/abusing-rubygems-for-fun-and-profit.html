@@ -43,7 +43,7 @@ On Ubuntu, Centos and probably most other linux distros, /usr/local/bin takes pr
 over /bin, /usr/bin, /sbin etc.  This means we can drop a fake &quot;ls&quot; script into
 /usr/local/bin/ which will get executed every time the user types ls.
 
-A PoC for this can be found here: https://github.com/m4rkw/rubygems-poc
+A PoC for this can be found here: <a href="https://github.com/m4rkw/rubygems-poc">https://github.com/m4rkw/rubygems-poc</a>
 
 Once installed the fake ls binary takes precedence and can then silently run whatever
 malicious code you like (eg a connect-back shell to a remote system) before passing

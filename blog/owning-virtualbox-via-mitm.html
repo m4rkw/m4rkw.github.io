@@ -43,13 +43,13 @@ I discovered back in May that if certain conditions are met it&#x27;s possible t
 achieve RCE in the VirtualBox application if you can MITM a user&#x27;s traffic. This
 is possible because, bizarrely, VirtualBox downloads updates over plain http:
 
-https://m4.rkw.io/img/vbox_nossl.png
+<img src="https://m4.rkw.io/img/vbox_nossl.png" />
 
 This is true for both the pkg installer (which carries an Apple Developer code
 signature, making tampering with it tricky) and also for the multi-architecture
 extension pack, which has no code signature.
 
-https://m4.rkw.io/img/vbox_nossl2.png
+<img src="https://m4.rkw.io/img/vbox_nossl2.png" />
 
 Despite reporting this to Oracle nearly 7 months ago they still haven&#x27;t managed
 to put an SSL certificate on the download site. Hopefully this advisory will
@@ -61,7 +61,7 @@ Little Snitch shows that vbox does talk to update.virtualbox.org over https to
 retrieve the version information, but the extension pack itself is downloaded
 over http.
 
-https://m4.rkw.io/img/vbox_ls.png
+<img src="https://m4.rkw.io/img/vbox_ls.png" />
 
 The extension pack for macOS is a gzipped tarball containing these files:
 
@@ -140,7 +140,7 @@ sha256 hash check.
 The update process for vbox is:
 
 1) Older version (eg 5.1.20) is launched, the user is prompted to download the
-newest version.  The link provided here is http:// so this alone could be
+newest version.  The link provided here is <a href="<a href="http://">http://</a>"><a href="http://">http://</a></a> so this alone could be
 intercepted and modified, but it would require a developer cert to sign a new
 pkg bundle for the user to install.
 
@@ -152,7 +152,7 @@ correspond to the new extpack.
 Now if we MITM the request to download.virtualbox.org and send our hacked
 extpack, VirtualBox says:
 
-https://m4.rkw.io/img/vbox_reject.png
+<img src="https://m4.rkw.io/img/vbox_reject.png" />
 
 So it&#x27;s telling us to download it manually from the website.  A user seeing
 this probably wouldn&#x27;t suspect anything other than an Oracle mishap so they
@@ -161,7 +161,7 @@ website does say &quot;check the hashes&quot; and provides SHA256 and MD5 checks
 are served over SSL).
 
 The website www.virtualbox.org is served over SSL.. but the download link for
-the extension pack points to download.virtualbox.org over http://. This is bad
+the extension pack points to download.virtualbox.org over <a href="<a href="http://">http://</a>"><a href="http://">http://</a></a>. This is bad
 because it means we can leave www.virtualbox.org un-messed-with so the user sees
 the SSL load correctly (and is lulled into a false sense of security because of
 the SSL padlock), but still MITM download.virtualbox.org in order to send our
@@ -198,7 +198,7 @@ $ nc -l 5555
 
 and then start any vm.
 
-https://m4.rkw.io/vbox_extpack_builder.rb.txt
+<a href="https://m4.rkw.io/vbox_extpack_builder.rb.txt">https://m4.rkw.io/vbox_extpack_builder.rb.txt</a>
 6148d6aa7ad2896ae3679ed8e2ff46e7156fd9db9c9ef39fa4116c9566848606
 ----------------------------------------------------------------------------
 #!/usr/bin/env ruby
@@ -300,12 +300,12 @@ Dir.chdir(&quot;vbox_exp_temp&quot;)
 
 puts &quot;looking for latest extpack at virtualbox.org...&quot;
 
-downloads_html = `curl -s https://www.virtualbox.org/wiki/Downloads`
+downloads_html = `curl -s <a href="https://www.virtualbox.org/wiki/Downloads`">https://www.virtualbox.org/wiki/Downloads`</a>
 
 match = downloads_html.match(/http:\/\/download\.virtualbox\.org\/virtualbox\/[\d\.]+\/Oracle_VM_VirtualBox_Extension_Pack[\d\.\-]+\.vbox-extpack/)
 
 if !match or !match[0]
-  puts &quot;failed to find http:// link to the extpack.&quot;
+  puts &quot;failed to find <a href="<a href="http://">http://</a>"><a href="http://">http://</a></a> link to the extpack.&quot;
   exit 1
 end
 
