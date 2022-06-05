@@ -28,12 +28,13 @@
             <div id="main-content">
                             <h1>Profile</h1>
 
-            <p>I am fluent in several programming languages and currently work as a Big Data
-            engineer.</p>
+            <p>I am fluent in several programming languages and currently work for G-Research
+            as a Big Data platform engineer. Opinions expressed here are my own and not those
+            of my employer.</p>
 
             <p>In my spare time I do a bit of security research and have found vulnerabilities in
-            several popular Mac applications. I enjoy working with software vendors to help make
-            the mac software ecosystem more secure.</p>
+            several popular Mac applications. I am an automation-obsessed DevOps engineer/developer
+            and try to automate everthing.</p>
 
             <p>Check out my blog here: <a href="/blog.html">https://m4.rkw.io/blog.html</a></p>
             </div>
