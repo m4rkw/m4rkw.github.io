@@ -6,7 +6,40 @@
   </author>
   <id>https://m4.rkw.io/blog/</id>
   <title>m4.rkw.io</title>
-  <updated>2022-06-05T11:57:09+00:00</updated>
+  <updated>2022-06-08T20:31:41+00:00</updated>
+  <entry>
+    <id>https://m4.rkw.io/blog/bye-bye-protonmail</id>
+    <link href="https://m4.rkw.io/blog/bye-bye-protonmail"/>
+    <summary><p>I recently blogged about my ProtonMail issues, the weird glitches with their
+bridge IMAP interface and their apparent lack of care that it might be silently
+deleting customer data - https://github.com/ProtonMail/proton-bridge/issues/220</p><p>I have now finally gotten around to kicking ProtonMail out of my life and I
+could not be happier. Gone are the days of having to run some janky Go software
+just to get an unstable IMAP interface. Gone are randomly changing message UIDs
+invalidating backups. Gone is the totally batshit way that messages can become
+orphaned from any folder and not show up anywhere other than &quot;All Mail&quot;.</p><p>Suddenly I have normal IMAP that works, it even works on iOS (!) and in the
+webmail I can operate on more than 50 messages at once. I can in fact perform a
+quick operation on the entire resultset of a search. Try doing that in Proton&#x27;s
+webmail. I have lost hours of my life to messing around just try to carry out
+basic operations on their platform and I&#x27;m so glad to be rid of it.</p><p>My new email provider, FastMail, lives up to its name. It&#x27;s also an Australian
+company with servers in the US, so five-eyes, but I just don&#x27;t care anymore. I
+think ProtonMail is ultimately selling the illusion of privacy to most of their
+customers. Yes its true message contents are encrypted and it&#x27;s probably also
+true that Proton staff have no access to the keys or the data, however anyone
+who knows anything about how SMTP works will know that GCHQ &amp; friends very
+likely have near total ingest of all messages sent in the UK regardless of
+which email system people are using.</p><p>I&#x27;m fairly sure its been reported that GCHQ capture practically everything and
+you only need to peruse an SC clearance application form to realise that they
+probably already have all of your email. Services like ProtonMail really just
+provide an illusion of privacy, if you actually needed real secrecy you&#x27;d be
+using PGP which works with any email platform.</p><p>For regular people who just have a continuous stream of Amazon order
+notifications and ebay invoices there&#x27;s really no point. Proton makes life
+harder in many ways, is cumbersome to use and since they apparently don&#x27;t really
+care that much if they accidentally delete your data.. why bother.
+</p></summary>
+    <title>Bye bye ProtonMail</title>
+    <updated>2022-06-08T21:10:35+00:00</updated>
+    <dc:date>2022-06-08T21:10:35+00:00</dc:date>
+  </entry>
   <entry>
     <id>https://m4.rkw.io/blog/psa-your-protonmail-backups-might-not-be-safe</id>
     <link href="https://m4.rkw.io/blog/psa-your-protonmail-backups-might-not-be-safe"/>
@@ -1328,23 +1361,5 @@ to use a tiny bit of python to expand the symlinks.
     <updated>2017-12-15T09:35:22+00:00</updated>
     <dc:date>2017-12-15T09:35:22+00:00</dc:date>
   </entry>
-  <entry>
-    <id>https://m4.rkw.io/blog/macos-high-sierra-10131-insecure-cron-system</id>
-    <link href="https://m4.rkw.io/blog/macos-high-sierra-10131-insecure-cron-system"/>
-    <summary><p>Recently I was working on a security issue in some other software that has yet
-to be disclosed which created a rather interesting condition. As a non-root
-user I was able to write to any file on the system that was not SIP-protected
-but the resulting file would not be root-owned, even if it previously was.</p><p>This presented an interesting challenge for privilege escalation - how would you
-exploit this to obtain root access? The obvious first attempt was the sudoers
-file but sudo is smart enough not to process it if the file isn&#x27;t root-owned so
-that didn&#x27;t work.</p><p>I then discovered (after a tip from a friend - thanks pndc!) that the cron
-system in macOS does not care who the crontab files are owned by. Getting root
-was a simple case of creating a crontab file at:</p><p><pre>/var/at/tabs/root</pre></p><p>with a 60-second cron line, eg:</p><p><pre>* * * * * chown root:wheel /tmp/payload &amp;&amp; chmod 4755 /tmp/payload</pre></p><p>and then waiting for it to execute. It&#x27;s not clear if this is a macOS-specific
-issue or a hangover from the BSD-inherited cron system, I suspect the latter.</p><p>The issue has been reported to Apple so hopefully they will fix it.
-</p></summary>
-    <title>macOS High Sierra 10.13.1 insecure cron system</title>
-    <updated>2017-12-06T07:32:52+00:00</updated>
-    <dc:date>2017-12-06T07:32:52+00:00</dc:date>
-  </entry>
-  <dc:date>2022-06-05T11:57:09+00:00</dc:date>
+  <dc:date>2022-06-08T20:31:41+00:00</dc:date>
 </feed>
