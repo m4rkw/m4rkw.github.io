@@ -34,7 +34,7 @@
 
             <p>In my spare time I do a bit of security research and have found vulnerabilities in
             several popular Mac applications. I am an automation-obsessed DevOps engineer/developer
-            and try to automate everthing.</p>
+            and try to automate everything.</p>
 
             <p>Check out my blog here: <a href="/blog.html">https://m4.rkw.io/blog.html</a></p>
             </div>
